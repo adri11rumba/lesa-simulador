@@ -249,6 +249,12 @@
     background:#fff;color:#555;cursor:pointer;font-family:'JetBrains Mono';font-size:10.5px;transition:.12s}
   .ptChip:hover{border-color:#1f6b1c;color:#1f6b1c}
   .ptChip.on{background:#1f6b1c;border-color:#1f6b1c;color:#fff;font-weight:700}
+  /* Desplegable de puntos disponibles: aparece al pulsar uno de los 2 puntos
+     de salida propuestos, permitiendo elegir cualquier otro punto válido. */
+  .exitPtDropdown{display:flex;flex-wrap:wrap;gap:5px;padding:5px 8px 7px 8px;
+    background:#fbf8f1;border-top:1px dashed #ddd5c2;margin-top:-1px}
+  .ptChip.ddOpt{border-style:dashed}
+  .ptChip.ddOpt.on{border-style:solid}
 
   /* ---------- Student strip (read-only, like the real ficha) ---------- */
   .sStrip{
@@ -471,7 +477,6 @@
         </div>
         <div class="f"><label>Origen</label><input id="f_orig" class="mono" placeholder="LESA" value="LESA"></div>
         <div class="f"><label>Destino</label><input id="f_dest" class="mono" placeholder="LETO" value="LETO"></div>
-        <div class="f"><label>Ruta / SID-STAR</label><input id="f_route" class="mono" placeholder="N0180 F035" value="N0180 F035"></div>
         <div class="f"><label>Nivel / Rumbo</label><input id="f_lvl" class="mono" placeholder="035" value="035"></div>
       </div>
       <div style="display:flex;gap:10px;align-items:center">
@@ -564,16 +569,47 @@ function flightRule(ac){
 // salida (antes de que despegue): los seis puntos VFR de la CTR más BBI, paso obligado
 // para encaminarse hacia cualquier punto de aproximación instrumental (ruta IFR).
 const EXIT_PT_OPTIONS=['N-1','N','E','E-1','S','W','BBI'];
+// Salidas VFR reales: sólo existen 4 combinaciones posibles de "punto de salida"
+// (un punto interior obligado + un punto exterior), según la dirección de despegue
+// y la plataforma de procedencia de la aeronave:
+//   · Salida hacia el norte (RWY 03 activa, rumbo de salida ~028°) → punto interior N-1,
+//     y exterior N (plataforma civil) o W (plataforma militar)
+//   · Salida hacia el sur   (RWY 21 activa, rumbo de salida ~208°) → punto interior E-1,
+//     y exterior E (plataforma civil) o S (plataforma militar)
+// Combinaciones: {N-1,N} {N-1,W} {E-1,E} {E-1,S} — exactamente las que va a usar cada vuelo.
+function exitPtPairFor(a){
+  const north = activeRwy==='03'; // RWY 03 -> rumbo de salida ~028° (hacia el N/NE): "salen por el norte" => N-1
+  if(north) return (a.platform==='MIL') ? ['N-1','W'] : ['N-1','N'];
+  return (a.platform==='MIL') ? ['E-1','S'] : ['E-1','E']; // RWY 21 -> ~208° (hacia el S/SW): "salen por el sur" => E-1
+}
+// id de la aeronave cuyo desplegable de "puntos disponibles" está abierto (o null)
+let exitPtDropdownFor=null;
 // Genera el selector de "punto de salida" que aparece en la ficha de una salida
 // mientras siga en tierra (PROG/RODAJE/ESPERA/PISTA, sin haber despegado todavía):
-// permite planificar por qué punto abandonará la CTR antes de darle ninguna instrucción.
+// muestra ÚNICAMENTE los 2 puntos que esa salida va a usar (según pista activa y
+// plataforma) — pulsando sobre cualquiera de ellos se despliega la lista de puntos
+// disponibles para poder editar/elegir el punto de salida real.
 // Una vez en el aire (tTakeoff asignado) la ficha deja de mostrar el selector.
 function exitPtPicker(a){
   if(a.op!=='DEP' || a.tTakeoff!=null) return '';
-  const chips=EXIT_PT_OPTIONS.map(p=>
-    `<span class="ptChip ${a.plannedExitPt===p?'on':''}" data-setpt-id="${a.id}" data-setpt-val="${p}">${p}</span>`
+  const pair=exitPtPairFor(a);
+  const chips=pair.map(p=>
+    `<span class="ptChip ${a.plannedExitPt===p?'on':''}" data-toggledd-id="${a.id}">${p}</span>`
   ).join('');
-  return `<div class="exitPtRow"><span class="lbl">Punto de salida:</span>${chips}</div>`;
+  let dd='';
+  if(exitPtDropdownFor===a.id){
+    const opts=EXIT_PT_OPTIONS.map(p=>
+      `<span class="ptChip ddOpt ${a.plannedExitPt===p?'on':''}" data-setpt-id="${a.id}" data-setpt-val="${p}">${p}</span>`
+    ).join('');
+    dd=`<div class="exitPtDropdown"><span class="lbl">Editar — puntos disponibles:</span>${opts}</div>`;
+  }
+  return `<div class="exitPtRow"><span class="lbl">Punto de salida:</span>${chips}</div>${dd}`;
+}
+// Abre/cierra el desplegable de puntos disponibles para editar el punto de salida
+// de una aeronave (al pulsar sobre uno de los 2 puntos propuestos en la ficha).
+function toggleExitPtDropdown(id){
+  exitPtDropdownFor=(exitPtDropdownFor===id)?null:id;
+  syncUI();
 }
 // Asigna (o quita, si se repite la pulsación) el punto de salida planificado para una
 // salida que aún no ha despegado — sirve sólo de planificación/etiqueta (VFR/IFR);
@@ -582,6 +618,7 @@ function setExitPoint(id,pt){
   const ac=aircraft.find(x=>x.id===id);
   if(!ac||ac.op!=='DEP'||ac.tTakeoff!=null) return;
   ac.plannedExitPt=(ac.plannedExitPt===pt)?null:pt;
+  exitPtDropdownFor=null; // al elegir, se cierra el desplegable
   log(`${ac.cs}: salida planificada por punto ${ac.plannedExitPt||'(sin asignar)'}`);
   syncUI();
 }
@@ -883,7 +920,8 @@ function addFlight(){
     op:document.getElementById('f_op').value,
     orig:document.getElementById('f_orig').value.trim().toUpperCase()||'LESA',
     dest:document.getElementById('f_dest').value.trim().toUpperCase()||'----',
-    route:document.getElementById('f_route').value.trim().toUpperCase()||'',
+    route:'', // se elimina el campo de ruta del formulario: el punto de salida real
+              // se planifica/edita desde la propia ficha de vuelo (ver exitPtPicker)
     lvl:document.getElementById('f_lvl').value.trim().toUpperCase()||'035',
     spawned:false
   });
@@ -1013,7 +1051,7 @@ function renderSchedList(){
         <span class="tt">${fmtMS(f.time)}</span>
         <span class="cs">${f.cs}</span>
         <span>${f.type}</span>
-        <span>${f.orig}→${f.dest} <span style="color:#667">${f.route}</span></span>
+        <span>${f.orig}→${f.dest}</span>
         <span class="tag ${f.op}">${f.op}</span>
         <span class="del" onclick="delFlight(${i})">✕</span>
       </div>`).join('');
@@ -1268,15 +1306,26 @@ function step(dt){
               }
             }
           }else{
-            const turnRate=90;
+            // Rutas encadenadas (trazadas por el controlador con Ctrl+clic) deben
+            // volarse de forma «ortopédica»: tramos rectos punto a punto, virando
+            // CON PRECISIÓN sobre cada punto, sin anticipar el giro ni "cortar" la
+            // curva (sin suavizado). Para ello, cuando se sigue una ruta encadenada,
+            // se exige llegar muy cerca del punto antes de virar hacia el siguiente
+            // y el viraje en el punto es más vivo (more rápido), de modo que el
+            // cambio de rumbo se produzca justo en el punto, no antes.
+            const followingRoute = !!(ac.route && ac.route.length);
+            const turnRate = followingRoute ? 200 : 90;
             ac.hdg=turnToward(ac.hdg,want,turnRate*dt); // grados/s aprox
-            const arriveDist=300;
+            const arriveDist = followingRoute ? 80 : 300;
             if(dist<arriveDist){
               if(ac.route&&ac.route.length){
                 const nxt=ac.route.shift();
                 ac.target={mode:'xy',x:nxt.x,y:nxt.y};
+                // el punto alcanzado desaparece de la ruta dibujada (Ctrl+clic)
+                if(ac===selected && plannedRoute.length) plannedRoute.shift();
               }else{
                 arriveTarget(ac);
+                if(ac===selected && plannedRoute.length) plannedRoute.shift();
               }
             }
           }
@@ -1387,8 +1436,42 @@ function cmd(action,arg){
       log(`${ac.cs}: ruede al punto de espera RWY ${depRwy(ac)} por la calle de rodaje`);
       break;
     }
-    case 'lineup': ac.state=STATES.PISTA; ac.spd=0; ac.target=null; ac.hdg=depHdg(ac); if(!ac.tContact)ac.tContact=simTime; log(`${ac.cs}: alinearse RWY ${depRwy(ac)}`);break;
-    case 'takeoff': ac.state=STATES.PISTA; ac.tTakeoff=simTime; log(`${ac.cs}: autorizado despegue`);break;
+    case 'lineup': {
+      // "Alinearse": entra en pista y se sitúa exactamente sobre el eje de la
+      // pista activa, en la cabecera desde la que va a iniciar la carrera de
+      // despegue (misma fórmula que usa quickTakeoff) — así, cuando se autorice
+      // el despegue, el avión rueda recto por el eje de pista y no por un punto
+      // desplazado lateralmente (p.ej. el punto de espera, junto al borde).
+      const dir=RWY.hdg*Math.PI/180;
+      const ax=Math.sin(dir), ay=-Math.cos(dir);
+      const sgn = activeRwy==='21' ? +1 : -1;
+      ac.state=STATES.PISTA; ac.spd=0; ac.target=null;
+      ac.x = ax*(RWY.len/2-40)*sgn;
+      ac.y = ay*(RWY.len/2-40)*sgn;
+      ac.hdg=depHdg(ac);
+      if(!ac.tContact)ac.tContact=simTime;
+      log(`${ac.cs}: alinearse RWY ${depRwy(ac)}`);
+      break;
+    }
+    case 'takeoff': {
+      // Carrera de despegue: si por lo que sea el avión todavía no estaba
+      // perfectamente alineado en el eje de la pista (p.ej. se autorizó el
+      // despegue sin pasar antes por "Alinearse"), lo colocamos ahora sobre
+      // el eje, en la cabecera correcta y con el rumbo de pista — así la
+      // aceleración y el despegue siempre transcurren en línea recta por el
+      // eje de la pista activa, nunca por "un sitio que no es".
+      if(ac.tTakeoff==null){
+        const dir=RWY.hdg*Math.PI/180;
+        const ax=Math.sin(dir), ay=-Math.cos(dir);
+        const sgn = activeRwy==='21' ? +1 : -1;
+        ac.x = ax*(RWY.len/2-40)*sgn;
+        ac.y = ay*(RWY.len/2-40)*sgn;
+        ac.hdg=depHdg(ac);
+      }
+      ac.state=STATES.PISTA; ac.target=null; ac.tTakeoff=simTime;
+      log(`${ac.cs}: autorizado despegue`);
+      break;
+    }
     case 'land': ac.state=STATES.FINAL; ac.target={mode:'xy',...rwyEnds()['thr'+activeRwy]}; log(`${ac.cs}: autorizado aterrizar RWY ${activeRwy}`);break;
     case 'downwind': {
       // El instructor elige directamente, para ESTA aeronave, por qué lado entra al
@@ -1535,26 +1618,6 @@ function syncUI(){
 /* ---------- Instructor strips ---------- */
 // Resume en texto la ruta de puntos que sigue actualmente la aeronave (destino actual + cola de waypoints),
 // identificando el nombre del punto de referencia más cercano cuando es posible.
-function routeSummary(ac){
-  const nameNear=(p)=>{
-    for(const k in REF) if(Math.hypot(REF[k].x-p.x,REF[k].y-p.y)<400) return k;
-    for(const k in APP_REF) if(Math.hypot(APP_REF[k].x-p.x,APP_REF[k].y-p.y)<400) return k;
-    return null;
-  };
-  const describe=(t)=>{
-    if(!t) return null;
-    if(t.mode==='point') return t.pt;
-    if(t.mode==='hold') return '◉ mantiene posición';
-    if(t.mode==='orbit') return '◌ orbitando';
-    if(t.mode==='xy') return nameNear(t)||'punto trazado';
-    return null;
-  };
-  const parts=[];
-  const cur=describe(ac.target);
-  if(cur) parts.push(cur);
-  if(ac.route&&ac.route.length) ac.route.forEach(p=>{ const d=nameNear(p)||'punto'; parts.push(d); });
-  return parts.length?parts.join(' → '):'—';
-}
 function renderStrips(){
   const el=document.getElementById('stripList');
   document.getElementById('stripCount').textContent=aircraft.length;
@@ -1573,15 +1636,11 @@ function renderStrips(){
       <div class="row2">
         <span>${a.orig}→${a.dest}</span>
         <span>FL${a.lvl}</span>
-        <span>${a.fplRoute||''}</span>
       </div>
       <div class="row3">
         <span>HC: ${a.tContact!=null?fmtMS(a.tContact):'--:--'}</span>
         <span>DEP: ${a.tTakeoff!=null?fmtMS(a.tTakeoff):'--:--'}</span>
         <span class="state st-${a.state}">${a.state}</span>
-      </div>
-      <div class="row4" style="font-size:10.5px;color:var(--green);letter-spacing:.5px;border-top:1px dashed var(--line);padding-top:5px;margin-top:1px">
-        🧭 Ruta: ${routeSummary(a)}
       </div>
       ${exitPtPicker(a)}
     </div>`;
@@ -1600,6 +1659,8 @@ function renderStrips(){
     if(delBtn){ e.stopPropagation(); removeAircraft(+delBtn.getAttribute('data-del-id')); return; }
     const ptChip=e.target.closest('[data-setpt-id]');
     if(ptChip){ e.stopPropagation(); setExitPoint(+ptChip.getAttribute('data-setpt-id'), ptChip.getAttribute('data-setpt-val')); return; }
+    const ddToggle=e.target.closest('[data-toggledd-id]');
+    if(ddToggle){ e.stopPropagation(); toggleExitPtDropdown(+ddToggle.getAttribute('data-toggledd-id')); return; }
     const row=e.target.closest('.strip');
     if(row && row.dataset.acId!==undefined) selectAc(+row.dataset.acId);
   });
@@ -1631,7 +1692,7 @@ function renderStudentStrips(){
   bar.innerHTML=aircraft.map(a=>`
     <div class="sStrip">
       <div class="top"><span class="cs">${a.cs}</span><span class="st st-${a.state}">${a.state}</span></div>
-      <div class="mid">${a.type} · ${a.op}<br>${a.orig} → ${a.dest}<br>${a.fplRoute||'—'}</div>
+      <div class="mid">${a.type} · ${a.op}<br>${a.orig} → ${a.dest}</div>
       <div class="bot"><span>FL${a.lvl}</span><span>${Math.round(a.spd)} kt</span><span>${Math.round(a.alt)} ft</span></div>
     </div>`).join('');
 }
