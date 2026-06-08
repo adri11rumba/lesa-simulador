@@ -148,7 +148,7 @@
 
   #colStrips{flex:0 0 340px}
   #stripList{flex:1;overflow-y:auto;padding:10px;display:flex;flex-direction:column;gap:10px}
-  .progList{max-height:190px;overflow-y:auto;padding:10px;display:flex;flex-direction:column;gap:6px}
+  .progList{height:190px;min-height:110px;max-height:65vh;resize:vertical;overflow-y:auto;padding:10px;display:flex;flex-direction:column;gap:6px}
   /* Diseño flexible que envuelve en dos líneas en vez de forzar columnas fijas:
      así nunca se corta ni se sale texto, sea cual sea el ancho del panel o la
      longitud del indicativo/ruta/botones (antes se desbordaba con "grid"). */
