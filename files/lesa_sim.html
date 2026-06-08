@@ -1,0 +1,2305 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LESA · Simulador de Control — Salamanca/Matacán</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap');
+
+  :root{
+    --bg:#0a0e0d;
+    --panel:#111816;
+    --panel2:#0d1311;
+    --ink:#cfe3da;
+    --ink-dim:#7f968d;
+    --line:#1f2d28;
+    --green:#3ddc84;
+    --green-dim:#1c7a48;
+    --amber:#ffb454;
+    --red:#ff5d5d;
+    --blue:#5da9ff;
+    --civ:#4a90d9;
+    --mil:#c98a3a;
+    --grid:#16221e;
+    --radarbg:#020806;
+    --radarline:#0e3b27;
+    --radarsweep:#3ddc84;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    background:
+      radial-gradient(1200px 600px at 70% -10%, #102018 0%, transparent 60%),
+      var(--bg);
+    color:var(--ink);
+    font-family:'Oswald',sans-serif;
+    overflow:hidden;
+  }
+  .mono{font-family:'JetBrains Mono',monospace}
+
+  /* ---------- Role selector ---------- */
+  #roleScreen{
+    position:fixed;inset:0;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;gap:40px;z-index:100;
+    background:radial-gradient(900px 500px at 50% 30%, #0f1d16, var(--bg));
+  }
+  #roleScreen h1{
+    font-size:54px;font-weight:700;letter-spacing:6px;
+    color:var(--green);text-shadow:0 0 30px rgba(61,220,132,.3);
+  }
+  #roleScreen .sub{color:var(--ink-dim);letter-spacing:3px;font-size:15px;margin-top:-26px;text-transform:uppercase}
+  .roleCards{display:flex;gap:30px}
+  .roleCard{
+    width:280px;height:300px;background:var(--panel);
+    border:1px solid var(--line);border-radius:14px;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;
+    cursor:pointer;transition:.25s;position:relative;overflow:hidden;
+  }
+  .roleCard:hover{border-color:var(--green);transform:translateY(-6px);box-shadow:0 20px 50px rgba(0,0,0,.5)}
+  .roleCard .ic{font-size:66px}
+  .roleCard h2{font-size:26px;letter-spacing:3px;font-weight:600}
+  .roleCard p{color:var(--ink-dim);font-size:13px;text-align:center;padding:0 26px;line-height:1.5}
+  .roleCard::after{content:'';position:absolute;top:0;left:-100%;width:100%;height:2px;background:var(--green);transition:.4s}
+  .roleCard:hover::after{left:0}
+
+  /* ---------- Connect screen (P2P pairing) ---------- */
+  #connectScreen{
+    position:fixed;inset:0;display:none;flex-direction:column;
+    align-items:center;justify-content:center;gap:22px;z-index:100;
+    background:radial-gradient(900px 500px at 50% 30%, #0f1d16, var(--bg));
+  }
+  #connectScreen h2{font-size:24px;letter-spacing:2px;color:var(--green);font-weight:600}
+  .connectPanel{
+    width:420px;background:var(--panel);border:1px solid var(--line);border-radius:14px;
+    padding:32px;display:flex;flex-direction:column;align-items:center;gap:16px;text-align:center;
+  }
+  .connectPanel p{color:var(--ink-dim);font-size:14px;line-height:1.6}
+  .codeBox{
+    font-family:'JetBrains Mono',monospace;font-size:34px;font-weight:700;letter-spacing:6px;
+    color:var(--green);background:var(--panel2);border:1px solid var(--green-dim);
+    border-radius:8px;padding:14px 26px;
+  }
+  .connectPanel input{
+    font-family:'JetBrains Mono',monospace;font-size:20px;letter-spacing:4px;text-align:center;
+    text-transform:uppercase;background:var(--panel2);color:var(--ink);
+    border:1px solid var(--line);border-radius:8px;padding:10px 16px;width:220px;
+  }
+  .connectPanel input:focus{outline:none;border-color:var(--green)}
+  .connectStatus{font-size:13px;letter-spacing:1px;color:var(--ink-dim)}
+  .connectStatus.ok{color:var(--green)}
+  .connectStatus.err{color:var(--red)}
+
+  /* ---------- App layout ---------- */
+  #app{display:none;height:100vh;flex-direction:column}
+  header{
+    height:48px;flex:0 0 48px;background:var(--panel2);border-bottom:1px solid var(--line);
+    display:flex;align-items:center;padding:0 16px;gap:20px;
+  }
+  header .logo{color:var(--green);font-weight:700;letter-spacing:3px;font-size:18px}
+  header .role-badge{
+    font-size:12px;letter-spacing:2px;padding:3px 10px;border-radius:4px;
+    background:var(--green-dim);color:#dff7e9;text-transform:uppercase;font-weight:600;
+  }
+  header .clock{
+    margin-left:auto;font-family:'JetBrains Mono';font-size:26px;font-weight:700;
+    color:var(--amber);letter-spacing:2px;
+  }
+  header .clock .lbl{font-size:10px;color:var(--ink-dim);letter-spacing:2px;display:block;text-align:right;font-family:'Oswald'}
+  .btn{
+    font-family:'Oswald';background:var(--panel);color:var(--ink);border:1px solid var(--line);
+    padding:6px 12px;border-radius:6px;cursor:pointer;letter-spacing:1px;font-size:13px;transition:.15s;
+  }
+  .btn:hover{border-color:var(--green);color:#fff}
+  .btn.go{background:var(--green-dim);border-color:var(--green);color:#eafff3}
+  .btn.stop{background:#3a1414;border-color:var(--red);color:#ffd9d9}
+  .btn:disabled{opacity:.35;cursor:not-allowed}
+  .btn.sm{padding:3px 8px;font-size:11px}
+
+  main{flex:1;display:flex;overflow:hidden}
+
+  /* ---------- STUDENT VIEW ---------- */
+  #studentView{flex:1;display:none;flex-direction:column}
+  #towerWrap{flex:1;position:relative;background:linear-gradient(180deg,#0a1726 0%,#0f2433 38%,#1d3320 38%,#16261a 100%);cursor:grab}
+  #towerWrap.dragging{cursor:grabbing}
+  .camCtrl{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);display:flex;align-items:center;gap:10px;
+    background:rgba(8,14,12,.55);border:1px solid rgba(255,255,255,.18);border-radius:20px;padding:6px 14px;
+    backdrop-filter:blur(2px);pointer-events:auto;z-index:5}
+  .camBtn{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.3);color:#eef6f0;
+    width:30px;height:30px;border-radius:50%;font-size:15px;cursor:pointer;line-height:1}
+  .camBtn:hover{background:rgba(255,255,255,.25)}
+  .camHint{font-size:11px;color:rgba(255,255,255,.75);letter-spacing:.3px;white-space:nowrap}
+  #towerSky{position:absolute;inset:0}
+  #towerCanvas{position:absolute;inset:0;width:100%;height:100%}
+  .stripbar{
+    height:120px;flex:0 0 120px;background:var(--panel2);border-top:1px solid var(--line);
+    display:flex;align-items:center;gap:10px;padding:10px;overflow-x:auto;
+  }
+  .stripbar .empty{color:var(--ink-dim);font-size:13px;letter-spacing:1px;padding-left:8px}
+
+  /* ---------- INSTRUCTOR VIEW ---------- */
+  #instructorView{flex:1;display:none}
+  .col{display:flex;flex-direction:column;border-right:1px solid var(--line);min-width:0}
+  .col h3{
+    font-size:12px;letter-spacing:2px;text-transform:uppercase;color:var(--ink-dim);
+    padding:10px 14px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:8px;
+  }
+  .col h3 .pill{margin-left:auto;background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:1px 9px;font-size:11px;color:var(--green)}
+
+  #colStrips{flex:0 0 340px}
+  #stripList{flex:1;overflow-y:auto;padding:10px;display:flex;flex-direction:column;gap:10px}
+  .progList{max-height:190px;overflow-y:auto;padding:10px;display:flex;flex-direction:column;gap:6px}
+  /* Diseño flexible que envuelve en dos líneas en vez de forzar columnas fijas:
+     así nunca se corta ni se sale texto, sea cual sea el ancho del panel o la
+     longitud del indicativo/ruta/botones (antes se desbordaba con "grid"). */
+  .progRow{display:flex;flex-wrap:wrap;align-items:center;gap:5px 8px;
+    border:1px solid var(--line);border-radius:6px;padding:6px 9px;font-family:'JetBrains Mono';font-size:11px;
+    overflow:hidden}
+  .progRow .tt{color:var(--amber);font-weight:700;flex:0 0 auto}
+  .progRow .cs{font-weight:700;flex:0 0 auto}
+  .progRow .tag{flex:0 0 auto}
+  .progRow .rte{flex:1 1 60px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .progRow .acts{flex:0 0 100%;display:flex;justify-content:flex-end;align-items:center;gap:6px}
+  .progRow.done{background:rgba(61,220,132,.08);border-color:rgba(61,220,132,.4);color:var(--green)}
+  .progRow.done .cs{color:var(--green)}
+  .progRow.pending{background:var(--panel2);color:var(--ink-dim)}
+  .progRow.pending .cs{color:var(--ink-dim)}
+  .progRow .go2{padding:3px 8px;font-size:10px;border-radius:4px;background:var(--green-dim);border:1px solid var(--green);color:#eafff3;cursor:pointer;white-space:nowrap}
+  .progRow .st2{font-size:10px;letter-spacing:.5px}
+  .progRow .del2{font-size:11px;color:#9a8f78;cursor:pointer;padding:2px 7px;border-radius:4px;text-align:center;transition:.12s;white-space:nowrap}
+  .progRow .del2:hover{color:#fff;background:var(--red)}
+
+  #colRadar{flex:1;min-width:420px}
+  #radarHolder{flex:1;position:relative;background:var(--radarbg)}
+  #radar{position:absolute;inset:0;width:100%;height:100%}
+
+  #colControl{flex:0 0 290px;border-right:none}
+  #controlBody{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:14px}
+  .ctrlSel label{font-size:11px;letter-spacing:1px;color:var(--ink-dim);display:block;margin-bottom:5px;text-transform:uppercase}
+  select,input{
+    width:100%;background:var(--panel);color:var(--ink);border:1px solid var(--line);
+    border-radius:6px;padding:7px 9px;font-family:'JetBrains Mono';font-size:13px;
+  }
+  select:focus,input:focus{outline:none;border-color:var(--green)}
+  .cmdGrid{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+  .cmdGrid.three{grid-template-columns:1fr 1fr 1fr}
+  .cmd{
+    background:var(--panel);border:1px solid var(--line);border-radius:6px;color:var(--ink);
+    padding:9px 6px;font-family:'Oswald';font-size:12px;letter-spacing:.5px;cursor:pointer;transition:.15s;text-align:center;
+  }
+  .cmd:hover{border-color:var(--green);color:#fff;background:#13201a}
+  .cmd small{display:block;color:var(--ink-dim);font-size:10px;margin-top:2px}
+  .segBtns{display:inline-flex;border:1px solid var(--line);border-radius:6px;overflow:hidden}
+  .segBtn{padding:5px 11px;font-family:'Oswald';font-size:11px;letter-spacing:.5px;color:var(--ink-dim);
+    cursor:pointer;background:var(--panel);transition:.12s}
+  .segBtn+.segBtn{border-left:1px solid var(--line)}
+  .segBtn:hover{color:#fff}
+  .segBtn.on{background:var(--green-dim);color:#eafff3;font-weight:700}
+  .secTitle{font-size:11px;letter-spacing:2px;color:var(--amber);text-transform:uppercase;border-bottom:1px dashed var(--line);padding-bottom:5px}
+  .sliderBox{display:flex;flex-direction:column;gap:4px}
+  .sliderBox label{font-size:11px;letter-spacing:1px;color:var(--ink-dim);text-transform:uppercase;display:flex;justify-content:space-between;margin-top:6px}
+  .sliderBox label:first-child{margin-top:0}
+  .sliderBox .val{color:var(--green);font-family:'JetBrains Mono';letter-spacing:0;text-transform:none}
+  .sliderBox input[type=range]{width:100%;padding:0;accent-color:var(--green);cursor:pointer}
+  .sliderBox input[type=range]:disabled{opacity:.35;cursor:not-allowed}
+
+  /* ---------- Flight strip (instructor) ---------- */
+  .strip{
+    background:#f2ede1;color:#1a1a1a;border-radius:4px;
+    font-family:'JetBrains Mono';position:relative;border:1px solid #c9c0ac;
+    box-shadow:0 2px 6px rgba(0,0,0,.4);cursor:pointer;transition:.15s;
+  }
+  .strip.sel{box-shadow:0 0 0 2px var(--green),0 2px 10px rgba(0,0,0,.5)}
+  .strip.dep{border-left:5px solid var(--mil)}
+  .strip.arr{border-left:5px solid var(--civ)}
+  .strip .row1{display:flex;align-items:baseline;gap:8px;padding:6px 8px 2px}
+  .strip .cs{font-size:17px;font-weight:700;letter-spacing:1px}
+  .strip .typ{font-size:11px;color:#555;margin-left:auto}
+  .strip .row2{display:flex;gap:10px;padding:0 8px;font-size:11px;color:#333}
+  .strip .row3{display:flex;gap:8px;padding:3px 8px 6px;font-size:11px;color:#444;border-top:1px solid #ddd5c2;margin-top:3px;align-items:center}
+  .strip .state{margin-left:auto;font-weight:700;font-size:11px;padding:1px 7px;border-radius:3px;letter-spacing:.5px}
+  .st-PROG{background:#e0e0e0;color:#555}
+  .st-RODAJE{background:#ffe2b0;color:#7a4d00}
+  .st-ESPERA{background:#ffd0a0;color:#7a3a00}
+  .st-PISTA{background:#cdeccb;color:#1f6b1c}
+  .st-AIRE{background:#bcdcff;color:#114a85}
+  .st-APROX{background:#d8c9ff;color:#3d2185}
+  .st-FINAL{background:#ffc9d4;color:#8a1230}
+  .strip .miniface{position:absolute;right:6px;bottom:5px;font-size:10px;color:#888}
+  .stripDel{position:absolute;top:4px;right:6px;font-size:12px;line-height:1;color:#9a8f78;
+    cursor:pointer;padding:2px 5px;border-radius:3px;transition:.12s}
+  .stripDel:hover{color:#fff;background:var(--red)}
+  .ruleTag{font-size:9.5px;font-weight:700;letter-spacing:.5px;padding:1px 6px;border-radius:3px}
+  .rule-VFR{background:#cdeccb;color:#1f6b1c}
+  .rule-IFR{background:#d8c9ff;color:#3d2185}
+  /* Selector de "punto de salida" en la ficha de las salidas que aún no han despegado:
+     permite planificar de antemano por qué punto de la CTR (o de aproximación) saldrá
+     la aeronave, antes de darle ninguna instrucción real. */
+  .exitPtRow{display:flex;flex-wrap:wrap;align-items:center;gap:5px;padding:4px 8px 6px;
+    font-size:10px;color:#555;border-top:1px dashed #ddd5c2;margin-top:1px}
+  .exitPtRow .lbl{color:#777;letter-spacing:.5px}
+  .ptChip{display:inline-block;padding:1px 7px;border-radius:3px;border:1px solid #c9c0ac;
+    background:#fff;color:#555;cursor:pointer;font-family:'JetBrains Mono';font-size:10.5px;transition:.12s}
+  .ptChip:hover{border-color:#1f6b1c;color:#1f6b1c}
+  .ptChip.on{background:#1f6b1c;border-color:#1f6b1c;color:#fff;font-weight:700}
+
+  /* ---------- Student strip (read-only, like the real ficha) ---------- */
+  .sStrip{
+    flex:0 0 230px;height:96px;background:#f2ede1;color:#111;border-radius:3px;
+    font-family:'JetBrains Mono';position:relative;overflow:hidden;border:1px solid #c9c0ac;
+    display:flex;flex-direction:column;
+  }
+  .sStrip .top{display:flex;gap:6px;align-items:baseline;padding:5px 7px 2px;border-bottom:1px solid #d8d0bd}
+  .sStrip .top .cs{font-size:15px;font-weight:700}
+  .sStrip .top .st{margin-left:auto;font-size:10px;font-weight:700;padding:1px 5px;border-radius:3px}
+  .sStrip .mid{padding:3px 7px;font-size:10px;color:#333;line-height:1.5;flex:1}
+  .sStrip .bot{display:flex;gap:8px;padding:3px 7px;font-size:10px;border-top:1px solid #d8d0bd;background:#e9e3d4}
+
+  /* ---------- Scheduler modal ---------- */
+  #sched{position:fixed;inset:0;background:rgba(3,7,5,.86);z-index:90;display:none;align-items:center;justify-content:center}
+  .schedBox{width:760px;max-height:86vh;background:var(--panel);border:1px solid var(--line);border-radius:14px;overflow:hidden;display:flex;flex-direction:column}
+  .schedBox header{height:auto;padding:16px 20px;border-bottom:1px solid var(--line);background:var(--panel2)}
+  .schedBox header h2{font-size:20px;letter-spacing:2px;color:var(--green)}
+  .schedBox header p{font-size:12px;color:var(--ink-dim);margin-top:3px}
+  .schedBody{padding:18px 20px;overflow-y:auto;display:flex;flex-direction:column;gap:18px}
+  .formGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+  .formGrid .f label{font-size:10px;letter-spacing:1px;color:var(--ink-dim);text-transform:uppercase;display:block;margin-bottom:4px}
+  .schedList{display:flex;flex-direction:column;gap:7px;max-height:230px;overflow-y:auto}
+  .schedRow{display:grid;grid-template-columns:60px 90px 70px 1fr 70px 30px;gap:10px;align-items:center;background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:7px 10px;font-family:'JetBrains Mono';font-size:12px}
+  .schedRow .tt{color:var(--amber);font-weight:700}
+  .schedRow .cs{color:var(--green);font-weight:700}
+  .schedRow .del{color:var(--red);cursor:pointer;text-align:center;font-weight:700}
+  .schedFoot{padding:14px 20px;border-top:1px solid var(--line);display:flex;gap:10px;justify-content:flex-end;background:var(--panel2)}
+  .tag{display:inline-block;font-size:10px;padding:1px 6px;border-radius:3px;letter-spacing:1px}
+  .tag.DEP{background:var(--mil);color:#fff}
+  .tag.ARR{background:var(--civ);color:#fff}
+  .hint{font-size:11px;color:var(--ink-dim);line-height:1.6}
+  .hint b{color:var(--amber)}
+  .empty2{color:var(--ink-dim);font-size:12px;text-align:center;padding:20px}
+  ::-webkit-scrollbar{width:9px;height:9px}
+  ::-webkit-scrollbar-thumb{background:var(--line);border-radius:5px}
+  ::-webkit-scrollbar-track{background:transparent}
+</style>
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+</head>
+<body>
+
+<!-- ============ ROLE SELECT ============ -->
+<div id="roleScreen">
+  <div style="text-align:center">
+    <h1>LESA · SALAMANCA</h1>
+    <div class="sub">Simulador de Control de Aeródromo · Matacán</div>
+  </div>
+  <div class="roleCards">
+    <div class="roleCard" onclick="enter('student')">
+      <div class="ic">🗼</div>
+      <h2>ALUMNO</h2>
+      <p>Vista frontal de torre. Pista 03/21, plataforma civil (lado 03) y militar (lado 21), calles de rodaje. Fichas en tira inferior.</p>
+    </div>
+    <div class="roleCard" onclick="enter('instructor')">
+      <div class="ic">🎛️</div>
+      <h2>PROFESOR</h2>
+      <p>Fichas de progreso, radar con separaciones, comandos de rodaje y referencia, y programador de vuelos.</p>
+    </div>
+  </div>
+  <div class="hint" style="max-width:560px;text-align:center">
+    Conexión directa entre dos navegadores (sin servidor ni instalaciones).
+    Datos geográficos reales del AIP (AIRAC&nbsp;08/25).
+  </div>
+</div>
+
+<!-- ============ CONNECT (P2P pairing) ============ -->
+<div id="connectScreen">
+  <h2>Conectar con tu compañero</h2>
+
+  <!-- Profesor: crea sesión y comparte el código -->
+  <div class="connectPanel" id="hostPanel" style="display:none">
+    <p>Comparte este código con tu alumno. En cuanto lo introduzca,<br>quedaréis sincronizados en tiempo real.</p>
+    <div class="codeBox" id="hostCode">— — — —</div>
+    <p class="connectStatus" id="hostStatus">Generando código…</p>
+    <button class="btn" onclick="skipToLocal()">Continuar sin conectar (modo local)</button>
+  </div>
+
+  <!-- Alumno: introduce el código del profesor -->
+  <div class="connectPanel" id="guestPanel" style="display:none">
+    <p>Pide a tu profesor el código de la sesión<br>y escríbelo aquí para conectarte.</p>
+    <input id="joinCode" maxlength="4" placeholder="1234" autocomplete="off" inputmode="numeric" pattern="[0-9]*" oninput="this.value=this.value.replace(/\D+/g,'').slice(0,4)">
+    <button class="btn go" onclick="attemptJoin()">▶ Conectar</button>
+    <p class="connectStatus" id="guestStatus"></p>
+  </div>
+
+  <button class="btn" onclick="backToRole()">↩ Cambiar rol</button>
+</div>
+
+<!-- ============ APP ============ -->
+<div id="app">
+  <header>
+    <span class="logo">LESA</span>
+    <span class="role-badge" id="roleBadge">—</span>
+    <button class="btn" id="roleBtnHeader" onclick="backToRole()">↩ Cambiar rol</button>
+    <button class="btn" id="schedBtn" onclick="openSched()">📋 Programar vuelos</button>
+    <button class="btn go" id="playBtn" onclick="toggleSim()">▶ Iniciar</button>
+    <button class="btn" id="resetBtn" onclick="resetSim()" style="display:none">⏮ Reiniciar</button>
+    <button class="btn" id="speedBtn" onclick="setSpeed()">⏩ <span id="spdLbl">x1</span></button>
+    <div class="clock">
+      <span class="lbl">SIM · UTC</span>
+      <span id="clock">00:00:00</span>
+    </div>
+  </header>
+
+  <main>
+    <!-- STUDENT -->
+    <div id="studentView">
+      <div id="towerWrap">
+        <canvas id="towerCanvas"></canvas>
+        <div class="camCtrl">
+          <button class="camBtn" onclick="rotateCam(-15)" title="Girar a la izquierda">◀</button>
+          <button class="camBtn" onclick="tiltCam(0.05)" title="Subir la vista">▲</button>
+          <button class="camBtn" onclick="tiltCam(-0.05)" title="Bajar la vista">▼</button>
+          <button class="camBtn" onclick="rotateCam(15)" title="Girar a la derecha">▶</button>
+        </div>
+      </div>
+      <div class="stripbar" id="sStripBar">
+        <span class="empty">Sin tráfico activo. El profesor programa e inicia la simulación.</span>
+      </div>
+    </div>
+
+    <!-- INSTRUCTOR -->
+    <div id="instructorView">
+      <div class="col" id="colStrips">
+        <h3>Programa de vuelos <span class="pill" id="progCount">0</span></h3>
+        <div id="progList" class="progList"><div class="empty2">No hay vuelos programados.</div></div>
+        <h3>Fichas de progreso <span class="pill" id="stripCount">0</span></h3>
+        <div id="stripList"><div class="empty2">No hay vuelos. Pulsa «Programar vuelos».</div></div>
+      </div>
+      <div class="col" id="colRadar">
+        <h3>Radar · <span id="radarMode">CTR / ATZ + plataforma · zoom con la rueda del ratón</span>
+        </h3>
+        <div id="radarHolder">
+          <canvas id="radar"></canvas>
+        </div>
+      </div>
+      <div class="col" id="colControl">
+        <h3>Control <span class="pill" id="selCs">—</span></h3>
+        <div id="controlBody">
+          <div class="ctrlSel">
+            <label>Aeronave seleccionada</label>
+            <select id="acSelect" onchange="selectFromDropdown()"><option value="">— ninguna —</option></select>
+          </div>
+          <div class="ctrlSel" style="display:flex;align-items:center;gap:8px;flex-direction:row">
+            <input type="checkbox" id="studentLabelsChk" checked onchange="toggleStudentLabels(this.checked)" style="width:16px;height:16px;accent-color:var(--green)">
+            <label for="studentLabelsChk" style="margin:0;cursor:pointer">Mostrar identificativos de avión al alumno</label>
+          </div>
+          <div class="secTitle">Velocidad y altitud</div>
+          <div class="sliderBox">
+            <label>Velocidad <span class="val" id="spdSliderVal">— kt</span></label>
+            <input type="range" id="spdSlider" min="0" max="300" step="5" oninput="setAcSpeed(this.value)" disabled>
+            <label>Altitud <span class="val" id="altSliderVal">— ft</span></label>
+            <input type="range" id="altSlider" min="0" max="8595" step="50" oninput="setAcAlt(this.value)" disabled>
+          </div>
+          <div class="secTitle">Rodaje y pista</div>
+          <div class="ctrlSel" style="display:flex;align-items:center;gap:8px;flex-direction:row">
+            <label style="margin:0">Pista activa</label>
+            <div class="segBtns">
+              <span id="rwyBtn03" class="segBtn" onclick="setActiveRwy('03')">RWY 03</span>
+              <span id="rwyBtn21" class="segBtn on" onclick="setActiveRwy('21')">RWY 21</span>
+            </div>
+            <span class="hint" style="margin:0">predeterminada: 21</span>
+          </div>
+          <div class="cmdGrid">
+            <div class="cmd" onclick="cmd('taxi_hold')">Rodar a punto espera<small><span class="rwyActiveLbl">RWY 21</span></small></div>
+            <div class="cmd" onclick="cmd('lineup')">Alinearse<small>line up</small></div>
+            <div class="cmd" onclick="cmd('takeoff')">Autorizado despegue<small>cleared T/O</small></div>
+            <div class="cmd" onclick="cmd('land')">Autorizado aterrizar<small>cleared LDG</small></div>
+          </div>
+          <div class="secTitle">Circuito</div>
+          <span class="hint" style="display:block;margin:-4px 0 2px">Tráficos de E-1 / E / S → viento en cola izquierdo; el resto, derecho</span>
+          <div class="cmdGrid">
+            <div class="cmd" onclick="cmd('downwind','R')">Viento en cola DER.<small>right downwind</small></div>
+            <div class="cmd" onclick="cmd('downwind','L')">Viento en cola IZQ.<small>left downwind</small></div>
+            <div class="cmd" onclick="cmd('base')">Base<small>base leg</small></div>
+            <div class="cmd" onclick="cmd('final')">Final<small>final</small></div>
+            <div class="cmd" onclick="cmd('orbit')">Orbitar<small>hold</small></div>
+          </div>
+          <div class="secTitle">Puntos de referencia CTR</div>
+          <div class="cmdGrid three">
+            <div class="cmd" onclick="cmd('rp','N-1')">N-1</div>
+            <div class="cmd" onclick="cmd('rp','N')">N</div>
+            <div class="cmd" onclick="cmd('rp','E')">E</div>
+            <div class="cmd" onclick="cmd('rp','E-1')">E-1</div>
+            <div class="cmd" onclick="cmd('rp','S')">S</div>
+            <div class="cmd" onclick="cmd('rp','W')">W</div>
+          </div>
+          <div class="secTitle">Aproximación</div>
+          <div class="cmdGrid">
+            <div class="cmd" onclick="cmd('toBBI')">Proceder a BBI<small>VOR/DME</small></div>
+            <div class="cmd" onclick="cmd('ils')">ILS <span class="rwyActiveLbl">RWY 21</span><small>establecer</small></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- ============ SCHEDULER ============ -->
+<div id="sched">
+  <div class="schedBox">
+    <header>
+      <h2>Programa de vuelos</h2>
+      <p>Define los vuelos antes de iniciar. El reloj arranca en 00:00; cada vuelo aparece a su hora prevista.</p>
+    </header>
+    <div class="schedBody">
+      <div class="formGrid">
+        <div class="f"><label>Hora (mm:ss)</label><input id="f_time" class="mono" placeholder="00:30" value="00:30"></div>
+        <div class="f"><label>Indicativo</label><input id="f_cs" class="mono" placeholder="BUH006" value="BUH006"></div>
+        <div class="f"><label>Tipo aeronave</label><input id="f_type" class="mono" placeholder="C295" value="C295"></div>
+        <div class="f"><label>Operación</label>
+          <select id="f_op"><option value="DEP">Salida (DEP)</option><option value="ARR">Llegada (ARR)</option></select>
+        </div>
+        <div class="f"><label>Origen</label><input id="f_orig" class="mono" placeholder="LESA" value="LESA"></div>
+        <div class="f"><label>Destino</label><input id="f_dest" class="mono" placeholder="LETO" value="LETO"></div>
+        <div class="f"><label>Ruta / SID-STAR</label><input id="f_route" class="mono" placeholder="N0180 F035" value="N0180 F035"></div>
+        <div class="f"><label>Nivel / Rumbo</label><input id="f_lvl" class="mono" placeholder="035" value="035"></div>
+      </div>
+      <div style="display:flex;gap:10px;align-items:center">
+        <button class="btn go" onclick="addFlight()">+ Añadir al programa</button>
+        <button class="btn" onclick="loadDemo()">📅 Cargar programa de entrenamiento (10 vuelos)</button>
+        <span class="hint" style="margin-left:auto">Para llegadas, la hora es la de entrada en CTR.</span>
+      </div>
+      <div>
+        <div class="secTitle" style="margin-bottom:8px;color:var(--green)">Vuelos programados</div>
+        <div class="schedList" id="schedList"><div class="empty2">Aún no hay vuelos programados.</div></div>
+      </div>
+    </div>
+    <div class="schedFoot">
+      <button class="btn" onclick="closeSched()">Cerrar</button>
+      <button class="btn go" onclick="closeSched()">Guardar programa</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ===========================================================
+   GEOGRAFÍA REAL LESA (AIP AIRAC 08/25)
+   ARP 40°57'07"N 005°30'07"W ; var mag 0°
+   RWY 03/21: 028°/208° MAG, 2513 m  ← PISTA ACTIVA (real, con ILS 21)
+   CTR: círculo 7.5 NM centrado en ARP
+   Plataforma CIVIL hacia cabecera 03 (NE) ; MILITAR hacia 21 (SW)
+   Puntos VFR afinados con la carta CTR (pág.7 Procedimientos)
+   =========================================================== */
+const ARP={lat:40.951944, lon:-5.501944};
+const NM=1852;                       // metros por NM
+const KT=0.514444;                   // m/s por nudo
+const mPerDegLat=111320, mPerDegLon=111320*Math.cos(ARP.lat*Math.PI/180);
+function llToXY(lat,lon){return{x:(lon-ARP.lon)*mPerDegLon, y:-(lat-ARP.lat)*mPerDegLat};}
+function brgRng(brgDeg,nm){const a=(brgDeg)*Math.PI/180,d=nm*NM;return{x:Math.sin(a)*d,y:-Math.cos(a)*d};}
+
+// Puntos de referencia VFR de la CTR (rumbo MAG / distancia NM desde ARP, según carta)
+// N (November) es el punto EXTERIOR (más lejos); N-1 el intermedio (más cerca).
+const REF={
+  'N-1':brgRng(345, 4.2),   // intermedio, más cerca
+  'N'  :brgRng(338, 7.0),   // November: exterior, más lejos
+  'E'  :brgRng(100, 6.8),   // ESE
+  'E-1':brgRng(108, 4.6),   // ESE interior, más cerca
+  'S'  :brgRng(178, 6.8),   // S, hacia Alba de Tormes
+  'W'  :brgRng(262, 6.2)    // W
+};
+// Puntos de la fase de APROXIMACIÓN.
+// En el ejercicio, BBI es la referencia central, situada casi sobre el campo.
+// Distancias REALES desde BBI (carta Gestión de Tráfico): rumbo aprox / NM.
+const BBI_POS = brgRng(35, 0.8);   // BBI casi encima de la pista (ligeramente al NE)
+function fromBBI(brgDeg,nm){const a=brgDeg*Math.PI/180,d=nm*NM;return{x:BBI_POS.x+Math.sin(a)*d, y:BBI_POS.y-Math.cos(a)*d};}
+const APP_REF={
+  'BBI'    :BBI_POS,
+  'VETAN'  :fromBBI(353, 18),   // al N, 18 NM
+  'ZMR'    :fromBBI(5  , 32),   // N, 32 NM
+  'ADORO'  :fromBBI(318, 46),   // NW, 46 NM
+  'VLD/NUB':fromBBI(28 , 50),   // NE, 50 NM
+  'DSK'    :fromBBI(90 , 56),   // E, 56 NM
+  'RVO'    :fromBBI(235, 62),   // SW, 62 NM
+  'BARDI'  :fromBBI(210, 46),   // SSW, 46 NM
+  'NVS'    :fromBBI(118, 67),   // ESE, 67 NM
+  'MLN'    :fromBBI(170, 75),   // S, 75 NM
+  'TLD'    :fromBBI(130, 81),   // SE, 81 NM
+  'CCS'    :fromBBI(200,100)    // SSW, 100 NM
+};
+// BBI también disponible para uso general
+REF['BBI']=BBI_POS;
+// Clasificación VFR / IFR según los puntos que utiliza la aeronave: los tráficos que
+// pasan por los puntos de la CTR (N, N-1, E, E-1, S, W) son vuelos VISUALES (VFR);
+// los que pasan por puntos de aproximación instrumental (BBI, VETAN, ZMR, ADORO…)
+// son vuelos INSTRUMENTALES (IFR). Se usa para etiquetar cada ficha de progreso.
+const VFR_PTS=new Set(['N','N-1','E','E-1','S','W']);
+function flightRule(ac){
+  const pts=[];
+  if(ac.plannedExitPt) pts.push(ac.plannedExitPt); // punto de salida planificado por el controlador (antes del despegue)
+  if(ac.target&&ac.target.mode==='point') pts.push(ac.target.pt);
+  if(ac.route) ac.route.forEach(p=>{ if(p&&p.pt) pts.push(p.pt); });
+  if(!pts.length) return null;
+  return pts.every(p=>VFR_PTS.has(p)) ? 'VFR' : 'IFR';
+}
+// Puntos que el controlador puede asignar de antemano como "punto de salida" de una
+// salida (antes de que despegue): los seis puntos VFR de la CTR más BBI, paso obligado
+// para encaminarse hacia cualquier punto de aproximación instrumental (ruta IFR).
+const EXIT_PT_OPTIONS=['N-1','N','E','E-1','S','W','BBI'];
+// Genera el selector de "punto de salida" que aparece en la ficha de una salida
+// mientras siga en tierra (PROG/RODAJE/ESPERA/PISTA, sin haber despegado todavía):
+// permite planificar por qué punto abandonará la CTR antes de darle ninguna instrucción.
+// Una vez en el aire (tTakeoff asignado) la ficha deja de mostrar el selector.
+function exitPtPicker(a){
+  if(a.op!=='DEP' || a.tTakeoff!=null) return '';
+  const chips=EXIT_PT_OPTIONS.map(p=>
+    `<span class="ptChip ${a.plannedExitPt===p?'on':''}" data-setpt-id="${a.id}" data-setpt-val="${p}">${p}</span>`
+  ).join('');
+  return `<div class="exitPtRow"><span class="lbl">Punto de salida:</span>${chips}</div>`;
+}
+// Asigna (o quita, si se repite la pulsación) el punto de salida planificado para una
+// salida que aún no ha despegado — sirve sólo de planificación/etiqueta (VFR/IFR);
+// la instrucción real de "proceda a..." sigue dándose desde el panel de comandos.
+function setExitPoint(id,pt){
+  const ac=aircraft.find(x=>x.id===id);
+  if(!ac||ac.op!=='DEP'||ac.tTakeoff!=null) return;
+  ac.plannedExitPt=(ac.plannedExitPt===pt)?null:pt;
+  log(`${ac.cs}: salida planificada por punto ${ac.plannedExitPt||'(sin asignar)'}`);
+  syncUI();
+}
+// Pista activa 03/21 (eje 028° MAG). THR 03 al SW, THR 21 al NE del ARP
+const RWY={hdg:28, len:2513, w:45};
+function rwyEnds(){
+  const dir=RWY.hdg*Math.PI/180;
+  const half=RWY.len/2;
+  const dx=Math.sin(dir)*half, dy=-Math.cos(dir)*half;
+  // thr03 = extremo SW (cabecera 03 mira al NE) ; thr21 = extremo NE
+  return{thr03:{x:-dx,y:-dy}, thr21:{x:dx,y:dy}};
+}
+
+/* ===========================================================
+   ESTADO
+   =========================================================== */
+let role=null, simRunning=false, simTime=0, simSpeed=1, lastTs=null;
+// Vista única de radar del instructor: fusiona el antiguo radar de torre (ATZ/CTR
+// con los puntos VFR N, N-1, E, E-1, S, W) y el modo aproximación (vista cenital
+// de plataforma) en un solo plano «desde arriba» navegable con zoom (rueda del
+// ratón), donde se ven todos los puntos a la vez y se gestionan los tráficos
+// (selección, «directo a», arrastre, rutas con Ctrl+clic) exactamente igual.
+let radarZoom=1;             // factor de zoom de la vista de radar unificada (rueda del ratón)
+let schedule=[];      // vuelos programados {time,cs,type,op,orig,dest,route,lvl,spawned}
+let aircraft=[];      // vuelos activos
+let selected=null;
+let plannedRoute=[];  // ruta provisional trazada con Ctrl+clic en el radar (profesor), asignada en cadena al avión seleccionado
+let studentAcLabels=true; // el profesor puede mostrar/ocultar los identificativos de los aviones en la vista del alumno
+function toggleStudentLabels(v){ studentAcLabels=!!v; }
+// Pista activa seleccionable por el instructor: por defecto siempre la 21 (con ILS);
+// todas las instrucciones de rodaje / despegue / aterrizaje se dirigen a la cabecera
+// activa salvo que el instructor seleccione expresamente la 03.
+let activeRwy='21';
+function setActiveRwy(rwy){
+  activeRwy=(rwy==='03')?'03':'21';
+  const b03=document.getElementById('rwyBtn03'), b21=document.getElementById('rwyBtn21');
+  if(b03) b03.classList.toggle('on', activeRwy==='03');
+  if(b21) b21.classList.toggle('on', activeRwy==='21');
+  const lbls=document.querySelectorAll('.rwyActiveLbl');
+  lbls.forEach(el=>el.textContent='RWY '+activeRwy);
+  log(`Pista activa: ${activeRwy}`);
+}
+let dragAc=null, dragMoved=false; // arrastre manual de la aeronave seleccionada en el radar del profesor
+let uid=1;
+
+/* ===========================================================
+   CAPA DE RED — conexión directa entre navegadores (P2P)
+   Sin servidor: se usa WebRTC (vía PeerJS y su broker público,
+   solo para "presentaros") para abrir un canal de datos directo
+   entre el profesor y el alumno.
+
+   El PROFESOR es siempre la autoridad: corre el reloj y la
+   física localmente (igual que en "modo local") y retransmite
+   el estado al alumno ~10 veces por segundo. El ALUMNO solo
+   recibe ese estado y dibuja: no controla nada.
+
+   NOTA sobre redes: esta conexión es directa (P2P). Funciona
+   muy bien cuando ambas redes lo permiten (la inmensa mayoría
+   de WiFis domésticas), pero algunas redes muy restrictivas
+   (firewalls corporativos/educativos, ciertos routers 4G/5G)
+   pueden bloquear la conexión directa. Por eso se intenta con
+   varios servidores STUN públicos y se avisa con un mensaje
+   claro si tras unos segundos no se ha logrado conectar.
+   =========================================================== */
+let PEER=null, CONNS=new Set(), HOST_CONN=null, NET=false, selectedId=null;
+let connectTimer=null;
+
+// Varios STUN públicos (gratuitos, sin cuenta) como base — ayudan cuando
+// la conexión directa SÍ es posible entre ambas redes.
+const STUN_SERVERS = [
+  { urls:'stun:stun.l.google.com:19302' },
+  { urls:'stun:stun1.l.google.com:19302' },
+  { urls:'stun:stun2.l.google.com:19302' },
+  { urls:'stun:stun.cloudflare.com:3478' },
+  { urls:'stun:global.stun.twilio.com:3478' }
+];
+// Servidor TURN (relay) gratuito de Open Relay/Metered — entra en juego
+// cuando una conexión directa NO es posible (redes con firewalls/NAT
+// restrictivos) y "retransmite" el tráfico entre ambos. Sin esto, la
+// conexión P2P solo funciona entre redes que lo permitan directamente.
+const TURN_CREDENTIALS_URL = 'https://simuladorlesa.metered.live/api/v1/turn/credentials?apiKey=85fb687b5975a66a865cb76e411d90fc2f96';
+let _icePromise = null;
+function getIceConfig(){
+  if(_icePromise) return _icePromise;
+  _icePromise = fetch(TURN_CREDENTIALS_URL)
+    .then(r=>r.json())
+    .then(turnServers=>({ iceServers: STUN_SERVERS.concat(Array.isArray(turnServers)?turnServers:[]) }))
+    .catch(()=>({ iceServers: STUN_SERVERS }));   // si falla la petición, seguimos solo con STUN
+  return _icePromise;
+}
+
+function genCode(){ return String(Math.floor(1000+Math.random()*9000)); }   // código de sesión: solo 4 dígitos
+
+const STUCK_MSG = 'No se ha podido completar la conexión directa tras unos segundos. '
+  + 'Esto puede pasar cuando una de las dos redes (wifi del centro, datos móviles, '
+  + 'VPN/firewall...) bloquea las conexiones P2P. Prueba: 1) que ambos os conectéis '
+  + 'a la misma WiFi para confirmar que el resto funciona, 2) probar desde casa en '
+  + 'vez de una red de empresa/centro educativo, o 3) compartir conexión desde el '
+  + 'móvil (datos) en uno de los dos equipos.';
+
+// ---- Profesor: crea la sesión y espera a que el alumno se una ----
+async function startHosting(){
+  const codeEl=document.getElementById('hostCode'), statusEl=document.getElementById('hostStatus');
+  statusEl.className='connectStatus'; statusEl.textContent='Generando código…';
+  if(PEER){ try{PEER.destroy();}catch(e){} }
+  clearTimeout(connectTimer);
+  CONNS=new Set();
+  const code=genCode();
+  const ice=await getIceConfig();
+  PEER=new Peer(code, { config: ice, debug: 1 });
+  PEER.on('open', id=>{
+    codeEl.textContent=id;
+    statusEl.className='connectStatus'; statusEl.textContent='Esperando a que tu alumno se conecte…';
+  });
+  PEER.on('connection', conn=>{
+    clearTimeout(connectTimer);
+    CONNS.add(conn);
+    conn.on('open', ()=>{
+      netBadge(true);
+      statusEl.className='connectStatus ok'; statusEl.textContent='✓ Alumno conectado';
+      enterApp();
+    });
+    conn.on('close', ()=>{ CONNS.delete(conn); if(!CONNS.size) netBadge(false); });
+    conn.on('error', ()=>{ CONNS.delete(conn); if(!CONNS.size) netBadge(false); });
+    // si la conexión se queda "conectando" sin llegar a abrirse, avisa
+    connectTimer=setTimeout(()=>{
+      if(!conn.open){ statusEl.className='connectStatus err'; statusEl.textContent=STUCK_MSG; }
+    }, 15000);
+  });
+  PEER.on('error', err=>{
+    if(err.type==='unavailable-id'){ startHosting(); return; }   // código ya en uso: prueba otro
+    statusEl.className='connectStatus err';
+    statusEl.textContent='No se pudo crear la sesión ('+err.type+'). Reintentando…';
+    setTimeout(startHosting,1500);
+  });
+}
+function broadcastState(){
+  if(!CONNS.size) return;
+  const msg={type:'state', running:simRunning, time:simTime, speed:simSpeed, schedule, aircraft, studentAcLabels};
+  CONNS.forEach(c=>{ if(c.open) c.send(msg); });
+}
+setInterval(()=>{ if(role==='instructor') broadcastState(); }, 100);   // ~10 Hz
+
+// ---- Alumno: se une con el código del profesor ----
+async function attemptJoin(){
+  const input=document.getElementById('joinCode'), statusEl=document.getElementById('guestStatus');
+  const code=input.value.trim().replace(/\D+/g,'');
+  if(!code){ statusEl.className='connectStatus err'; statusEl.textContent='Escribe el código que te ha dado tu profesor.'; return; }
+  if(code.length!==4){ statusEl.className='connectStatus err'; statusEl.textContent='El código de sesión consta de 4 números.'; return; }
+  statusEl.className='connectStatus'; statusEl.textContent='Conectando…';
+  if(PEER){ try{PEER.destroy();}catch(e){} }
+  clearTimeout(connectTimer);
+  const ice=await getIceConfig();
+  PEER=new Peer({ config: ice, debug: 1 });
+  PEER.on('open', ()=>{
+    HOST_CONN=PEER.connect(code, {reliable:true});
+    HOST_CONN.on('open', ()=>{
+      clearTimeout(connectTimer);
+      NET=true; netBadge(true);
+      statusEl.className='connectStatus ok'; statusEl.textContent='✓ Conectado';
+      enterApp();
+    });
+    HOST_CONN.on('data', onHostState);
+    HOST_CONN.on('close', ()=>{ NET=false; netBadge(false);
+      statusEl.className='connectStatus err'; statusEl.textContent='Conexión perdida. Pulsa Conectar para reintentar.'; });
+    HOST_CONN.on('error', ()=>{ NET=false; netBadge(false);
+      statusEl.className='connectStatus err'; statusEl.textContent='No se pudo conectar. Comprueba el código con tu profesor.'; });
+    // si la conexión se queda "conectando" sin llegar a abrirse, avisa con detalle
+    connectTimer=setTimeout(()=>{
+      if(!HOST_CONN.open){ statusEl.className='connectStatus err'; statusEl.textContent=STUCK_MSG; }
+    }, 15000);
+  });
+  PEER.on('error', err=>{
+    statusEl.className='connectStatus err';
+    statusEl.textContent = err.type==='peer-unavailable'
+      ? 'Ese código no existe o tu profesor aún no ha creado la sesión. Comprueba que lo has escrito bien y que el profesor ya tiene su sesión abierta.'
+      : 'Error de conexión ('+err.type+'). Inténtalo de nuevo.';
+  });
+}
+function onHostState(m){
+  if(!m||m.type!=='state') return;
+  simRunning=m.running; simTime=m.time; simSpeed=m.speed;
+  schedule=m.schedule||[]; aircraft=m.aircraft||[];
+  if(m.studentAcLabels!==undefined) studentAcLabels=!!m.studentAcLabels;
+  selected = selectedId!=null ? aircraft.find(a=>a.id===selectedId)||null : null;
+  const clk=document.getElementById('clock'); if(clk)clk.textContent=fmtT(simTime);
+  const sp=document.getElementById('spdLbl'); if(sp)sp.textContent='x'+simSpeed;
+  syncUI();
+  render();
+}
+function netBadge(ok){
+  let el=document.getElementById('netBadge');
+  if(!el){ el=document.createElement('span'); el.id='netBadge';
+    el.style.cssText='font-size:11px;letter-spacing:1px;padding:3px 8px;border-radius:4px;margin-left:8px';
+    const hdr=document.querySelector('header .role-badge'); if(hdr&&hdr.parentNode) hdr.parentNode.insertBefore(el,hdr.nextSibling); }
+  el.textContent = ok?'● CONECTADO':'○ SIN CONEXIÓN';
+  el.style.background = ok?'#14361f':'#3a1414';
+  el.style.color = ok?'#7CFFB0':'#ff9d9d';
+}
+
+
+const STATES={
+  PROG:'PROG', RODAJE:'RODAJE', ESPERA:'ESPERA', PISTA:'PISTA',
+  AIRE:'AIRE', APROX:'APROX', FINAL:'FINAL'
+};
+
+/* ===========================================================
+   NAV / ROLE
+   =========================================================== */
+function enter(r){
+  role=r;
+  document.getElementById('roleScreen').style.display='none';
+  document.getElementById('connectScreen').style.display='flex';
+  document.getElementById('hostPanel').style.display = r==='instructor'?'flex':'none';
+  document.getElementById('guestPanel').style.display = r==='student'?'flex':'none';
+  if(r==='instructor') startHosting();
+  else { document.getElementById('joinCode').value=''; document.getElementById('guestStatus').textContent=''; }
+}
+// El profesor puede entrar sin esperar al alumno; la sesión sigue abierta
+// y el alumno puede unirse más tarde con el mismo código.
+function skipToLocal(){ enterApp(); }
+function enterApp(){
+  document.getElementById('connectScreen').style.display='none';
+  document.getElementById('roleScreen').style.display='none';
+  document.getElementById('app').style.display='flex';
+  document.getElementById('roleBadge').textContent = role==='student'?'Alumno · TWR':'Profesor';
+  document.getElementById('studentView').style.display = role==='student'?'flex':'none';
+  document.getElementById('instructorView').style.display = role==='instructor'?'flex':'none';
+  document.getElementById('schedBtn').style.display = role==='instructor'?'inline-block':'none';
+  // el profesor controla el reloj; el alumno solo lo ve
+  document.getElementById('playBtn').style.display = role==='instructor'?'inline-block':'none';
+  // al alumno no se le muestran ni el cambio de velocidad ni el de rol, ni las fichas de progreso
+  const speedBtn=document.getElementById('speedBtn'); if(speedBtn) speedBtn.style.display = role==='instructor'?'inline-block':'none';
+  const resetBtn=document.getElementById('resetBtn'); if(resetBtn) resetBtn.style.display = role==='instructor'?'inline-block':'none';
+  const roleBtnHeader=document.getElementById('roleBtnHeader'); if(roleBtnHeader) roleBtnHeader.style.display = role==='instructor'?'inline-block':'none';
+  const sStripBar=document.getElementById('sStripBar'); if(sStripBar) sStripBar.style.display = role==='instructor'?'flex':'none';
+  resizeAll();
+}
+function backToRole(){
+  if(PEER){ try{PEER.destroy();}catch(e){} PEER=null; }
+  CONNS=new Set(); HOST_CONN=null; NET=false;
+  const badge=document.getElementById('netBadge'); if(badge) badge.remove();
+  document.getElementById('app').style.display='none';
+  document.getElementById('connectScreen').style.display='none';
+  document.getElementById('roleScreen').style.display='flex';
+}
+
+/* ===========================================================
+   SCHEDULER
+   =========================================================== */
+function openSched(){document.getElementById('sched').style.display='flex';renderSchedList();}
+function closeSched(){document.getElementById('sched').style.display='none';}
+function parseT(s){const m=String(s).trim().match(/^(\d{1,2}):(\d{2})$/);if(!m)return null;return (+m[1])*60+(+m[2]);}
+function fmtT(sec){const h=Math.floor(sec/3600),m=Math.floor(sec%3600/60),s=Math.floor(sec%60);
+  return String(h).padStart(2,'0')+':'+String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');}
+function fmtMS(sec){const m=Math.floor(sec/60),s=Math.floor(sec%60);return String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');}
+
+function addFlight(){
+  const t=parseT(document.getElementById('f_time').value);
+  const cs=document.getElementById('f_cs').value.trim().toUpperCase();
+  if(t===null){alert('Hora inválida. Usa mm:ss, p.ej. 01:30');return;}
+  if(!cs){alert('Indicativo obligatorio');return;}
+  schedule.push({
+    time:t, cs,
+    type:document.getElementById('f_type').value.trim().toUpperCase()||'C295',
+    op:document.getElementById('f_op').value,
+    orig:document.getElementById('f_orig').value.trim().toUpperCase()||'LESA',
+    dest:document.getElementById('f_dest').value.trim().toUpperCase()||'----',
+    route:document.getElementById('f_route').value.trim().toUpperCase()||'',
+    lvl:document.getElementById('f_lvl').value.trim().toUpperCase()||'035',
+    spawned:false
+  });
+  schedule.sort((a,b)=>a.time-b.time);
+  renderSchedList();
+}
+function delFlight(i){schedule.splice(i,1);renderSchedList();}
+function loadDemo(){
+  // Reinicia el estado de la simulación para dejarla lista y poder pulsar
+  // «Iniciar» de inmediato (si se cargaba el programa con la sim. en marcha,
+  // el botón se quedaba en «Pausar/Reanudar» y parecía que no se podía iniciar).
+  simRunning=false; simTime=0; lastTs=null; aircraft=[]; selected=null; selectedId=null;
+  const playBtn=document.getElementById('playBtn');
+  if(playBtn){playBtn.textContent='▶ Iniciar'; playBtn.className='btn go';}
+  const clockEl=document.getElementById('clock');
+  if(clockEl) clockEl.textContent=fmtT(0);
+  // Programa de entrenamiento: 10 vuelos mezclando salidas y llegadas,
+  // tráfico militar (plataforma MIL, tipos C295/C101) y civil (plataforma CIV),
+  // escalonados a lo largo de ~12 minutos de simulación para practicar
+  // secuenciación, separación y coordinación tierra/torre/aproximación.
+  schedule=[
+    {time:30 ,cs:'BUH006',type:'C295',op:'DEP',orig:'LESA',dest:'LETO',route:'N0180 F035',lvl:'035',spawned:false},
+    {time:100,cs:'AME35' ,type:'C101',op:'DEP',orig:'LESA',dest:'LEMD',route:'N0165 F040',lvl:'040',spawned:false},
+    {time:180,cs:'IBE842',type:'A320',op:'ARR',orig:'LEMD',dest:'LESA',route:'ILS 21'    ,lvl:'070',spawned:false},
+    {time:255,cs:'ECMVA' ,type:'PA28',op:'DEP',orig:'LESA',dest:'LEVD',route:'N0140 F035',lvl:'035',spawned:false},
+    {time:330,cs:'RYR74Q',type:'B738',op:'ARR',orig:'LEMD',dest:'LESA',route:'ILS 21'    ,lvl:'080',spawned:false},
+    {time:405,cs:'EJC32' ,type:'C295',op:'ARR',orig:'LEZG',dest:'LESA',route:'ILS 21'    ,lvl:'065',spawned:false},
+    {time:480,cs:'AME09' ,type:'C101',op:'DEP',orig:'LESA',dest:'LEAB',route:'N0160 F045',lvl:'045',spawned:false},
+    {time:555,cs:'ECDTV' ,type:'TB20',op:'DEP',orig:'LESA',dest:'LEVD',route:'N0150 F040',lvl:'040',spawned:false},
+    {time:630,cs:'HUR21' ,type:'C101',op:'ARR',orig:'LESO',dest:'LESA',route:'ILS 21'    ,lvl:'060',spawned:false},
+    {time:705,cs:'ECJSM' ,type:'DA40',op:'ARR',orig:'LEVD',dest:'LESA',route:'ILS 21'    ,lvl:'055',spawned:false},
+  ];
+  renderSchedList();
+  syncUI();
+  render();
+}
+function renderSchedList(){
+  const el=document.getElementById('schedList');
+  if(el){
+    if(!schedule.length){el.innerHTML='<div class="empty2">Aún no hay vuelos programados.</div>';}
+    else el.innerHTML=schedule.map((f,i)=>`
+      <div class="schedRow">
+        <span class="tt">${fmtMS(f.time)}</span>
+        <span class="cs">${f.cs}</span>
+        <span>${f.type}</span>
+        <span>${f.orig}→${f.dest} <span style="color:#667">${f.route}</span></span>
+        <span class="tag ${f.op}">${f.op}</span>
+        <span class="del" onclick="delFlight(${i})">✕</span>
+      </div>`).join('');
+  }
+  renderProgList();
+}
+
+/* ---------- Programa de vuelos · panel del profesor ----------
+   Vuelos ya en el aire/rodaje (spawned) en verde, pendientes en gris.
+   Las salidas pendientes incluyen un botón «Take off» para lanzarlas
+   de inmediato en línea recta (el instructor las dirige después). */
+function renderProgList(){
+  const el=document.getElementById('progList');
+  if(!el)return;
+  document.getElementById('progCount').textContent=schedule.length;
+  if(!schedule.length){el.innerHTML='<div class="empty2">No hay vuelos programados.</div>';return;}
+  el.innerHTML=schedule.map((f,i)=>{
+    const done=!!f.spawned;
+    let action, delBtn;
+    if(done){
+      action=`<span class="st2">en curso</span>`;
+      // el vuelo ya está volando/rodando: también se puede retirar de la simulación
+      // desde aquí (equivale a pulsar la "✕" de su ficha de progreso)
+      delBtn=`<span class="del2" data-delcs="${f.cs}" title="Eliminar este vuelo de la simulación">✕</span>`;
+    }else{
+      action = (f.op==='DEP')
+        ? `<span class="go2" data-quicktakeoff="${i}">🛫 Take off</span>`
+        : `<span class="go2" data-startnow="${i}">▶ Iniciar ahora</span>`;
+      delBtn=`<span class="del2" data-delsched="${i}" title="Eliminar este vuelo del programa">✕</span>`;
+    }
+    // si el vuelo ya está en curso (ha aparecido), seleccionar su ficha también selecciona
+    // la aeronave correspondiente en el radar (igual que con las fichas de progreso)
+    return `<div class="progRow ${done?'done':'pending'}" ${done?`data-selcs="${f.cs}" style="cursor:pointer"`:''}>
+        <span class="tt">${fmtMS(f.time)}</span>
+        <span class="cs">${f.cs}</span>
+        <span class="tag ${f.op}">${f.op}</span>
+        <span class="rte" title="${f.orig} → ${f.dest}">${f.orig}→${f.dest}</span>
+        <span class="acts">${action}${delBtn}</span>
+      </div>`;
+  }).join('');
+}
+// Delegamos los clics del programa de vuelos en el contenedor — igual que en «fichas
+// de progreso» — porque la lista se reconstruye continuamente mientras la simulación
+// está en marcha y los manejadores "onclick" puestos en cada fila pueden perder el clic
+// si la fila se reconstruye entre el "mousedown" y el "mouseup".
+(function(){
+  const progListEl=document.getElementById('progList');
+  if(!progListEl) return;
+  progListEl.addEventListener('mousedown',function(e){
+    const tko=e.target.closest('[data-quicktakeoff]');
+    if(tko){ e.stopPropagation(); quickTakeoff(+tko.getAttribute('data-quicktakeoff')); return; }
+    const sn=e.target.closest('[data-startnow]');
+    if(sn){ e.stopPropagation(); startFlightNow(+sn.getAttribute('data-startnow')); return; }
+    const del=e.target.closest('[data-delsched]');
+    if(del){ e.stopPropagation(); removeScheduledFlight(+del.getAttribute('data-delsched')); return; }
+    const delcs=e.target.closest('[data-delcs]');
+    if(delcs){ e.stopPropagation(); removeAircraftByCs(delcs.getAttribute('data-delcs')); return; }
+    const row=e.target.closest('[data-selcs]');
+    if(row) selectAcByCs(row.getAttribute('data-selcs'));
+  });
+})();
+// Adelanta la entrada en escena de una llegada programada — equivalente a «Take off»
+// para las salidas, pero para vuelos ARR: aparece de inmediato desde su punto de entrada
+// en la CTR, antes de su hora prevista, para no tener que esperar al instructor.
+function startFlightNow(i){
+  const f=schedule[i];
+  if(!f||f.spawned)return;
+  if(f.op==='DEP'){ quickTakeoff(i); return; }
+  f.spawned=true;
+  spawn(f);
+  const ac=aircraft[aircraft.length-1];
+  if(ac){ if(ac.tContact==null) ac.tContact=simTime; selectAc(ac.id); }
+  log(`${f.cs}: entrada en CTR adelantada manualmente por el controlador`);
+  syncUI();
+}
+// Elimina del programa un vuelo que aún no ha aparecido (p.ej. si se programó por error)
+function removeScheduledFlight(i){
+  const f=schedule[i];
+  if(!f||f.spawned)return;
+  if(!confirm(`¿Eliminar el vuelo ${f.cs} del programa?`)) return;
+  schedule.splice(i,1);
+  renderSchedList();
+}
+
+/* Lanza de inmediato un vuelo de salida programado: lo coloca alineado en
+   pista y lo deja despegar en línea recta; a partir de ahí el instructor
+   le da las instrucciones (rumbo, punto, etc.) como a cualquier tráfico. */
+function quickTakeoff(i){
+  const f=schedule[i];
+  if(!f||f.op!=='DEP')return;
+  let ac=aircraft.find(x=>x.cs===f.cs);
+  if(!ac){
+    f.spawned=true;
+    spawn(f);
+    ac=aircraft[aircraft.length-1];
+  }
+  const dir=RWY.hdg*Math.PI/180;
+  const ax=Math.sin(dir), ay=-Math.cos(dir);
+  const sgn = activeRwy==='21'? +1 : -1;   // alineado en la cabecera activa (21 o 03)
+  ac.x = ax*(RWY.len/2-40)*sgn;
+  ac.y = ay*(RWY.len/2-40)*sgn;
+  ac.hdg = depHdg(ac);
+  ac.state = STATES.PISTA;
+  ac.spd = Math.max(ac.spd,40);
+  ac.target = null;          // vuelo recto: sin rumbo asignado, a la espera de órdenes
+  if(!ac.tContact) ac.tContact=simTime;
+  ac.tTakeoff = simTime;
+  log(`${ac.cs}: despegue inmediato autorizado — sale en línea recta a la espera de instrucciones`);
+  selectAc(ac.id);
+  syncUI();
+}
+
+/* ===========================================================
+   SIM CLOCK
+   =========================================================== */
+function toggleSim(){
+  if(!simRunning && !schedule.length){alert('Programa al menos un vuelo antes de iniciar.');return;}
+  simRunning=!simRunning;
+  const b=document.getElementById('playBtn');
+  b.textContent=simRunning?'⏸ Pausar':'▶ Reanudar';
+  b.className='btn '+(simRunning?'stop':'go');
+  if(simRunning){lastTs=performance.now();requestAnimationFrame(loop);}
+}
+function setSpeed(){
+  const ns = simSpeed===1?2:simSpeed===2?4:1;
+  simSpeed=ns; document.getElementById('spdLbl').textContent='x'+simSpeed;
+}
+// Reinicia la simulación al instante 0, con el mismo programa de vuelos pero sin tráfico ni progreso
+function resetSim(){
+  if(simRunning || simTime>0 || aircraft.length){
+    if(!confirm('¿Reiniciar la simulación desde cero? Se perderá todo el progreso actual.')) return;
+  }
+  simRunning=false; simTime=0; lastTs=null; simSpeed=1;
+  aircraft=[]; selected=null; selectedId=null; plannedRoute=[]; dragAc=null; dragMoved=false;
+  schedule.forEach(f=>{ f.spawned=false; });
+  const playBtn=document.getElementById('playBtn');
+  if(playBtn){playBtn.textContent='▶ Iniciar'; playBtn.className='btn go';}
+  const spdLbl=document.getElementById('spdLbl'); if(spdLbl) spdLbl.textContent='x1';
+  const clockEl=document.getElementById('clock'); if(clockEl) clockEl.textContent=fmtT(0);
+  const logEl=document.getElementById('cmdLog'); if(logEl) logEl.innerHTML='';
+  syncUI(); render();
+  log('Simulación reiniciada — lista para comenzar de cero');
+}
+
+function loop(ts){
+  if(!simRunning)return;
+  const dt=(ts-lastTs)/1000*simSpeed; lastTs=ts;
+  simTime+=dt;
+  step(dt);
+  document.getElementById('clock').textContent=fmtT(simTime);
+  render();
+  requestAnimationFrame(loop);
+}
+
+/* ===========================================================
+   SPAWN + PHYSICS
+   =========================================================== */
+function spawn(f){
+  const ends=rwyEnds();
+  let ac={
+    id:uid++, cs:f.cs, type:f.type, op:f.op, orig:f.orig, dest:f.dest,
+    fplRoute:f.route, lvl:f.lvl,
+    x:0,y:0, hdg:RWY.hdg, spd:0, alt:2595,
+    state: f.op==='DEP'?STATES.PROG:STATES.AIRE,
+    target:null, route:null, cmdHist:[], tContact:null, tTakeoff:null,
+    manualSpd:null, manualAlt:null,
+    plannedExitPt:null, // punto de salida planificado por el controlador (sólo salidas, antes de despegar)
+    circuitSide:null    // lado de circuito (R/L) asignado al ordenar "viento en cola" — usado luego por "Base"
+  };
+  if(f.op==='DEP'){
+    const mil = (f.type[0]==='C'||f.type==='C295'||f.type==='C101'||f.dest==='LEAB');
+    // posición = misma fórmula que las plataformas 3D (perp este + along)
+    const dir=RWY.hdg*Math.PI/180;
+    const px=Math.cos(dir), py=Math.sin(dir);      // perpendicular este (x,y_sim)
+    const ax=Math.sin(dir), ay=-Math.cos(dir);     // a lo largo
+    const gapPar=120;
+    let baseX,baseY;
+    if(mil){ const gap=gapPar+260, along=260;
+      baseX=px*(gap+210)+ax*along; baseY=py*(gap+210)+ay*along; }
+    else   { const gap=gapPar+240, along=-420;
+      baseX=px*(gap+150)+ax*along; baseY=py*(gap+150)+ay*along; }
+    const platform = mil?'MIL':'CIV';
+    // repartir los aviones por distintos puntos de la plataforma (en cuadrícula),
+    // para que no aparezcan todos amontonados unos sobre otros
+    const onGround = aircraft.filter(x=>x.op==='DEP' && x.platform===platform &&
+      (x.state===STATES.PROG||x.state===STATES.RODAJE||x.state===STATES.ESPERA)).length;
+    const spacing = mil?95:75, cols=3;
+    const col=onGround%cols, row=Math.floor(onGround/cols);
+    const offAlong=(col-(cols-1)/2)*spacing, offPerp=row*spacing;
+    ac.x = baseX + ax*offAlong + px*offPerp;
+    ac.y = baseY + ay*offAlong + py*offPerp;
+    ac.hdg=RWY.hdg; ac.spd=0; ac.platform = platform;
+  }else{
+    // llegada: entra desde un punto de aproximación lejano hacia BBI / ILS 21
+    const entry=APP_REF['DSK']||REF['E']; ac.x=entry.x; ac.y=entry.y; ac.alt=2595+5500; ac.spd=240;
+    ac.hdg=(Math.atan2(-entry.x,entry.y)*180/Math.PI+360)%360;
+    ac.target={mode:'point',pt:'BBI'}; ac.platform='CIV';
+  }
+  aircraft.push(ac);
+  log(`${ac.cs} aparece (${f.op})`);
+}
+
+function step(dt){
+  // spawn programados — las salidas aparecen en plataforma 3 minutos antes de su hora prevista
+  schedule.forEach(f=>{
+    const spawnAt = (f.op==='DEP') ? (f.time-180) : f.time;
+    if(!f.spawned && simTime>=spawnAt){f.spawned=true;spawn(f);}
+  });
+
+  const ends=rwyEnds();
+  aircraft.forEach(ac=>{
+    const tgtSpd = (ac.manualSpd!=null) ? ac.manualSpd : targetSpeed(ac);
+    // aceleración realista: ~3 kt/s despegue, frenado mayor
+    const accel = (tgtSpd>ac.spd? 3 : 5) * dt;
+    if(Math.abs(tgtSpd-ac.spd)<accel*1.2) ac.spd=tgtSpd;
+    else ac.spd += Math.sign(tgtSpd-ac.spd)*accel;
+
+    // movimiento según destino
+    let movedDirectly=false; // true cuando ya hemos posicionado la aeronave directamente (rodaje)
+    if(ac.target){
+      if(ac.target.mode==='orbit'){
+        // orbitar (sólo cuando lo ordena el controlador): viraje continuo suave
+        ac.hdg=(ac.hdg+8*dt+360)%360;
+      }else if(ac.target.mode==='hold'){
+        // inmóvil: mantiene rumbo y posición exactos, sin girar ni desplazarse
+      }else{
+        let dest=null;
+        if(ac.target.mode==='point') dest=REF[ac.target.pt]||APP_REF[ac.target.pt];
+        else if(ac.target.mode==='xy') dest=ac.target;
+        if(dest){
+          const dx=dest.x-ac.x, dy=dest.y-ac.y, dist=Math.hypot(dx,dy);
+          const want=(Math.atan2(dx,-dy)*180/Math.PI+360)%360;
+          if(ac.state===STATES.RODAJE){
+            // Rodaje: trayectoria PERFECTA por la calle de rodaje, sea cual sea la
+            // velocidad — en vez de virar gradualmente (lo que a velocidades altas
+            // hacía que el avión "derrapase" y se saliera del trazado en las curvas),
+            // se orienta de inmediato hacia el siguiente punto y avanza en línea recta
+            // exactamente sobre él, sin rebasarlo nunca. Al llegar al final de su
+            // recorrido (sin más puntos en la ruta) se detiene ahí mismo sin más acción.
+            ac.hdg=want;
+            const vmax=ac.spd*KT*dt;
+            const v=Math.min(vmax,dist);
+            if(dist>1e-6){ ac.x+=dx/dist*v; ac.y+=dy/dist*v; }
+            movedDirectly=true;
+            if(vmax>=dist){
+              ac.x=dest.x; ac.y=dest.y; // ajuste exacto al punto: ni de más ni de menos
+              if(ac.route&&ac.route.length){
+                const nxt=ac.route.shift();
+                ac.target={mode:'xy',x:nxt.x,y:nxt.y};
+              }else{
+                arriveTarget(ac); // detiene la aeronave aquí mismo, sin más instrucciones
+              }
+            }
+          }else{
+            const turnRate=90;
+            ac.hdg=turnToward(ac.hdg,want,turnRate*dt); // grados/s aprox
+            const arriveDist=300;
+            if(dist<arriveDist){
+              if(ac.route&&ac.route.length){
+                const nxt=ac.route.shift();
+                ac.target={mode:'xy',x:nxt.x,y:nxt.y};
+              }else{
+                arriveTarget(ac);
+              }
+            }
+          }
+        }
+      }
+    }
+    // avance (si el rodaje ya ha posicionado la aeronave directamente, no se repite)
+    if(!movedDirectly){
+      const v=ac.spd*KT*dt;
+      ac.x+=Math.sin(ac.hdg*Math.PI/180)*v;
+      ac.y+=-Math.cos(ac.hdg*Math.PI/180)*v;
+    }
+
+    // altitud según estado: en ruta 3000 ft sobre el campo, haciendo tráficos 1000 ft,
+    // en final desciende a la pista
+    {
+      const tAlt = (ac.manualAlt!=null) ? ac.manualAlt : targetAlt(ac);
+      if(ac.manualAlt==null && ac.state===STATES.FINAL) ac.alt=Math.max(2595, ac.alt-15*dt);
+      else if(Math.abs(ac.alt-tAlt)>4){
+        // el avión reacciona de inmediato a la orden de descender: tasa de bajada
+        // mucho más rápida que la de ascenso, para notarse al momento
+        const descending = tAlt < ac.alt;
+        const rate = descending ? 55 : 12;
+        ac.alt += Math.sign(tAlt-ac.alt)*rate*dt;
+      }
+      else ac.alt=tAlt;
+    }
+    if(ac.state===STATES.PISTA && ac.spd>110 && ac.op==='DEP'){ ac.state=STATES.AIRE; ac.tTakeoff=simTime; }
+  });
+  // limpiar los que se van lejos tras despegar
+  aircraft=aircraft.filter(ac=>{
+    const r=Math.hypot(ac.x,ac.y)/NM;
+    return !(r>9 && ac.state===STATES.AIRE && ac.op==='DEP');
+  });
+  syncUI();
+}
+
+function targetSpeed(ac){
+  if(ac.target&&ac.target.mode==='hold') return 0; // inmóvil sobre el punto: sin velocidad
+  switch(ac.state){
+    case STATES.PROG: return 0;
+    case STATES.RODAJE: return 15;     // rodaje ~15 kt
+    case STATES.ESPERA: return 0;
+    case STATES.PISTA: return ac.op==='DEP'?140:8;
+    case STATES.AIRE: return 200;
+    case STATES.APROX: return 180;
+    case STATES.FINAL: return 130;     // velocidad de aproximación final realista
+    default: return ac.spd;
+  }
+}
+function turnToward(cur,want,maxd){
+  let d=((want-cur+540)%360)-180;
+  if(Math.abs(d)<=maxd)return want;
+  return (cur+Math.sign(d)*maxd+360)%360;
+}
+// altitud objetivo: en ruta 3000 ft sobre el campo (visible en vuelo crucero),
+// haciendo tráficos / circuito (cerca del campo, viento en cola, base, ILS) 1000 ft
+function targetAlt(ac){
+  const base=2595;
+  if(ac.state===STATES.PROG||ac.state===STATES.RODAJE||ac.state===STATES.ESPERA||ac.state===STATES.PISTA) return base; // en tierra: altitud de campo
+  if(ac.state===STATES.FINAL) return base;
+  if(ac.state===STATES.APROX) return base+1000;
+  if(ac.state===STATES.AIRE && ac.target && (ac.target.mode==='xy'||ac.target.mode==='hold'||ac.target.mode==='orbit')) return base+1000; // tráficos (viento en cola/base/orbit/inmóvil)
+  return base+3000; // en ruta
+}
+function arriveTarget(ac){
+  const t=ac.target;
+  if(t.mode==='point'&&t.pt==='BBI'&&ac.op==='ARR'){
+    ac.state=STATES.APROX; ac.target={mode:'point',pt:'E'}; log(`${ac.cs} sobre BBI, vectores ILS`);
+  }else if(ac.state===STATES.RODAJE){
+    // llegó al punto de espera: se detiene del todo y aguarda instrucciones, sin
+    // moverse más. Importante: hay que anular también "manualSpd" — si el instructor
+    // había subido la velocidad de rodaje a mano con el deslizador, ese valor seguía
+    // activo tras la llegada y volvía a acelerar al avión (que entonces "se iba a
+    // algún sitio" en línea recta con el rumbo que llevara) en vez de quedarse quieto.
+    ac.state=STATES.ESPERA; ac.spd=0; ac.target=null; ac.route=null;
+    ac.manualSpd=null; ac.manualAlt=null;
+    log(`${ac.cs}: en punto de espera RWY ${depRwy(ac)}, en espera de instrucciones`);
+  }else if(ac.state===STATES.AIRE||ac.state===STATES.APROX||ac.state===STATES.PROG){
+    // llegó a un punto ordenado y no hay más instrucciones: se queda inmóvil en el sitio
+    // (sin orbitar) — anulamos también la velocidad manual por el mismo motivo de arriba.
+    ac.target={mode:'hold',x:ac.x,y:ac.y};
+    ac.spd=0;
+    ac.manualSpd=null;
+    log(`${ac.cs}: en el punto, mantengo posición a la espera de instrucciones`);
+  }else{
+    ac.target=null;
+  }
+}
+
+/* ===========================================================
+   COMMANDS (instructor)
+   =========================================================== */
+function cmd(action,arg){
+  if(!selected){flash('Selecciona una aeronave primero');return;}
+  const ac=selected;
+  if(action!=='taxi_hold'){ ac.route=null; plannedRoute=[]; }
+  // una nueva instrucción retoma el control automático de velocidad/altitud
+  ac.manualSpd=null; ac.manualAlt=null;
+  switch(action){
+    case 'taxi_hold': {
+      ac.state=STATES.RODAJE;
+      const hp=holdPoint(ac);
+      const tNow=rwyParam(ac), tHold=rwyParam(hp);
+      const route=[parallelPt(tNow), parallelPt(tHold), {x:hp.x,y:hp.y}];
+      ac.target={mode:'xy', x:route[0].x, y:route[0].y};
+      ac.route=route.slice(1);
+      log(`${ac.cs}: ruede al punto de espera RWY ${depRwy(ac)} por la calle de rodaje`);
+      break;
+    }
+    case 'lineup': ac.state=STATES.PISTA; ac.spd=0; ac.target=null; ac.hdg=depHdg(ac); if(!ac.tContact)ac.tContact=simTime; log(`${ac.cs}: alinearse RWY ${depRwy(ac)}`);break;
+    case 'takeoff': ac.state=STATES.PISTA; ac.tTakeoff=simTime; log(`${ac.cs}: autorizado despegue`);break;
+    case 'land': ac.state=STATES.FINAL; ac.target={mode:'xy',...rwyEnds()['thr'+activeRwy]}; log(`${ac.cs}: autorizado aterrizar RWY ${activeRwy}`);break;
+    case 'downwind': {
+      // El instructor elige directamente, para ESTA aeronave, por qué lado entra al
+      // circuito (botones "Viento en cola DER./IZQ." — los tráficos de E-1/E/S entran
+      // por la izquierda). Se guarda en la propia aeronave (ac.circuitSide) para que
+      // la orden "Base" sepa después hacia qué lado virar sin ambigüedad.
+      const side=(arg==='L')?'L':'R';
+      ac.circuitSide=side;
+      ac.state=STATES.AIRE; ac.target=downwindPoint(side);
+      log(`${ac.cs}: notifique viento en cola, lado ${side==='L'?'izquierdo':'derecho'}`);
+      break;
+    }
+    case 'base': {
+      // la base se vuela hacia el mismo lado por el que entró en el circuito
+      // (si aún no se le ha indicado lado, se asume el derecho por defecto)
+      const side = ac.circuitSide==='L' ? 'L' : 'R';
+      ac.target=basePoint(side);
+      log(`${ac.cs}: vuelo base, lado ${side==='L'?'izquierdo':'derecho'}`);
+      break;
+    }
+    case 'final': ac.state=STATES.FINAL; ac.target={mode:'xy',...rwyEnds()['thr'+activeRwy]}; log(`${ac.cs}: a final RWY ${activeRwy}`);break;
+    case 'orbit': ac.target={mode:'orbit',x:ac.x,y:ac.y}; log(`${ac.cs}: orbite posición`);break;
+    case 'rp': ac.state=ac.state===STATES.PROG?STATES.AIRE:ac.state; ac.target={mode:'point',pt:arg}; log(`${ac.cs}: proceda a ${arg}`);break;
+    case 'toBBI': ac.target={mode:'point',pt:'BBI'}; log(`${ac.cs}: proceda a BBI`);break;
+    case 'ils': ac.state=STATES.APROX; ac.target={mode:'point',pt:'E'}; log(`${ac.cs}: establézcase ILS ${activeRwy}`);break;
+  }
+  ac.cmdHist.push(action+(arg?' '+arg:''));
+  syncUI();
+}
+function cmdLabel(a,arg){return {taxi_hold:'rodar a punto de espera',lineup:'alinearse',takeoff:'autorizado despegue',
+  land:'autorizado aterrizar',downwind:'viento en cola, lado '+(arg==='L'?'izquierdo':'derecho'),base:'vuelo base',final:'a final',orbit:'orbite',
+  rp:'proceda a '+arg,toBBI:'proceda a BBI',ils:'establézcase ILS '+activeRwy}[a]||a;}
+// Todas las operaciones (rodaje, despegue, aterrizaje) se dirigen a la cabecera
+// ACTIVA elegida por el instructor — por defecto la 21, salvo que se seleccione la 03.
+function depRwy(ac){return activeRwy;}
+function depHdg(ac){return activeRwy==='21'?208:28;}
+function holdPoint(ac){
+  // punto de espera junto a la cabecera de salida activa (igual que los marcados en 3D)
+  const dir=RWY.hdg*Math.PI/180;
+  const ax=Math.sin(dir), ay=-Math.cos(dir);
+  const px=Math.cos(dir), py=Math.sin(dir);
+  const sgn = activeRwy==='21'? +1 : -1;  // hacia cabecera 21 o 03 según la pista activa
+  const x=ax*(RWY.len/2-90)*sgn + px*(RWY.w/2+8);
+  const y=ay*(RWY.len/2-90)*sgn + py*(RWY.w/2+8);
+  return{mode:'xy',x,y};
+}
+// parámetro 0..1 a lo largo del eje de pista (0=cabecera 03, 1=cabecera 21) para un punto dado
+function rwyParam(pt){
+  const e=rwyEnds(); const dir=RWY.hdg*Math.PI/180;
+  const ax=Math.sin(dir), ay=-Math.cos(dir);
+  return ((pt.x-e.thr03.x)*ax + (pt.y-e.thr03.y)*ay) / RWY.len;
+}
+// punto sobre el eje de la calle de rodaje paralela (lado este de la pista) en el parámetro t
+function parallelPt(t){
+  const e=rwyEnds(); const dir=RWY.hdg*Math.PI/180;
+  const px=Math.cos(dir), py=Math.sin(dir);
+  const tt=Math.max(0.04,Math.min(0.96,t));
+  const base=lerpPt(e.thr03,e.thr21,tt);
+  return {x:base.x+px*120, y:base.y+py*120};
+}
+// Viento en cola: el desvío lateral respecto al eje recíproco de pista se sitúa a la
+// derecha (+25°) o a la izquierda (-25°) según el lado de circuito que el instructor
+// elija para ESA aeronave (botones "Viento en cola DER./IZQ.") — los tráficos que
+// llegan por E-1, E o S se incorporan por la izquierda.
+function downwindPoint(side){
+  const off = side==='L' ? -25 : 25;
+  const p=brgRng((208+180+off+360)%360,3.0); return {mode:'xy',x:p.x,y:p.y};
+}
+// La base se vuela virando hacia el MISMO lado por el que la aeronave entró en el
+// circuito (side = ac.circuitSide), para que el viraje de viento en cola → base → final
+// sea coherente y no cruce la trayectoria.
+function basePoint(side){
+  const off = side==='L' ? -1 : 1;
+  const p=brgRng((208+180)%360,2.5);
+  const perp=brgRng((208+180+off*90+360)%360,0.35);
+  return {mode:'xy',x:p.x+perp.x,y:p.y+perp.y};
+}
+
+function log(t){
+  const ac=document.getElementById('cmdLog');
+  if(!ac)return;
+  ac.innerHTML=`<b>${fmtMS(simTime)}</b> ${t}<br>`+ac.innerHTML;
+}
+function flash(t){const el=document.getElementById('cmdLog');if(el)el.innerHTML=`<span style="color:var(--red)">${t}</span><br>`+el.innerHTML;}
+
+/* ===========================================================
+   SELECTION / UI SYNC
+   =========================================================== */
+function selectAc(id){selectedId=id; selected=aircraft.find(a=>a.id===id)||null; plannedRoute=[]; syncUI();}
+// Selecciona la aeronave activa por su indicativo — usado al pulsar su ficha
+// en «Programa de vuelos» una vez que el vuelo ya ha aparecido (está en curso),
+// de forma que seleccionar la ficha también selecciona el avión en el radar.
+function selectAcByCs(cs){ const ac=aircraft.find(a=>a.cs===cs); if(ac) selectAc(ac.id); }
+// El profesor puede variar manualmente la velocidad/altitud de la aeronave seleccionada
+// con las barras: el cambio se aplica AL INSTANTE (tanto al subir como al bajar),
+// sin ninguna rampa o transición progresiva — se fija el valor directamente.
+function setAcSpeed(v){
+  if(!selected)return;
+  selected.manualSpd=+v;
+  selected.spd=+v;             // aplicación inmediata, sin transición
+  const lbl=document.getElementById('spdSliderVal'); if(lbl)lbl.textContent=Math.round(+v)+' kt';
+}
+function setAcAlt(v){
+  if(!selected)return;
+  selected.manualAlt=+v;
+  selected.alt=+v;             // aplicación inmediata, sin transición
+  const lbl=document.getElementById('altSliderVal'); if(lbl)lbl.textContent=Math.round(+v)+' ft';
+}
+function syncSliders(){
+  const spd=document.getElementById('spdSlider'), alt=document.getElementById('altSlider');
+  const spdLbl=document.getElementById('spdSliderVal'), altLbl=document.getElementById('altSliderVal');
+  if(!spd||!alt)return;
+  if(selected){
+    spd.disabled=false; alt.disabled=false;
+    const sv = selected.manualSpd!=null ? selected.manualSpd : selected.spd;
+    const av = selected.manualAlt!=null ? selected.manualAlt : selected.alt;
+    // sólo refrescamos la posición si el usuario no la está arrastrando ahora mismo
+    if(document.activeElement!==spd) spd.value=Math.round(sv);
+    if(document.activeElement!==alt) alt.value=Math.round(av/50)*50;
+    spdLbl.textContent=Math.round(sv)+' kt';
+    altLbl.textContent=Math.round(av)+' ft';
+  }else{
+    spd.disabled=true; alt.disabled=true;
+    spd.value=0; alt.value=2595;
+    spdLbl.textContent='— kt'; altLbl.textContent='— ft';
+  }
+}
+function selectFromDropdown(){const v=+document.getElementById('acSelect').value;selectAc(v);}
+
+function syncUI(){
+  // dropdown
+  const sel=document.getElementById('acSelect');
+  if(sel){
+    const cur=selected?selected.id:'';
+    sel.innerHTML='<option value="">— ninguna —</option>'+aircraft.map(a=>`<option value="${a.id}" ${a.id==cur?'selected':''}>${a.cs} · ${a.state}</option>`).join('');
+  }
+  document.getElementById('selCs').textContent=selected?selected.cs:'—';
+  syncSliders();
+  renderStrips();
+  renderStudentStrips();
+  renderProgList();
+}
+
+/* ---------- Instructor strips ---------- */
+// Resume en texto la ruta de puntos que sigue actualmente la aeronave (destino actual + cola de waypoints),
+// identificando el nombre del punto de referencia más cercano cuando es posible.
+function routeSummary(ac){
+  const nameNear=(p)=>{
+    for(const k in REF) if(Math.hypot(REF[k].x-p.x,REF[k].y-p.y)<400) return k;
+    for(const k in APP_REF) if(Math.hypot(APP_REF[k].x-p.x,APP_REF[k].y-p.y)<400) return k;
+    return null;
+  };
+  const describe=(t)=>{
+    if(!t) return null;
+    if(t.mode==='point') return t.pt;
+    if(t.mode==='hold') return '◉ mantiene posición';
+    if(t.mode==='orbit') return '◌ orbitando';
+    if(t.mode==='xy') return nameNear(t)||'punto trazado';
+    return null;
+  };
+  const parts=[];
+  const cur=describe(ac.target);
+  if(cur) parts.push(cur);
+  if(ac.route&&ac.route.length) ac.route.forEach(p=>{ const d=nameNear(p)||'punto'; parts.push(d); });
+  return parts.length?parts.join(' → '):'—';
+}
+function renderStrips(){
+  const el=document.getElementById('stripList');
+  document.getElementById('stripCount').textContent=aircraft.length;
+  if(!aircraft.length){el.innerHTML='<div class="empty2">No hay vuelos activos. Programa e inicia la simulación.</div>';return;}
+  el.innerHTML=aircraft.map(a=>{
+    const rule=flightRule(a);
+    const ruleTag=rule?`<span class="ruleTag rule-${rule}">${rule}</span>`:'';
+    return `
+    <div class="strip ${a.op==='DEP'?'dep':'arr'} ${selected&&selected.id===a.id?'sel':''}" data-ac-id="${a.id}">
+      <span class="stripDel" data-del-id="${a.id}" title="Eliminar este vuelo de la simulación">✕</span>
+      <div class="row1">
+        <span class="cs">${a.op==='DEP'?'**':''}${a.cs}</span>
+        ${ruleTag}
+        <span class="typ">${a.type} · ${a.op}</span>
+      </div>
+      <div class="row2">
+        <span>${a.orig}→${a.dest}</span>
+        <span>FL${a.lvl}</span>
+        <span>${a.fplRoute||''}</span>
+      </div>
+      <div class="row3">
+        <span>HC: ${a.tContact!=null?fmtMS(a.tContact):'--:--'}</span>
+        <span>DEP: ${a.tTakeoff!=null?fmtMS(a.tTakeoff):'--:--'}</span>
+        <span class="state st-${a.state}">${a.state}</span>
+      </div>
+      <div class="row4" style="font-size:10.5px;color:var(--green);letter-spacing:.5px;border-top:1px dashed var(--line);padding-top:5px;margin-top:1px">
+        🧭 Ruta: ${routeSummary(a)}
+      </div>
+      ${exitPtPicker(a)}
+    </div>`;
+  }).join('');
+}
+// Delegamos la selección en el contenedor (en vez de "onclick" en cada ficha): así
+// seguimos respondiendo al instante aunque la lista se vuelva a pintar continuamente
+// mientras la simulación está en marcha (con "onclick" en el propio elemento, si la
+// ficha se reconstruye entre el "mousedown" y el "mouseup" el clic se pierde y la
+// aeronave nunca llega a seleccionarse — éste era el motivo de que no funcionase).
+(function(){
+  const stripListEl=document.getElementById('stripList');
+  if(!stripListEl) return;
+  stripListEl.addEventListener('mousedown',function(e){
+    const delBtn=e.target.closest('[data-del-id]');
+    if(delBtn){ e.stopPropagation(); removeAircraft(+delBtn.getAttribute('data-del-id')); return; }
+    const ptChip=e.target.closest('[data-setpt-id]');
+    if(ptChip){ e.stopPropagation(); setExitPoint(+ptChip.getAttribute('data-setpt-id'), ptChip.getAttribute('data-setpt-val')); return; }
+    const row=e.target.closest('.strip');
+    if(row && row.dataset.acId!==undefined) selectAc(+row.dataset.acId);
+  });
+})();
+// Elimina una aeronave activa de la simulación (p.ej. si se programó por error)
+function removeAircraft(id){
+  const idx=aircraft.findIndex(a=>a.id===id);
+  if(idx<0) return;
+  const ac=aircraft[idx];
+  if(!confirm(`¿Eliminar el vuelo ${ac.cs} de la simulación?`)) return;
+  aircraft.splice(idx,1);
+  if(selected&&selected.id===id){ selected=null; selectedId=null; plannedRoute=[]; }
+  log(`${ac.cs}: vuelo retirado de la simulación por el controlador`);
+  syncUI(); render();
+}
+// Igual que removeAircraft, pero localizando la aeronave por indicativo — lo usa el
+// botón "✕" de las filas "en curso" del Programa de vuelos (que sólo conocen el cs,
+// no el id interno de la aeronave activa).
+function removeAircraftByCs(cs){
+  const ac=aircraft.find(a=>a.cs===cs);
+  if(ac) removeAircraft(ac.id);
+}
+
+/* ---------- Student strips (read-only fichas) ---------- */
+function renderStudentStrips(){
+  const bar=document.getElementById('sStripBar');
+  if(!bar)return;
+  if(!aircraft.length){bar.innerHTML='<span class="empty">Sin tráfico activo.</span>';return;}
+  bar.innerHTML=aircraft.map(a=>`
+    <div class="sStrip">
+      <div class="top"><span class="cs">${a.cs}</span><span class="st st-${a.state}">${a.state}</span></div>
+      <div class="mid">${a.type} · ${a.op}<br>${a.orig} → ${a.dest}<br>${a.fplRoute||'—'}</div>
+      <div class="bot"><span>FL${a.lvl}</span><span>${Math.round(a.spd)} kt</span><span>${Math.round(a.alt)} ft</span></div>
+    </div>`).join('');
+}
+
+/* ===========================================================
+   RENDER: RADAR
+   =========================================================== */
+const radar=document.getElementById('radar'), rctx=radar.getContext('2d');
+radar.style.cursor='default'; // flecha normal: el arrastre para desplazar la vista sigue funcionando igual
+// Desplazamiento (paneo) de la vista de radar unificada, en píxeles de pantalla,
+// para que el profesor pueda arrastrar con el ratón y recorrer todo el espacio
+// aéreo (incluidos los puntos de aproximación lejanos como VETAN, ZMR, etc.).
+let radarPan={x:0,y:0};
+let dragPan=null; // {mx0,my0,px0,py0} mientras se arrastra la vista
+
+// Zoom con la rueda del ratón — siempre activo: acerca o aleja la vista unificada
+// (de la plataforma en detalle hasta la CTR/ATZ y los puntos de aproximación lejanos)
+radar.addEventListener('wheel',function(e){
+  e.preventDefault();
+  const factor = e.deltaY<0 ? 1.12 : (1/1.12);
+  radarZoom = Math.max(0.05, Math.min(40, radarZoom*factor));
+  render();
+},{passive:false});
+
+// Parámetros de proyección (centro y escala) del panel de radar unificado.
+// Permiten convertir coordenadas de pantalla <-> coordenadas del mundo (x=este, y=sur, m).
+// Con radarZoom=1 (por defecto) se ve toda la CTR/ATZ (≈8 NM de radio) con los puntos
+// VFR N, N-1, E, E-1, S, W; con la rueda del ratón se puede acercar hasta el detalle
+// de la plataforma y la pista, o alejar hasta abarcar los puntos de aproximación
+// lejanos (VETAN, ZMR, ADORO… a 18-100 NM). El centro se desplaza con «radarPan»
+// cuando el profesor arrastra la vista con el ratón.
+function radarProjParams(w,h){
+  const R=Math.min(w,h)*0.46;
+  const baseNM=8;   // alcance visible por defecto (radarZoom=1): toda la CTR/ATZ con los puntos VFR
+  return {cx:w/2+radarPan.x, cy:h/2+radarPan.y, scale:(R/(baseNM*NM))*radarZoom};
+}
+// Clic en el radar: si hay un avión cerca del clic, lo selecciona;
+// si ya hay uno seleccionado, lo dirige («directo a») hacia el punto pulsado.
+radar.addEventListener('click',function(e){
+  // si el clic es el final de un arrastre que ha movido la aeronave, no lo tratamos como «directo a»
+  if(dragMoved){ dragMoved=false; return; }
+  const w=radar.width, h=radar.height;
+  const rect=radar.getBoundingClientRect();
+  const mx=(e.clientX-rect.left)*(w/rect.width), my=(e.clientY-rect.top)*(h/rect.height);
+  const {cx,cy,scale}=radarProjParams(w,h);
+  const wx=(mx-cx)/scale, wy=(my-cy)/scale;
+  // Ctrl+clic: AÑADE el siguiente punto de la ruta encadenada (2º, 3º…) a la aeronave
+  // seleccionada. El primer punto lo fija un clic normal (ver más abajo); a partir de
+  // ahí, cada Ctrl+clic agrega un tramo más, en el orden en que se van pulsando.
+  if(e.ctrlKey){
+    if(!selected){ flash('Selecciona una aeronave para trazarle una ruta con Ctrl+clic'); return; }
+    plannedRoute.push({x:wx,y:wy});
+    selected.target={mode:'xy', x:plannedRoute[0].x, y:plannedRoute[0].y};
+    selected.route=plannedRoute.slice(1);
+    if(selected.state===STATES.PROG||selected.state===STATES.ESPERA) selected.state=STATES.AIRE;
+    log(`${selected.cs}: ruta trazada por el controlador — ${plannedRoute.length} punto(s)`);
+    syncUI();
+    return;
+  }
+  // ¿clic cerca de un blip?
+  let nearest=null, nearestD=18; // px
+  aircraft.forEach(a=>{
+    const px=cx+a.x*scale, py=cy+a.y*scale;
+    const d=Math.hypot(px-mx,py-my);
+    if(d<nearestD){nearestD=d;nearest=a;}
+  });
+  if(nearest){ selectAc(nearest.id); return; }
+  if(selected){
+    // El clic normal fija el PRIMER punto de la ruta (sustituye cualquier ruta anterior);
+    // a partir de aquí, cada Ctrl+clic añade el siguiente punto en cadena (2º, 3º…).
+    plannedRoute=[{x:wx,y:wy}];
+    selected.route=null;
+    selected.target={mode:'xy', x:wx, y:wy};
+    if(selected.state===STATES.PROG||selected.state===STATES.ESPERA) selected.state=STATES.AIRE;
+    log(`${selected.cs}: directo a punto seleccionado en pantalla`);
+    syncUI();
+  }
+});
+// Arrastrar con el ratón: si se pulsa sobre la aeronave seleccionada, se la
+// reposiciona al instante allí donde se suelta; si se pulsa en cualquier otro
+// punto del radar, se arrastra (paneo) toda la vista para recorrer el espacio
+// aéreo —p.ej. para llegar a los puntos de aproximación lejanos (VETAN, ZMR…).
+radar.addEventListener('mousedown',function(e){
+  if(e.ctrlKey)return;
+  const w=radar.width, h=radar.height;
+  const rect=radar.getBoundingClientRect();
+  const mx=(e.clientX-rect.left)*(w/rect.width), my=(e.clientY-rect.top)*(h/rect.height);
+  const {cx,cy,scale}=radarProjParams(w,h);
+  if(selected){
+    const px=cx+selected.x*scale, py=cy+selected.y*scale;
+    if(Math.hypot(px-mx,py-my)<18){ dragAc=selected; dragMoved=false; e.preventDefault(); return; }
+  }
+  // arrastre de la vista (paneo) — el cursor se mantiene como flecha normal, sin icono de mano
+  dragPan={mx0:mx,my0:my,px0:radarPan.x,py0:radarPan.y};
+  dragMoved=false;
+  e.preventDefault();
+});
+radar.addEventListener('mousemove',function(e){
+  if(!dragAc&&!dragPan)return;
+  const w=radar.width, h=radar.height;
+  const rect=radar.getBoundingClientRect();
+  const mx=(e.clientX-rect.left)*(w/rect.width), my=(e.clientY-rect.top)*(h/rect.height);
+  if(dragAc){
+    const {cx,cy,scale}=radarProjParams(w,h);
+    dragAc.x=(mx-cx)/scale; dragAc.y=(my-cy)/scale;
+    dragMoved=true;
+  }else if(dragPan){
+    radarPan.x=dragPan.px0+(mx-dragPan.mx0);
+    radarPan.y=dragPan.py0+(my-dragPan.my0);
+    if(Math.abs(mx-dragPan.mx0)>3||Math.abs(my-dragPan.my0)>3) dragMoved=true;
+  }
+  render();
+});
+window.addEventListener('mouseup',function(){
+  if(dragPan){ dragPan=null; }
+  if(dragAc){
+    if(dragMoved) log(`${dragAc.cs}: reposicionado manualmente por el controlador en el radar`);
+    dragAc=null;
+  }
+});
+/* ===========================================================
+   RENDER: RADAR DEL INSTRUCTOR — vista unificada
+   Fusiona en un único plano «desde arriba» el antiguo radar de
+   torre (anillos CTR/ATZ y puntos VFR N, N-1, E, E-1, S, W) y el
+   modo aproximación (plataforma, calles de rodaje, cabeceras),
+   de forma que se ven todos los puntos a la vez y se navega y
+   gestionan los tráficos (selección, «directo a», arrastre,
+   rutas con Ctrl+clic) con zoom continuo (rueda del ratón).
+   Mundo: x = este (m), y = sur (m) -> pantalla: sx=cx+x·esc,
+   sy=cy+y·esc  (proyección ortográfica con norte arriba).
+   =========================================================== */
+function drawRadar(){
+  const w=radar.width,h=radar.height;
+  const {cx,cy,scale}=radarProjParams(w,h);
+  const R=Math.min(w,h)*0.46;
+  const gp=(wx,wy)=>({sx:cx+wx*scale, sy:cy+wy*scale});
+  const dir=RWY.hdg*Math.PI/180;
+  const px=Math.cos(dir), py=Math.sin(dir);   // perpendicular (este) a la pista
+  const ax=Math.sin(dir), ay=-Math.cos(dir);  // a lo largo de la pista
+  const e=rwyEnds();
+
+  rctx.clearRect(0,0,w,h);
+  let bg=rctx.createRadialGradient(cx,cy,0,cx,cy,Math.max(w,h)*0.78);
+  bg.addColorStop(0,'#1b3322');bg.addColorStop(1,'#0a160e');
+  rctx.fillStyle=bg;rctx.fillRect(0,0,w,h);
+
+  // ---------- anillos de distancia (paso adaptado al nivel de zoom) ----------
+  const visNM = R/(scale*NM);
+  const ringStep = visNM>20?5 : visNM>8?2 : visNM>3?1 : visNM>1?0.5 : 0.25;
+  rctx.setLineDash([3,6]);rctx.strokeStyle='rgba(90,170,130,.22)';rctx.lineWidth=1;
+  rctx.font='10px JetBrains Mono';rctx.fillStyle='rgba(140,210,170,.45)';
+  for(let nmR=ringStep; nmR*NM*scale<R*1.3; nmR+=ringStep){
+    const rr=nmR*NM*scale;
+    rctx.beginPath();rctx.arc(cx,cy,rr,0,7);rctx.stroke();
+    rctx.fillText(nmR.toFixed(2)+' NM', cx + Math.cos(-Math.PI/4)*rr + 4, cy + Math.sin(-Math.PI/4)*rr);
+  }
+  rctx.setLineDash([]);
+  // límites regulados ATZ / CTR — referencia visual constante cuando caben en pantalla
+  [{nm:4.3,c:'rgba(150,195,255,.55)',lbl:'ATZ 4.3 NM'},{nm:7.5,c:'#1c7a48',lbl:'CTR 7.5 NM'}].forEach(b=>{
+    const rr=b.nm*NM*scale;
+    if(rr>R*2.4) return;
+    rctx.strokeStyle=b.c;rctx.lineWidth=1.5;
+    rctx.beginPath();rctx.arc(cx,cy,rr,0,7);rctx.stroke();
+    rctx.fillStyle=b.c;rctx.font='bold 10px JetBrains Mono';
+    rctx.fillText(b.lbl, cx+Math.cos(-Math.PI*0.62)*rr, cy+Math.sin(-Math.PI*0.62)*rr);
+  });
+
+  // ---------- pista 03/21 (con anchura real) ----------
+  const hwR=RWY.w/2;
+  const rwyC=[
+    {x:e.thr03.x+px*hwR,y:e.thr03.y+py*hwR},{x:e.thr21.x+px*hwR,y:e.thr21.y+py*hwR},
+    {x:e.thr21.x-px*hwR,y:e.thr21.y-py*hwR},{x:e.thr03.x-px*hwR,y:e.thr03.y-py*hwR}
+  ].map(c=>gp(c.x,c.y));
+  rctx.fillStyle='#56585f';rctx.beginPath();rctx.moveTo(rwyC[0].sx,rwyC[0].sy);
+  rwyC.slice(1).forEach(c=>rctx.lineTo(c.sx,c.sy));rctx.closePath();rctx.fill();
+  rctx.strokeStyle='#d9d6c6';rctx.lineWidth=1.5;rctx.stroke();
+  // eje discontinuo
+  const t03=gp(e.thr03.x,e.thr03.y), t21=gp(e.thr21.x,e.thr21.y);
+  rctx.strokeStyle='#e8e2c8';rctx.lineWidth=Math.max(1.2,scale*1.6);
+  rctx.setLineDash([Math.max(6,scale*55),Math.max(4,scale*35)]);
+  rctx.beginPath();rctx.moveTo(t03.sx,t03.sy);rctx.lineTo(t21.sx,t21.sy);rctx.stroke();
+  rctx.setLineDash([]);
+  // designadores 03 / 21
+  rctx.fillStyle='#ece4c4';rctx.font=`bold ${Math.max(10,scale*42)}px Oswald`;rctx.textAlign='center';
+  const p03=lerpPt(e.thr03,e.thr21,0.07), p21=lerpPt(e.thr21,e.thr03,0.07);
+  const lbl03=gp(p03.x,p03.y), lbl21=gp(p21.x,p21.y);
+  rctx.save();rctx.translate(lbl03.sx,lbl03.sy);rctx.rotate(dir+Math.PI/2);rctx.fillText('03',0,0);rctx.restore();
+  rctx.save();rctx.translate(lbl21.sx,lbl21.sy);rctx.rotate(dir-Math.PI/2);rctx.fillText('21',0,0);rctx.restore();
+  rctx.textAlign='left';
+
+  // ---------- calle de rodaje paralela ----------
+  const gapPar=120, twPar=23/2;
+  const a0=lerpPt(e.thr03,e.thr21,0.04), a1=lerpPt(e.thr03,e.thr21,0.96);
+  const parC=[
+    {x:a0.x+px*(gapPar-twPar),y:a0.y+py*(gapPar-twPar)},{x:a1.x+px*(gapPar-twPar),y:a1.y+py*(gapPar-twPar)},
+    {x:a1.x+px*(gapPar+twPar),y:a1.y+py*(gapPar+twPar)},{x:a0.x+px*(gapPar+twPar),y:a0.y+py*(gapPar+twPar)}
+  ].map(c=>gp(c.x,c.y));
+  rctx.fillStyle='#54585e';rctx.beginPath();rctx.moveTo(parC[0].sx,parC[0].sy);
+  parC.slice(1).forEach(c=>rctx.lineTo(c.sx,c.sy));rctx.closePath();rctx.fill();
+  rctx.strokeStyle='rgba(232,228,210,.5)';rctx.lineWidth=Math.max(1,scale*1.4);
+  rctx.beginPath();rctx.moveTo(parC[0].sx,parC[0].sy);rctx.lineTo(parC[1].sx,parC[1].sy);rctx.stroke();
+  rctx.beginPath();rctx.moveTo(parC[2].sx,parC[2].sy);rctx.lineTo(parC[3].sx,parC[3].sy);rctx.stroke();
+  const pcA=gp(a0.x+px*gapPar,a0.y+py*gapPar), pcB=gp(a1.x+px*gapPar,a1.y+py*gapPar);
+  rctx.strokeStyle='#e8c659';rctx.lineWidth=Math.max(1,scale*2);
+  rctx.beginPath();rctx.moveTo(pcA.sx,pcA.sy);rctx.lineTo(pcB.sx,pcB.sy);rctx.stroke();
+
+  // ---------- calles de conexión ----------
+  const links=[{t:0.82,n:'C-5'},{t:0.45,n:'C-4'},{t:0.0,n:'C-3'},{t:-0.45,n:'C-2'},{t:-0.82,n:'C-1'}];
+  const hwLink=10;
+  rctx.lineCap='round';
+  links.forEach(L=>{
+    const tt=(L.t+1)/2;
+    const onRwy=lerpPt(e.thr03,e.thr21,tt);
+    const start={x:onRwy.x+px*22,y:onRwy.y+py*22};
+    const out={x:onRwy.x+px*260,y:onRwy.y+py*260};
+    const psa=gp(start.x,start.y), pso=gp(out.x,out.y);
+    rctx.strokeStyle='#52565c';rctx.lineWidth=Math.max(2,scale*16);
+    rctx.beginPath();rctx.moveTo(psa.sx,psa.sy);rctx.lineTo(pso.sx,pso.sy);rctx.stroke();
+    [-1,1].forEach(s=>{
+      const ea=gp(start.x+ax*hwLink*s,start.y+ay*hwLink*s), eb=gp(out.x+ax*hwLink*s,out.y+ay*hwLink*s);
+      rctx.strokeStyle='rgba(232,228,210,.4)';rctx.lineWidth=Math.max(1,scale*1.2);
+      rctx.beginPath();rctx.moveTo(ea.sx,ea.sy);rctx.lineTo(eb.sx,eb.sy);rctx.stroke();
+    });
+    rctx.strokeStyle='#e8c659';rctx.lineWidth=Math.max(1,scale*1.8);
+    rctx.beginPath();rctx.moveTo(psa.sx,psa.sy);rctx.lineTo(pso.sx,pso.sy);rctx.stroke();
+  });
+  rctx.lineCap='butt';
+
+  // ---------- puntos de espera (cabeceras 03 y 21) ----------
+  [{thr:e.thr21,other:e.thr03,name:'21'},{thr:e.thr03,other:e.thr21,name:'03'}].forEach(H=>{
+    const base=lerpPt(H.thr,H.other,0.05);
+    const hx=base.x+px*(RWY.w/2+8), hy=base.y+py*(RWY.w/2+8);
+    for(const d of [0,4]){
+      const a=gp(hx+ax*(-13)+px*d*0.2, hy+ay*(-13)+py*d*0.2);
+      const b=gp(hx+ax*(13)+px*d*0.2,  hy+ay*(13)+py*d*0.2);
+      rctx.strokeStyle='#f2d23a';rctx.lineWidth=Math.max(1.2,scale*2.2);
+      rctx.beginPath();rctx.moveTo(a.sx,a.sy);rctx.lineTo(b.sx,b.sy);rctx.stroke();
+    }
+    const sgn=gp(hx+px*18,hy+py*18);
+    const sw=Math.max(14,scale*55), sh=Math.max(9,scale*30);
+    rctx.fillStyle='#b51a1a';rctx.fillRect(sgn.sx-sw/2,sgn.sy-sh/2,sw,sh);
+    rctx.fillStyle='#fff';rctx.font=`bold ${Math.max(8,scale*22)}px JetBrains Mono`;rctx.textAlign='center';
+    rctx.fillText(H.name,sgn.sx,sgn.sy+sh*0.18);rctx.textAlign='left';
+  });
+
+  // ---------- plataformas civil y militar ----------
+  drawApronGround('mil', +260, 360, 420, gp,scale,px,py,ax,ay);
+  drawApronGround('civ', -420, 340, 300, gp,scale,px,py,ax,ay);
+
+  // ---------- puntos VFR de la CTR (N, N-1, E, E-1, S, W) y BBI — bien visibles,
+  // con halo oscuro para destacar el nombre sobre cualquier fondo del radar
+  const pts = REF;
+  rctx.font='bold 13px JetBrains Mono';
+  rctx.textAlign='left';rctx.textBaseline='alphabetic';
+  for(const k in pts){
+    const p=pts[k]; const sp=gp(p.x,p.y);
+    if(sp.sx<-40||sp.sx>w+40||sp.sy<-40||sp.sy>h+40)continue;
+    const isNav=(k==='BBI');
+    const dotColor=isNav?'#ffb454':'#3ddc84';
+    const lblColor=isNav?'#ffe2b0':'#bff5d3';
+    rctx.fillStyle=dotColor;
+    if(isNav){rctx.save();rctx.translate(sp.sx,sp.sy);rctx.rotate(Math.PI/4);rctx.fillRect(-5,-5,10,10);rctx.restore();}
+    else{rctx.beginPath();rctx.arc(sp.sx,sp.sy,4,0,7);rctx.fill();rctx.lineWidth=1;rctx.strokeStyle='rgba(255,255,255,.5)';rctx.stroke();}
+    // halo oscuro detrás del texto para que destaque siempre, sea cual sea el fondo
+    rctx.lineWidth=3; rctx.strokeStyle='rgba(2,8,6,.85)';
+    rctx.strokeText(k,sp.sx+8,sp.sy+4);
+    rctx.fillStyle=lblColor;
+    rctx.fillText(k,sp.sx+8,sp.sy+4);
+  }
+
+  // ---------- puntos de la fase de APROXIMACIÓN / entrada en ruta (VETAN, ZMR,
+  // ADORO, VLD/NUB, DSK, RVO, BARDI, NVS, MLN, TLD, CCS…): si caen dentro del
+  // área visible se dibujan en su posición real; si quedan fuera de pantalla
+  // (lo habitual, pues están a 18-100 NM de BBI, mucho más lejos que el alcance
+  // habitual de trabajo) se dibuja SIEMPRE una flecha + etiqueta + distancia en
+  // el borde de la pantalla señalando hacia el punto, así el instructor los
+  // localiza sin importar el zoom o el desplazamiento (pan) del radar.
+  rctx.font='bold 12px JetBrains Mono';
+  const edgeMargin=30;
+  for(const k in APP_REF){
+    if(k==='BBI') continue; // BBI ya se ha dibujado arriba como punto/navaid central
+    const p=APP_REF[k]; const sp=gp(p.x,p.y);
+    const distNM=Math.hypot(p.x,p.y)/NM;
+    const within = sp.sx>=edgeMargin && sp.sx<=w-edgeMargin && sp.sy>=edgeMargin && sp.sy<=h-edgeMargin;
+    if(within){
+      rctx.fillStyle='#7fa8ff';
+      rctx.save();rctx.translate(sp.sx,sp.sy);rctx.rotate(Math.PI/4);rctx.fillRect(-4,-4,8,8);rctx.restore();
+      rctx.lineWidth=3; rctx.strokeStyle='rgba(2,8,6,.85)';
+      rctx.strokeText(k,sp.sx+8,sp.sy+4);
+      rctx.fillStyle='#cfe0ff';
+      rctx.fillText(k,sp.sx+8,sp.sy+4);
+    } else {
+      // indicador de borde: flecha apuntando hacia el punto real + etiqueta y distancia
+      const dx=sp.sx-cx, dy=sp.sy-cy;
+      const len=Math.hypot(dx,dy)||1;
+      const ux=dx/len, uy=dy/len;
+      let t=Infinity;
+      if(ux>0) t=Math.min(t,(w-edgeMargin-cx)/ux);
+      else if(ux<0) t=Math.min(t,(edgeMargin-cx)/ux);
+      if(uy>0) t=Math.min(t,(h-edgeMargin-cy)/uy);
+      else if(uy<0) t=Math.min(t,(edgeMargin-cy)/uy);
+      if(!isFinite(t)||t<0) t=0;
+      const ex=cx+ux*t, ey=cy+uy*t;
+      const ang=Math.atan2(uy,ux);
+      rctx.save();
+      rctx.translate(ex,ey); rctx.rotate(ang);
+      rctx.fillStyle='#7fa8ff';
+      rctx.beginPath();rctx.moveTo(10,0);rctx.lineTo(-6,-6);rctx.lineTo(-6,6);rctx.closePath();rctx.fill();
+      rctx.restore();
+      const lx=ex-ux*20, ly=ey-uy*20;
+      const lblOff = ux>=0 ? 14 : -14;
+      rctx.textAlign = ux>=0 ? 'left' : 'right';
+      rctx.lineWidth=3; rctx.strokeStyle='rgba(2,8,6,.85)';
+      rctx.strokeText(k+'  '+distNM.toFixed(0)+' NM', lx+lblOff, ly+4);
+      rctx.fillStyle='#cfe0ff';
+      rctx.fillText(k+'  '+distNM.toFixed(0)+' NM', lx+lblOff, ly+4);
+      rctx.textAlign='left';
+    }
+  }
+
+  // trayectoria prevista de cada aeronave: a dónde se dirige (y los siguientes tramos de su ruta)
+  const resolveDest=(t)=>{
+    if(!t) return null;
+    if(t.mode==='point') return REF[t.pt]||APP_REF[t.pt]||null;
+    if(t.mode==='xy') return t;
+    return null; // 'hold'/'orbit': no se desplaza, no hay trayectoria que dibujar
+  };
+  aircraft.forEach(a=>{
+    const isSel=selected&&selected.id===a.id;
+    if(isSel && plannedRoute.length) return; // ya se dibuja la ruta trazada con Ctrl+clic, más prominente
+    const pts=[]; const d0=resolveDest(a.target);
+    if(d0){ pts.push(d0); if(a.route&&a.route.length) a.route.forEach(p=>pts.push(p)); }
+    if(!pts.length) return;
+    rctx.save();
+    rctx.strokeStyle = isSel ? 'rgba(255,255,255,.55)' : (a.op==='DEP'?'rgba(61,220,132,.32)':'rgba(93,169,255,.32)');
+    rctx.lineWidth = isSel?1.4:1;
+    rctx.setLineDash([5,4]);
+    rctx.beginPath();
+    rctx.moveTo(cx+a.x*scale, cy+a.y*scale);
+    pts.forEach(p=>rctx.lineTo(cx+p.x*scale, cy+p.y*scale));
+    rctx.stroke();
+    rctx.setLineDash([]);
+    rctx.restore();
+  });
+
+  // ruta trazada por el controlador con Ctrl+clic (encadenada a la aeronave seleccionada)
+  if(plannedRoute.length){
+    rctx.save();
+    rctx.strokeStyle='#ffd23f';
+    rctx.lineWidth=1.5;
+    rctx.setLineDash([7,5]);
+    rctx.beginPath();
+    let ox,oy;
+    if(selected){ ox=cx+selected.x*scale; oy=cy+selected.y*scale; }
+    else { ox=cx+plannedRoute[0].x*scale; oy=cy+plannedRoute[0].y*scale; }
+    rctx.moveTo(ox,oy);
+    plannedRoute.forEach(p=>rctx.lineTo(cx+p.x*scale, cy+p.y*scale));
+    rctx.stroke();
+    rctx.setLineDash([]);
+    rctx.font='bold 9px JetBrains Mono';
+    plannedRoute.forEach((p,i)=>{
+      const sx=cx+p.x*scale, sy=cy+p.y*scale;
+      rctx.fillStyle='#ffd23f';
+      rctx.beginPath(); rctx.arc(sx,sy,5,0,7); rctx.fill();
+      rctx.fillStyle='#3a2c00';
+      rctx.textAlign='center'; rctx.textBaseline='middle';
+      rctx.fillText(String(i+1), sx, sy+0.5);
+      rctx.textAlign='left'; rctx.textBaseline='alphabetic';
+    });
+    rctx.restore();
+  }
+
+  // aeronaves
+  const blips=aircraft.map(a=>({a,px:cx+a.x*scale,py:cy+a.y*scale}));
+  blips.forEach(({a,px,py})=>{
+    const isSel=selected&&selected.id===a.id;
+    // silueta orientada según el rumbo, igual que en la vista de plataforma
+    const sz=Math.max(5,scale*9);
+    rctx.save();rctx.translate(px,py);rctx.rotate(a.hdg*Math.PI/180);
+    rctx.fillStyle = isSel?'#ffffff':(a.op==='DEP'?'#3ddc84':'#5da9ff');
+    rctx.beginPath();rctx.moveTo(0,-sz*1.3);rctx.lineTo(sz*0.85,sz*1.0);rctx.lineTo(0,sz*0.55);rctx.lineTo(-sz*0.85,sz*1.0);rctx.closePath();rctx.fill();
+    if(isSel){rctx.strokeStyle='rgba(255,255,255,.7)';rctx.lineWidth=1.4;rctx.stroke();}
+    rctx.restore();
+    rctx.fillStyle=isSel?'#ffffff':'#cfe3da';rctx.font='10px JetBrains Mono';
+    rctx.fillText(a.cs,px+sz+3,py-3);
+    rctx.fillStyle='#7f968d';rctx.font='9px JetBrains Mono';
+    rctx.fillText(Math.round(a.alt)+'ft '+Math.round(a.spd)+'kt · '+(a.platform||'')+' '+a.op,px+sz+3,py+8);
+  });
+
+  // ---------- escala gráfica (en millas náuticas, adaptada al nivel de zoom) ----------
+  const niceNM=[0.05,0.1,0.25,0.5,1,2,5,10,20];
+  const idealNM = 80/(scale*NM);
+  const barNM = niceNM.reduce((best,v)=>Math.abs(Math.log(v/idealNM))<Math.abs(Math.log(best/idealNM))?v:best, niceNM[0]);
+  const barPx = barNM*NM*scale;
+  const bx0=24, by0=h-22;
+  rctx.strokeStyle='rgba(220,235,225,.7)';rctx.lineWidth=2;
+  rctx.beginPath();rctx.moveTo(bx0,by0);rctx.lineTo(bx0+barPx,by0);
+  rctx.moveTo(bx0,by0-5);rctx.lineTo(bx0,by0+5);
+  rctx.moveTo(bx0+barPx,by0-5);rctx.lineTo(bx0+barPx,by0+5);rctx.stroke();
+  rctx.fillStyle='rgba(220,235,225,.8)';rctx.font='10px JetBrains Mono';
+  rctx.fillText(barNM.toFixed(2)+' NM',bx0,by0-8);
+}
+
+// Plataforma vista desde arriba: contorno, calles internas numeradas y rótulo
+function drawApronGround(type, alongShift, gap, sz, gp,scale,px,py,ax,ay){
+  const cx=px*(gap+sz/2)+ax*alongShift, cy=py*(gap+sz/2)+ay*alongShift;
+  const wide=sz*(type==='mil'?1.3:1.0);
+  const wcorners=[
+    {x:cx-px*sz/2-ax*wide/2,y:cy-py*sz/2-ay*wide/2},{x:cx+px*sz/2-ax*wide/2,y:cy+py*sz/2-ay*wide/2},
+    {x:cx+px*sz/2+ax*wide/2,y:cy+py*sz/2+ay*wide/2},{x:cx-px*sz/2+ax*wide/2,y:cy-py*sz/2+ay*wide/2}
+  ];
+  const C=wcorners.map(c=>gp(c.x,c.y));
+  let g=rctx.createLinearGradient(C[0].sx,C[0].sy,C[2].sx,C[2].sy);
+  if(type==='mil'){g.addColorStop(0,'#7c7261');g.addColorStop(1,'#5e564a');}
+  else{g.addColorStop(0,'#73797c');g.addColorStop(1,'#5b6164');}
+  rctx.fillStyle=g;rctx.beginPath();rctx.moveTo(C[0].sx,C[0].sy);
+  C.slice(1).forEach(c=>rctx.lineTo(c.sx,c.sy));rctx.closePath();rctx.fill();
+  rctx.strokeStyle='rgba(232,228,210,.5)';rctx.lineWidth=Math.max(1,scale*1.4);rctx.stroke();
+  // calles internas (líneas de guía de los puestos, sin rótulos)
+  const n=type==='mil'?4:5;
+  rctx.strokeStyle='rgba(240,235,210,.5)';rctx.lineWidth=Math.max(0.8,scale*1);
+  for(let i=0;i<n;i++){
+    const t=(i+0.5)/n;
+    const wa={x:cx-ax*wide/2+(ax*wide)*t, y:cy-ay*wide/2+(ay*wide)*t};
+    const wb={x:wa.x-px*sz*0.42,y:wa.y-py*sz*0.42};
+    const a=gp(wa.x,wa.y), b=gp(wb.x,wb.y);
+    rctx.beginPath();rctx.moveTo(a.sx,a.sy);rctx.lineTo(b.sx,b.sy);rctx.stroke();
+  }
+}
+
+/* ===========================================================
+   RENDER: TOWER 2D — vista elevada desde la torre (al ESE)
+   Proyección de cámara: mundo (x=este, y=sur, alt) -> pantalla.
+   Incluye: pista 03/21, calle de rodaje PARALELA, calles de
+   conexión, PUNTOS DE ESPERA en cabeceras, plataformas.
+   =========================================================== */
+const tower=document.getElementById('towerCanvas'), tctx=tower.getContext('2d');
+
+const CAM={
+  hgt:230,                // cámara más alta -> mira más hacia abajo (vista más cenital)
+  heading:298,
+  pitchHorizon:0.15,      // horizonte más arriba -> más superficie de campo a la vista
+  fov:0.72,               // campo de visión más amplio -> vista «más alejada»: se ve
+                          // más corredor de aproximación (p.ej. tráfico en corta final)
+  pos:{x:1400,y:600}
+};
+let cloudSeed=[];
+function initClouds(){ if(cloudSeed.length)return;
+  for(let i=0;i<7;i++)cloudSeed.push({x:Math.random()*1.2-0.1,y:0.04+Math.random()*0.14,s:0.6+Math.random()*1.1,sp:0.0006+Math.random()*0.0012});
+}
+
+/* ---------- Cámara orientable (alumno) ----------
+   Sí: el alumno puede girar la vista de la torre para mirar hacia otras
+   direcciones (p.ej. tráfico que llega por el lado opuesto), y también
+   subir o bajar la vista (inclinación). Se controla con los botones
+   ◀ ▶ o arrastrando con el ratón / dedo sobre la imagen: el arrastre
+   horizontal gira la cámara y el arrastre vertical la inclina arriba/abajo. */
+const CAM_PITCH_MIN=0.04, CAM_PITCH_MAX=0.55;
+function rotateCam(deltaDeg){
+  CAM.heading=(CAM.heading+deltaDeg+360)%360;
+  if(role==='student') render();
+}
+function tiltCam(deltaPitch){
+  CAM.pitchHorizon=Math.max(CAM_PITCH_MIN,Math.min(CAM_PITCH_MAX,CAM.pitchHorizon+deltaPitch));
+  if(role==='student') render();
+}
+(function initTowerCamDrag(){
+  const wrap=document.getElementById('towerWrap');
+  if(!wrap)return;
+  let drag=null;
+  const start=(clientX,clientY)=>{ drag={x:clientX,y:clientY,h0:CAM.heading,p0:CAM.pitchHorizon}; wrap.classList.add('dragging'); };
+  const move=(clientX,clientY)=>{
+    if(!drag)return;
+    const dx=clientX-drag.x, dy=clientY-drag.y;
+    CAM.heading=(drag.h0 - dx*0.18 + 360)%360;
+    // control invertido: arrastrar hacia ABAJO (dy>0) sube la vista (más cielo, menos suelo) y viceversa
+    CAM.pitchHorizon=Math.max(CAM_PITCH_MIN,Math.min(CAM_PITCH_MAX, drag.p0 + dy*0.0016));
+    if(role==='student') render();
+  };
+  const end=()=>{ drag=null; wrap.classList.remove('dragging'); };
+  wrap.addEventListener('mousedown', e=>{ if(e.target.closest('.camCtrl'))return; start(e.clientX,e.clientY); e.preventDefault(); });
+  window.addEventListener('mousemove', e=>move(e.clientX,e.clientY));
+  window.addEventListener('mouseup', end);
+  wrap.addEventListener('touchstart', e=>{ if(e.target.closest('.camCtrl'))return; if(e.touches[0]) start(e.touches[0].clientX,e.touches[0].clientY); }, {passive:true});
+  wrap.addEventListener('touchmove', e=>{ if(e.touches[0]) move(e.touches[0].clientX,e.touches[0].clientY); }, {passive:true});
+  wrap.addEventListener('touchend', end);
+})();
+// Proyecta punto del mundo (x,y en m, alt en m sobre AD) -> pantalla
+function project(wx,wy,walt,w,h){
+  let dx=wx-CAM.pos.x, dy=wy-CAM.pos.y;
+  const dz=(walt||0)-CAM.hgt;
+  const a=CAM.heading*Math.PI/180;
+  const fwd = dx*Math.sin(a) + dy*(-Math.cos(a));
+  const right= dx*Math.cos(a) + dy*( Math.sin(a));
+  if(fwd<8) return{vis:false};
+  const f=(w*0.5)*CAM.fov;
+  return{vis:true, sx:w*0.5+(right/fwd)*f, sy:h*CAM.pitchHorizon-(dz/fwd)*f, fwd, scale:f/fwd};
+}
+
+function drawTower(){
+  const w=tower.width,h=tower.height; if(!w||!h)return;
+  initClouds();
+  tctx.clearRect(0,0,w,h);
+  const horizonY=h*CAM.pitchHorizon;
+
+  // cielo
+  let sky=tctx.createLinearGradient(0,0,0,horizonY);
+  sky.addColorStop(0,'#5a86ad');sky.addColorStop(0.55,'#83a8c4');sky.addColorStop(1,'#c2d4de');
+  tctx.fillStyle=sky;tctx.fillRect(0,0,w,horizonY);
+  cloudSeed.forEach(c=>{c.x+=c.sp; if(c.x>1.25)c.x=-0.25; drawCloud(c.x*w,c.y*horizonY+8,c.s*80);});
+  drawRidge(horizonY,w,'#7d93a0',0.45,26,0.013);
+  drawRidge(horizonY,w,'#5f7682',0.0,40,0.008);
+
+  // terreno
+  let grd=tctx.createLinearGradient(0,horizonY,0,h);
+  grd.addColorStop(0,'#7a9450');grd.addColorStop(0.4,'#5f7d3a');grd.addColorStop(1,'#46602b');
+  tctx.fillStyle=grd;tctx.fillRect(0,horizonY,w,h-horizonY);
+  tctx.save();tctx.globalAlpha=0.12;
+  for(let i=0;i<40;i++){const yy=horizonY+Math.pow(Math.random(),2)*(h-horizonY);const xx=Math.random()*w;
+    const ww=20+Math.random()*120*((yy-horizonY)/(h-horizonY)+0.2);
+    tctx.fillStyle=Math.random()>0.5?'#3f5826':'#86954e';tctx.fillRect(xx,yy,ww,ww*0.25);}
+  tctx.restore();
+
+  drawRunwayGround(w,h);
+  drawParallelTaxiway(w,h);
+  drawTaxiways(w,h);
+  drawHoldingPoints(w,h);
+  drawAprons(w,h);
+  drawTowerAircraft(w,h);
+
+  tctx.textAlign='left';
+  tctx.fillStyle='rgba(255,255,255,.9)';tctx.font='13px JetBrains Mono';
+  tctx.fillText('TWR SALAMANCA 118.105 · RWY 03/21 · METAR 20005KT 5000 32/07 Q1019',16,28);
+}
+
+function drawCloud(x,y,s){
+  tctx.save();tctx.globalAlpha=0.55;tctx.fillStyle='#f2f6f8';
+  tctx.beginPath();tctx.ellipse(x,y,s,s*0.42,0,0,7);
+  tctx.ellipse(x+s*0.62,y+s*0.08,s*0.72,s*0.34,0,0,7);
+  tctx.ellipse(x-s*0.62,y+s*0.10,s*0.6,s*0.30,0,0,7);tctx.fill();tctx.restore();
+}
+function drawRidge(horizonY,w,col,yoff,amp,freq){
+  tctx.fillStyle=col;tctx.beginPath();const y0=horizonY-2;tctx.moveTo(0,y0);
+  for(let x=0;x<=w;x+=8){const yy=y0-amp*(0.5+0.5*Math.sin(x*freq+yoff*10))-amp*0.3*Math.sin(x*freq*2.7);tctx.lineTo(x,yy);}
+  tctx.lineTo(w,y0);tctx.closePath();tctx.fill();
+}
+
+// Pista 03/21
+function drawRunwayGround(w,h){
+  const e=rwyEnds();const hw=RWY.w/2;const dir=RWY.hdg*Math.PI/180;
+  const px=Math.cos(dir), py=Math.sin(dir);
+  const C=[{x:e.thr03.x+px*hw,y:e.thr03.y+py*hw},{x:e.thr21.x+px*hw,y:e.thr21.y+py*hw},
+           {x:e.thr21.x-px*hw,y:e.thr21.y-py*hw},{x:e.thr03.x-px*hw,y:e.thr03.y-py*hw}].map(c=>project(c.x,c.y,0,w,h));
+  if(C.some(c=>!c.vis))return;
+  tctx.fillStyle='#54565d';tctx.beginPath();tctx.moveTo(C[0].sx,C[0].sy);
+  C.slice(1).forEach(c=>tctx.lineTo(c.sx,c.sy));tctx.closePath();tctx.fill();
+  tctx.strokeStyle='#d9d6c6';tctx.lineWidth=2;tctx.stroke();
+  // eje
+  tctx.strokeStyle='#e8e2c8';
+  for(let i=0;i<26;i++){const t1=i/26,t2=(i+0.5)/26;
+    const a=lerpPt(e.thr03,e.thr21,t1), b=lerpPt(e.thr03,e.thr21,t2);
+    const pa=project(a.x,a.y,0,w,h),pb=project(b.x,b.y,0,w,h);if(!pa.vis||!pb.vis)continue;
+    tctx.lineWidth=Math.max(1,pa.scale*2.2);tctx.beginPath();tctx.moveTo(pa.sx,pa.sy);tctx.lineTo(pb.sx,pb.sy);tctx.stroke();}
+  drawThresholdBars(e.thr21,e.thr03,w,h);
+  drawThresholdBars(e.thr03,e.thr21,w,h);
+}
+function lerpPt(a,b,t){return{x:a.x+(b.x-a.x)*t,y:a.y+(b.y-a.y)*t};}
+function drawRwyLabel(thr,other,txt,w,h){const p=lerpPt(thr,other,0.05);const pr=project(p.x,p.y,0,w,h);if(!pr.vis)return;
+  tctx.save();tctx.fillStyle='#ece4c4';tctx.font=`bold ${Math.max(9,pr.scale*55)}px Oswald`;tctx.textAlign='center';
+  tctx.fillText(txt,pr.sx,pr.sy);tctx.restore();}
+function drawThresholdBars(thr,other,w,h){
+  const px=Math.cos(RWY.hdg*Math.PI/180), py=Math.sin(RWY.hdg*Math.PI/180);
+  const base=lerpPt(thr,other,0.012);tctx.fillStyle='#e8e2c8';
+  for(let k=-3;k<=3;k++){if(k===0)continue;const off=k*6;
+    const a={x:base.x+px*off,y:base.y+py*off};const b=lerpPt(a,other,0.02);
+    const pa=project(a.x,a.y,0,w,h),pb=project(b.x,b.y,0,w,h);if(!pa.vis||!pb.vis)continue;
+    tctx.lineWidth=Math.max(1.5,pa.scale*3);tctx.beginPath();tctx.moveTo(pa.sx,pa.sy);tctx.lineTo(pb.sx,pb.sy);tctx.stroke();}
+}
+
+// Calle de rodaje PARALELA a la pista (lado este)
+function drawParallelTaxiway(w,h){
+  const e=rwyEnds();const dir=RWY.hdg*Math.PI/180;
+  const px=Math.cos(dir), py=Math.sin(dir);
+  const gap=120, tw=23/2;
+  // extremos de la paralela (96% de la pista)
+  const a0=lerpPt(e.thr03,e.thr21,0.04), a1=lerpPt(e.thr03,e.thr21,0.96);
+  const corners=[
+    {x:a0.x+px*(gap-tw),y:a0.y+py*(gap-tw)},{x:a1.x+px*(gap-tw),y:a1.y+py*(gap-tw)},
+    {x:a1.x+px*(gap+tw),y:a1.y+py*(gap+tw)},{x:a0.x+px*(gap+tw),y:a0.y+py*(gap+tw)}
+  ].map(c=>project(c.x,c.y,0,w,h));
+  if(corners.some(c=>!c.vis))return;
+  // asfalto con leve degradado para dar sensación de superficie
+  let gAsf=tctx.createLinearGradient(corners[0].sx,corners[0].sy,corners[2].sx,corners[2].sy);
+  gAsf.addColorStop(0,'#5e626a');gAsf.addColorStop(1,'#494d53');
+  tctx.fillStyle=gAsf;tctx.beginPath();tctx.moveTo(corners[0].sx,corners[0].sy);
+  corners.slice(1).forEach(c=>tctx.lineTo(c.sx,c.sy));tctx.closePath();tctx.fill();
+  // marcas de borde blancas a ambos lados
+  tctx.strokeStyle='rgba(232,228,210,.55)';
+  [[corners[0],corners[1]],[corners[2],corners[3]]].forEach(([pa,pb])=>{
+    tctx.lineWidth=Math.max(1,pa.scale*1.6);
+    tctx.beginPath();tctx.moveTo(pa.sx,pa.sy);tctx.lineTo(pb.sx,pb.sy);tctx.stroke();
+  });
+  // eje amarillo continuo (centerline)
+  const pa=project(a0.x+px*gap,a0.y+py*gap,0,w,h),pb=project(a1.x+px*gap,a1.y+py*gap,0,w,h);
+  if(pa.vis&&pb.vis){tctx.strokeStyle='#e8c659';tctx.lineWidth=Math.max(1,pa.scale*2.2);
+    tctx.beginPath();tctx.moveTo(pa.sx,pa.sy);tctx.lineTo(pb.sx,pb.sy);tctx.stroke();}
+}
+
+// Calles de conexión (pista -> paralela -> plataformas)
+function drawTaxiways(w,h){
+  const e=rwyEnds();const dir=RWY.hdg*Math.PI/180;
+  const px=Math.cos(dir), py=Math.sin(dir);
+  const ax=Math.sin(dir), ay=-Math.cos(dir);   // perpendicular para los bordes
+  const links=[{t:0.82,n:'C-5'},{t:0.45,n:'C-4'},{t:0.0,n:'C-3'},{t:-0.45,n:'C-2'},{t:-0.82,n:'C-1'}];
+  const hwLink=10;
+  tctx.lineCap='round';
+  links.forEach(L=>{
+    const tt=(L.t+1)/2; // -1..1 -> 0..1
+    const onRwy=lerpPt(e.thr03,e.thr21,tt);
+    const start={x:onRwy.x+px*22,y:onRwy.y+py*22};
+    const out={x:onRwy.x+px*260,y:onRwy.y+py*260};
+    const pa=project(start.x,start.y,0,w,h),pb=project(out.x,out.y,0,w,h);
+    if(!pa.vis||!pb.vis)return;
+    // banda de asfalto
+    let g=tctx.createLinearGradient(pa.sx,pa.sy,pb.sx,pb.sy);
+    g.addColorStop(0,'#5a5e64');g.addColorStop(1,'#4c5056');
+    tctx.strokeStyle=g;tctx.lineWidth=Math.max(3,pa.scale*16);
+    tctx.beginPath();tctx.moveTo(pa.sx,pa.sy);tctx.lineTo(pb.sx,pb.sy);tctx.stroke();
+    // bordes blancos a ambos lados
+    [-1,1].forEach(s=>{
+      const ea=project(start.x+ax*hwLink*s,start.y+ay*hwLink*s,0,w,h);
+      const eb=project(out.x+ax*hwLink*s,out.y+ay*hwLink*s,0,w,h);
+      if(ea.vis&&eb.vis){tctx.strokeStyle='rgba(232,228,210,.4)';tctx.lineWidth=Math.max(1,ea.scale*1.3);
+        tctx.beginPath();tctx.moveTo(ea.sx,ea.sy);tctx.lineTo(eb.sx,eb.sy);tctx.stroke();}
+    });
+    // eje amarillo (centerline)
+    tctx.strokeStyle='#e8c659';tctx.lineWidth=Math.max(1,pa.scale*2.2);
+    tctx.beginPath();tctx.moveTo(pa.sx,pa.sy);tctx.lineTo(pb.sx,pb.sy);tctx.stroke();
+  });
+  tctx.lineCap='butt';
+}
+
+// PUNTOS DE ESPERA en cabeceras 03 y 21
+function drawHoldingPoints(w,h){
+  const e=rwyEnds();const dir=RWY.hdg*Math.PI/180;
+  const px=Math.cos(dir), py=Math.sin(dir), ax=Math.sin(dir), ay=-Math.cos(dir);
+  [{thr:e.thr21,other:e.thr03,name:'21'},{thr:e.thr03,other:e.thr21,name:'03'}].forEach(H=>{
+    // posición: junto a la cabecera, lado este (entrada desde la paralela)
+    const base=lerpPt(H.thr,H.other,0.05);
+    const hx=base.x+px*(RWY.w/2+8), hy=base.y+py*(RWY.w/2+8);
+    // doble barra amarilla transversal (a lo largo de la pista)
+    for(const d of [0,4]){
+      const a={x:hx+ax*(-13)+px*d*0.2, y:hy+ay*(-13)+py*d*0.2};
+      const b={x:hx+ax*(13)+px*d*0.2, y:hy+ay*(13)+py*d*0.2};
+      const pa=project(a.x,a.y,0,w,h),pb=project(b.x,b.y,0,w,h);
+      if(pa.vis&&pb.vis){tctx.strokeStyle='#f2d23a';tctx.lineWidth=Math.max(1.5,pa.scale*2.4);
+        tctx.beginPath();tctx.moveTo(pa.sx,pa.sy);tctx.lineTo(pb.sx,pb.sy);tctx.stroke();}
+    }
+    // cartel rojo
+    const sgnPt=project(hx+px*18,hy+py*18,5,w,h);const sgnBase=project(hx+px*18,hy+py*18,0,w,h);
+    if(sgnPt.vis){const sw=Math.max(10,sgnPt.scale*22),sh=Math.max(6,(sgnBase.sy-sgnPt.sy)+sgnPt.scale*9);
+      tctx.fillStyle='#b51a1a';tctx.fillRect(sgnPt.sx-sw/2,sgnPt.sy-sh,sw,sh);
+      tctx.fillStyle='#fff';tctx.font=`bold ${Math.max(7,sgnPt.scale*12)}px JetBrains Mono`;tctx.textAlign='center';
+      tctx.fillText(H.name,sgnPt.sx,sgnPt.sy-sh*0.25);tctx.textAlign='left';}
+  });
+}
+
+// Plataformas (lado este, separadas, sin texto)
+function drawAprons(w,h){
+  drawApronPoly('mil', +260, 360, 420, w,h);
+  drawApronPoly('civ', -420, 340, 300, w,h);
+}
+function drawApronPoly(type, alongShift, gap, sz, w,h){
+  const dir=RWY.hdg*Math.PI/180;
+  const px=Math.cos(dir), py=Math.sin(dir), ax=Math.sin(dir), ay=-Math.cos(dir);
+  const cx=px*(gap+sz/2)+ax*alongShift, cy=py*(gap+sz/2)+ay*alongShift;
+  const wide=sz*(type==='mil'?1.3:1.0);
+  const corners=[
+    {x:cx-px*sz/2-ax*wide/2,y:cy-py*sz/2-ay*wide/2},{x:cx+px*sz/2-ax*wide/2,y:cy+py*sz/2-ay*wide/2},
+    {x:cx+px*sz/2+ax*wide/2,y:cy+py*sz/2+ay*wide/2},{x:cx-px*sz/2+ax*wide/2,y:cy-py*sz/2+ay*wide/2}
+  ].map(c=>project(c.x,c.y,0,w,h));
+  if(corners.some(c=>!c.vis))return;
+  // superficie con degradado (sensación de hormigón/asfalto de plataforma)
+  let gP=tctx.createLinearGradient(corners[0].sx,corners[0].sy,corners[2].sx,corners[2].sy);
+  if(type==='mil'){gP.addColorStop(0,'#7c7261');gP.addColorStop(1,'#5e564a');}
+  else{gP.addColorStop(0,'#73797c');gP.addColorStop(1,'#5b6164');}
+  tctx.fillStyle=gP;
+  tctx.beginPath();tctx.moveTo(corners[0].sx,corners[0].sy);
+  corners.slice(1).forEach(c=>tctx.lineTo(c.sx,c.sy));tctx.closePath();tctx.fill();
+  tctx.strokeStyle='rgba(230,225,200,.45)';tctx.lineWidth=1.2;tctx.stroke();
+  // calles internas (líneas de guía de los puestos, sin rótulos)
+  const nStands=type==='mil'?4:5;
+  tctx.strokeStyle='rgba(240,235,210,.5)';tctx.lineWidth=1;
+  for(let i=0;i<nStands;i++){const t=(i+0.5)/nStands;
+    const a={x:cx-ax*wide/2+(ax*wide)*t,y:cy-ay*wide/2+(ay*wide)*t};
+    const b={x:a.x-px*sz*0.42,y:a.y-py*sz*0.42};
+    const pa=project(a.x,a.y,0,w,h),pb=project(b.x,b.y,0,w,h);
+    if(pa.vis&&pb.vis){
+      tctx.beginPath();tctx.moveTo(pa.sx,pa.sy);tctx.lineTo(pb.sx,pb.sy);tctx.stroke();
+    }}
+  // edificio / hangar (sin rótulo)
+  const bx=cx+px*sz*0.45, by=cy+py*sz*0.45;
+  const bTop=project(bx,by,type==='mil'?16:20,w,h),bBot=project(bx,by,0,w,h);
+  if(bTop.vis&&bBot.vis){const bw=Math.max(24,bTop.scale*(type==='mil'?360:240)),bh=Math.max(10,bBot.sy-bTop.sy);
+    tctx.fillStyle=type==='mil'?'#403a30':'#46515c';tctx.fillRect(bTop.sx-bw/2,bTop.sy,bw,bh);
+    if(type==='mil'){tctx.fillStyle='#332e26';tctx.beginPath();tctx.moveTo(bTop.sx-bw/2,bTop.sy);
+      tctx.quadraticCurveTo(bTop.sx,bTop.sy-bh*0.4,bTop.sx+bw/2,bTop.sy);tctx.fill();}
+    else{tctx.fillStyle='rgba(170,205,235,.6)';for(let i=0;i<6;i++)tctx.fillRect(bTop.sx-bw/2+5+i*(bw/6),bTop.sy+bh*0.3,bw/9,bh*0.4);}}
+}
+
+// Aviones proyectados
+function drawTowerAircraft(w,h){
+  const list=aircraft.map(a=>({a,pr:project(a.x,a.y,(a.alt-2595),w,h)})).filter(o=>o.pr.vis).sort((A,B)=>B.pr.fwd-A.pr.fwd);
+  list.forEach(({a,pr})=>{
+    // El tamaño aparente combina la perspectiva real (pr.scale, según 1/distancia a la
+    // cámara) con un desvanecimiento adicional MUY pronunciado (cúbico) a medida que la
+    // aeronave se acerca a las 2 NM: así se va haciendo notablemente más pequeña — mucho
+    // más deprisa de lo que indicaría sólo la perspectiva — hasta resultar imperceptible
+    // y dejar de dibujarse justo a esa distancia, tal y como ocurriría a simple vista
+    // desde la torre real.
+    const distNM=pr.fwd/NM;
+    if(distNM>=2) return;
+    const fade=Math.max(0,1-distNM/2);
+    const sz=pr.scale*30*fade*fade*fade;
+    if(sz<0.5) return; // ya inapreciable: no merece la pena dibujarlo
+    const sel=selected&&selected.id===a.id;
+    if(a.alt<2640){const sh=project(a.x,a.y,0,w,h);if(sh.vis){tctx.fillStyle='rgba(0,0,0,.22)';
+      tctx.beginPath();tctx.ellipse(sh.sx,sh.sy,sz*1.1,sz*0.3,0,0,7);tctx.fill();}}
+    drawPlane(pr.sx,pr.sy,sz,a,sel);
+    // El alumno NUNCA ve la altitud ni la velocidad de los tráficos (debe estimarlas
+    // a ojo, como en la torre real); el indicativo sí puede mostrarse/ocultarse
+    // según la opción que decida el profesor («studentAcLabels», sincronizada por red).
+    if(studentAcLabels){
+      tctx.textAlign='left';tctx.fillStyle=sel?'#fff':'rgba(255,255,255,.92)';
+      tctx.font=`${Math.max(7,Math.min(15,sz))}px JetBrains Mono`;
+      tctx.fillText(a.cs,pr.sx+sz+4,pr.sy-2);
+    }
+  });
+}
+// Silueta plana de avión (vista en planta, morro a la derecha): fuselaje +
+// alas en flecha + estabilizador de cola, fácilmente reconocible como avión.
+function drawPlane(x,y,sz,a,sel){
+  tctx.save();tctx.translate(x,y);
+  const body=sel?'#ffffff':(a.op==='DEP'?(a.platform==='MIL'?'#cdb98a':'#eef3f6'):'#dbe6f5');
+  // cuando la aeronave está seleccionada, además de pintarla en blanco se resaltan
+  // sus bordes con un contorno de color vivo y más grueso, para que destaque con claridad
+  const edge=sel?'#ffd23f':'rgba(35,50,70,.55)';
+  const edgeW=sel?Math.max(1.6,sz*0.16):Math.max(0.6,sz*0.05);
+  tctx.fillStyle=body; tctx.strokeStyle=edge; tctx.lineWidth=edgeW;
+  // fuselaje (morro puntiagudo a la derecha, cola recta a la izquierda)
+  tctx.beginPath();
+  tctx.moveTo( sz*1.35,  0);
+  tctx.lineTo( sz*0.55, -sz*0.16);
+  tctx.lineTo(-sz*0.95, -sz*0.13);
+  tctx.lineTo(-sz*0.95,  sz*0.13);
+  tctx.lineTo( sz*0.55,  sz*0.16);
+  tctx.closePath(); tctx.fill(); tctx.stroke();
+  // ala (forma de flecha que cruza el fuselaje)
+  tctx.beginPath();
+  tctx.moveTo( sz*0.18, -sz*0.08);
+  tctx.lineTo(-sz*0.30, -sz*1.05);
+  tctx.lineTo(-sz*0.62, -sz*0.98);
+  tctx.lineTo(-sz*0.40, -sz*0.06);
+  tctx.lineTo(-sz*0.40,  sz*0.06);
+  tctx.lineTo(-sz*0.62,  sz*0.98);
+  tctx.lineTo(-sz*0.30,  sz*1.05);
+  tctx.lineTo( sz*0.18,  sz*0.08);
+  tctx.closePath(); tctx.fill(); tctx.stroke();
+  // estabilizador de cola (más pequeño, hacia la izquierda)
+  tctx.beginPath();
+  tctx.moveTo(-sz*0.55, -sz*0.05);
+  tctx.lineTo(-sz*0.92, -sz*0.46);
+  tctx.lineTo(-sz*1.05, -sz*0.40);
+  tctx.lineTo(-sz*0.80,  sz*0.05);
+  tctx.closePath(); tctx.fill(); tctx.stroke();
+  tctx.beginPath();
+  tctx.moveTo(-sz*0.55,  sz*0.05);
+  tctx.lineTo(-sz*0.92,  sz*0.46);
+  tctx.lineTo(-sz*1.05,  sz*0.40);
+  tctx.lineTo(-sz*0.80, -sz*0.05);
+  tctx.closePath(); tctx.fill(); tctx.stroke();
+  // morrito/cabina (línea central sutil)
+  tctx.strokeStyle=edge; tctx.lineWidth=sel?Math.max(1,sz*0.09):Math.max(0.5,sz*0.035);
+  tctx.beginPath();tctx.moveTo(sz*1.1,0);tctx.lineTo(-sz*0.9,0);tctx.stroke();
+  tctx.restore();
+}
+
+
+
+/* ===========================================================
+   MASTER RENDER + RESIZE
+   =========================================================== */
+function render(){
+  if(role==='instructor')drawRadar();
+  if(role==='student')drawTower();
+}
+function resizeAll(){
+  [radar,tower].forEach(c=>{
+    if(!c)return;const p=c.parentElement;if(!p)return;
+    c.width=p.clientWidth;c.height=p.clientHeight;
+  });
+  render();
+}
+window.addEventListener('resize',resizeAll);
+
+function idle(){ render(); requestAnimationFrame(idle);} 
+requestAnimationFrame(idle);
+</script>
+</body>
+</html>

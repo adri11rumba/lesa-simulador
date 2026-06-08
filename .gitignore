@@ -1,0 +1,7 @@
+# Carpetas temporales de sincronización de Google Drive
+.tmp.driveupload/
+.tmp.drivedownload/
+
+# Configuración local de Claude Code (específica de cada equipo)
+.claude/settings.local.json
+.claude/launch.json
