@@ -147,6 +147,9 @@
   .col h3 .pill{margin-left:auto;background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:1px 9px;font-size:11px;color:var(--green)}
 
   #colStrips{flex:0 0 340px}
+  /* Divisor vertical arrastrable: regula el ancho de la columna de vuelos */
+  #colWSplitter{flex:0 0 6px;cursor:ew-resize;background:var(--line);transition:background .15s;align-self:stretch}
+  #colWSplitter:hover{background:var(--amber)}
   #stripList{flex:1;overflow-y:auto;padding:10px;display:flex;flex-direction:column;gap:10px}
   .progList{height:200px;min-height:60px;overflow-y:auto;padding:5px 8px;display:flex;flex-direction:column;gap:3px}
   #colSplitter{flex:0 0 8px;cursor:ns-resize;background:var(--line);margin:2px 8px;border-radius:4px;display:flex;align-items:center;justify-content:center;transition:background .15s}
@@ -348,6 +351,12 @@
     <div class="codeBox" id="hostCode">— — — —</div>
     <p class="connectStatus" id="hostStatus">Generando código…</p>
     <button class="btn" onclick="skipToLocal()">Continuar sin conectar (modo local)</button>
+    <div style="border-top:1px solid var(--line);width:100%;margin-top:10px;padding-top:14px">
+      <p style="margin-bottom:10px">¿Sois <b>dos profesores</b>? El segundo se une aquí con el código del primero y controláis juntos la misma sesión:</p>
+      <input id="coCode" maxlength="4" placeholder="1234" autocomplete="off" inputmode="numeric" pattern="[0-9]*" style="margin-bottom:10px" oninput="this.value=this.value.replace(/\D+/g,'').slice(0,4)">
+      <button class="btn" onclick="joinAsCoInstructor()">Unirme como 2º profesor</button>
+      <p class="connectStatus" id="coStatus"></p>
+    </div>
   </div>
 
   <!-- Alumno: introduce el código del profesor -->
@@ -368,7 +377,7 @@
     <span class="role-badge" id="roleBadge">—</span>
     <button class="btn" id="roleBtnHeader" onclick="backToRole()">↩ Cambiar rol</button>
     <button class="btn" id="viewModeBtn" onclick="toggleStudentViewMode()" style="display:none">📡 Modo radar</button>
-    <button class="btn" id="schedBtn" onclick="openSched()">📋 Programar vuelos</button>
+    <button class="btn" id="schedBtn" onclick="openSched()">📋 Crear vuelos</button>
     <button class="btn go" id="playBtn" onclick="toggleSim()">▶ Iniciar</button>
     <button class="btn" id="resetBtn" onclick="resetSim()" style="display:none">⏮ Reiniciar</button>
     <button class="btn" id="speedBtn" onclick="setSpeed()">⏩ <span id="spdLbl">x1</span></button>
@@ -402,12 +411,13 @@
     <!-- INSTRUCTOR -->
     <div id="instructorView">
       <div class="col" id="colStrips">
-        <h3>Programa de vuelos <span class="pill" id="progCount">0</span></h3>
+        <h3>Secuencia de vuelos <span class="pill" id="progCount">0</span></h3>
         <div id="progList" class="progList"><div class="empty2">No hay vuelos programados.</div></div>
         <div id="colSplitter" title="Arrastra para ajustar el reparto vertical"></div>
         <h3>Fichas de progreso <span class="pill" id="stripCount">0</span></h3>
-        <div id="stripList"><div class="empty2">No hay vuelos. Pulsa «Programar vuelos».</div></div>
+        <div id="stripList"><div class="empty2">No hay vuelos. Pulsa «Crear vuelos».</div></div>
       </div>
+      <div id="colWSplitter" title="Arrastra para ajustar el ancho de la columna de vuelos"></div>
       <div class="col" id="colRadar">
         <h3>Radar · <span id="radarMode">CTR / ATZ + plataforma · zoom con la rueda del ratón</span>
         </h3>
@@ -444,9 +454,11 @@
           </div>
           <div class="cmdGrid">
             <div class="cmd" onclick="cmd('taxi_hold')">Rodar a punto espera<small><span class="rwyActiveLbl">RWY 21</span></small></div>
+            <div class="cmd" onclick="cmd('taxi_apron')">Rodar a plataforma<small>to apron</small></div>
             <div class="cmd" onclick="cmd('lineup')">Alinearse<small>line up</small></div>
             <div class="cmd" onclick="cmd('takeoff')">Autorizado despegue<small>cleared T/O</small></div>
-            <div class="cmd" onclick="cmd('land')">Autorizado aterrizar<small>cleared LDG</small></div>
+            <div class="cmd" onclick="cmd('land')">Autorizado aterrizar<small>cleared LDG · maniobra completa</small></div>
+            <div class="cmd" onclick="cmd('touchgo')">Toma y despegue<small>touch &amp; go</small></div>
           </div>
           <div class="secTitle">Circuito</div>
           <span class="hint" style="display:block;margin:-4px 0 2px">Tráficos de E-1 / E / S → viento en cola izquierdo; el resto, derecho</span>
@@ -481,8 +493,8 @@
 <div id="sched">
   <div class="schedBox">
     <header>
-      <h2>Programa de vuelos</h2>
-      <p>Define los vuelos antes de iniciar. El reloj arranca en 00:00; cada vuelo aparece a su hora prevista.</p>
+      <h2>Crear vuelos</h2>
+      <p>Define los vuelos de la «Secuencia de vuelos». El reloj arranca en 00:00; cada vuelo aparece a su hora prevista.</p>
     </header>
     <div class="schedBody">
       <div class="formGrid">
@@ -542,10 +554,13 @@ function brgRng(brgDeg,nm){const a=(brgDeg)*Math.PI/180,d=nm*NM;return{x:Math.si
 // Puntos de referencia VFR de la CTR (rumbo MAG / distancia NM desde ARP, según carta)
 // N (November) es el punto EXTERIOR (más lejos); N-1 el intermedio (más cerca).
 const REF={
-  'N-1':brgRng(345, 4.2),   // intermedio, más cerca
-  'N'  :brgRng(338, 7.0),   // November: exterior, más lejos
-  'E'  :brgRng(100, 6.8),   // ESE
-  'E-1':brgRng(108, 4.6),   // ESE interior, más cerca
+  // November y Echo (exteriores) se separan más de sus puntos intermedios (N-1, E-1):
+  // se acercan los interiores al campo y se alejan/abren un poco los exteriores, para
+  // que en pantalla no aparezcan casi pegados (la separación queda similar a W↔N-1).
+  'N-1':brgRng(350, 3.0),   // intermedio, más cerca del campo
+  'N'  :brgRng(334, 7.4),   // November: exterior, más lejos y más abierto
+  'E'  :brgRng(94 , 7.4),   // ESE, más lejos y más abierto
+  'E-1':brgRng(114, 3.2),   // ESE interior, más cerca del campo
   'S'  :brgRng(178, 6.8),   // S, hacia Alba de Tormes
   'W'  :brgRng(262, 6.2)    // W
 };
@@ -635,6 +650,7 @@ function toggleExitPtDropdown(id){
 function setExitPoint(id,pt){
   const ac=aircraft.find(x=>x.id===id);
   if(!ac||ac.op!=='DEP'||ac.tTakeoff!=null) return;
+  if(relayRC('exitpt',[id,pt],id)) return;
   ac.plannedExitPt=(ac.plannedExitPt===pt)?null:pt;
   exitPtDropdownFor=null; // al elegir, se cierra el desplegable
   log(`${ac.cs}: salida planificada por punto ${ac.plannedExitPt||'(sin asignar)'}`);
@@ -655,6 +671,14 @@ function rwyEnds(){
    =========================================================== */
 let role=null, simRunning=false, simTime=0, simSpeed=1, lastTs=null, simIntervalId=null;
 let lastNetUpdate=0, lastExtrapTs=0; // alumno: control de la extrapolación local entre estados recibidos
+// CO-CONTROL: puede haber DOS profesores en la misma sesión. Sólo uno es la
+// "autoridad" (isHost=true): ejecuta el reloj y la física y retransmite el estado.
+// El segundo profesor (isHost=false) se une como invitado, ve el estado del primero
+// y, en vez de ejecutar sus acciones en local, se las ENVÍA al anfitrión, que las
+// aplica sobre el estado autoritativo y las retransmite a todos. applyingRemote=true
+// mientras el anfitrión aplica una acción recibida (para no pedir confirmaciones ni
+// reenviarla otra vez).
+let isHost=true, applyingRemote=false;
 // Vista única de radar del instructor: fusiona el antiguo radar de torre (ATZ/CTR
 // con los puntos VFR N, N-1, E, E-1, S, W) y el modo aproximación (vista cenital
 // de plataforma) en un solo plano «desde arriba» navegable con zoom (rueda del
@@ -666,18 +690,25 @@ let aircraft=[];      // vuelos activos
 let selected=null;
 let plannedRoute=[];  // ruta provisional trazada con Ctrl+clic en el radar (profesor), asignada en cadena al avión seleccionado
 let studentAcLabels=true; // el profesor puede mostrar/ocultar los identificativos de los aviones en la vista del alumno
-function toggleStudentLabels(v){ studentAcLabels=!!v; }
+function toggleStudentLabels(v){ if(relayRC('labels',[!!v])) return; studentAcLabels=!!v; }
 // Pista activa seleccionable por el instructor: por defecto siempre la 21 (con ILS);
 // todas las instrucciones de rodaje / despegue / aterrizaje se dirigen a la cabecera
 // activa salvo que el instructor seleccione expresamente la 03.
 let activeRwy='21';
-function setActiveRwy(rwy){
+// Aplica la pista activa en local (variable + botones + etiquetas), sin red ni log.
+// Se usa tanto desde setActiveRwy (acción del profesor) como al recibir el estado del
+// anfitrión (para que el 2º profesor vea la misma pista activa).
+function applyActiveRwy(rwy){
   activeRwy=(rwy==='03')?'03':'21';
   const b03=document.getElementById('rwyBtn03'), b21=document.getElementById('rwyBtn21');
   if(b03) b03.classList.toggle('on', activeRwy==='03');
   if(b21) b21.classList.toggle('on', activeRwy==='21');
   const lbls=document.querySelectorAll('.rwyActiveLbl');
   lbls.forEach(el=>el.textContent='RWY '+activeRwy);
+}
+function setActiveRwy(rwy){
+  if(relayRC('rwy',[rwy])) return;
+  applyActiveRwy(rwy);
   log(`Pista activa: ${activeRwy}`);
 }
 let dragAc=null, dragMoved=false; // arrastre manual de la aeronave seleccionada en el radar del profesor
@@ -757,9 +788,12 @@ async function startHosting(){
     CONNS.add(conn);
     conn.on('open', ()=>{
       netBadge(true);
-      statusEl.className='connectStatus ok'; statusEl.textContent='✓ Alumno conectado';
+      statusEl.className='connectStatus ok'; statusEl.textContent='✓ Conectado';
       enterApp();
     });
+    // acciones que llegan de un 2º profesor (co-control): el anfitrión las aplica.
+    // Los alumnos nunca envían datos, así que esto sólo afecta a profesores invitados.
+    conn.on('data', m=>handleRemote(m));
     conn.on('close', ()=>{ CONNS.delete(conn); if(!CONNS.size) netBadge(false); });
     conn.on('error', ()=>{ CONNS.delete(conn); if(!CONNS.size) netBadge(false); });
     // si la conexión se queda "conectando" sin llegar a abrirse, avisa
@@ -776,10 +810,72 @@ async function startHosting(){
 }
 function broadcastState(){
   if(!CONNS.size) return;
-  const msg={type:'state', running:simRunning, time:simTime, speed:simSpeed, schedule, aircraft, studentAcLabels};
+  const msg={type:'state', running:simRunning, time:simTime, speed:simSpeed, schedule, aircraft, studentAcLabels, activeRwy};
   CONNS.forEach(c=>{ if(c.open) c.send(msg); });
 }
-setInterval(()=>{ if(role==='instructor') broadcastState(); }, 100);   // ~10 Hz
+// Sólo el profesor ANFITRIÓN (autoridad) retransmite el estado.
+setInterval(()=>{ if(role==='instructor' && isHost) broadcastState(); }, 100);   // ~10 Hz
+
+/* ===========================================================
+   CO-CONTROL — reenvío de acciones del 2º profesor al anfitrión
+   El 2º profesor (isHost=false) no ejecuta sus acciones en local: las envía
+   por el canal de datos como mensajes {type:'rc', name, args, acId} y el
+   anfitrión las aplica con handleRemote(). relayRC() se llama al principio de
+   cada función de control: si somos el 2º profesor, envía y devuelve true
+   (la función no debe seguir ejecutándose en local); si somos el anfitrión
+   (o el modo local), devuelve false y la función actúa con normalidad.
+   =========================================================== */
+function relayRC(name, args, acId){
+  if(role==='instructor' && !isHost && !applyingRemote){
+    if(HOST_CONN && HOST_CONN.open){
+      HOST_CONN.send({type:'rc', name, args:args||[], acId: acId!==undefined ? acId : (selected?selected.id:null)});
+    }
+    return true;
+  }
+  return false;
+}
+// Acciones que el anfitrión sabe aplicar al recibirlas del 2º profesor. Llaman a las
+// MISMAS funciones de control (en el anfitrión relayRC() es no-op, así que se ejecutan).
+const RC={
+  cmd:(action,arg)=>cmd(action,arg),
+  spd:(v)=>setAcSpeed(v),
+  alt:(v)=>setAcAlt(v),
+  rwy:(r)=>setActiveRwy(r),
+  labels:(v)=>toggleStudentLabels(v),
+  exitpt:(id,pt)=>setExitPoint(id,pt),
+  directto:(x,y)=>{ if(selected) applyDirectTo(selected,x,y); },
+  route:(pts)=>{ if(selected) applyRoute(selected,pts); },
+  move:(x,y)=>{ if(selected) applyMove(selected,x,y); },
+  startnow:(i)=>startFlightNow(i),
+  delsched:(i)=>removeScheduledFlight(i),
+  delac:(id)=>removeAircraft(id),
+  addflight:(f)=>addFlightObj(f),
+  delflight:(i)=>delFlight(i),
+  savetime:(i,val)=>saveScheduledTime(i,val),
+  loaddemo:()=>loadDemo(),
+  gensched:()=>generateRandomSchedule(),
+  loadschedule:(flights)=>applyLoadedSchedule(flights,'Programa cargado por el otro profesor'),
+  simtoggle:()=>toggleSim(),
+  simspeed:()=>setSpeed(),
+  simreset:()=>resetSim()
+};
+function handleRemote(m){
+  if(!m || m.type!=='rc' || !isHost) return;   // sólo el anfitrión aplica acciones remotas
+  const fn=RC[m.name]; if(!fn) return;
+  const prevId=selectedId;
+  // la acción se aplica como si el avión indicado estuviera seleccionado
+  if(m.acId!=null){ const ac=aircraft.find(a=>a.id===m.acId); if(ac){ selected=ac; selectedId=m.acId; } }
+  applyingRemote=true;
+  try{ fn.apply(null, m.args||[]); }catch(e){ /* acción remota inválida: se ignora */ }
+  finally{
+    applyingRemote=false;
+    // restaurar la selección propia del anfitrión (revalidada por id, por si el
+    // avión seleccionado ha desaparecido — p.ej. tras un reinicio remoto)
+    selectedId=prevId;
+    selected = prevId!=null ? (aircraft.find(a=>a.id===prevId)||null) : null;
+  }
+  syncUI();
+}
 
 // ---- Alumno: extrapolación local entre estados recibidos ----
 // Si la pestaña del profesor queda en segundo plano, sus timers pueden
@@ -788,7 +884,9 @@ setInterval(()=>{ if(role==='instructor') broadcastState(); }, 100);   // ~10 Hz
 // más de 250ms que no llega un estado nuevo, el alumno mueve brevemente cada
 // avión según su rumbo/velocidad actuales (extrapolación), hasta que llegue
 // la siguiente actualización real, que corrige cualquier pequeña desviación.
-setInterval(()=>{ if(role==='student') studentTick(); }, 100);
+// La extrapolación local la usan tanto el alumno como el 2º profesor (ambos reciben
+// el estado del anfitrión y lo "interpolan" entre actualizaciones).
+setInterval(()=>{ if(role==='student' || (role==='instructor' && !isHost)) studentTick(); }, 100);
 function studentTick(){
   if(!simRunning) return;
   const now=performance.now();
@@ -807,12 +905,10 @@ function studentTick(){
   render();
 }
 
-// ---- Alumno: se une con el código del profesor ----
-async function attemptJoin(){
-  const input=document.getElementById('joinCode'), statusEl=document.getElementById('guestStatus');
-  const code=input.value.trim().replace(/\D+/g,'');
-  if(!code){ statusEl.className='connectStatus err'; statusEl.textContent='Escribe el código que te ha dado tu profesor.'; return; }
-  if(code.length!==4){ statusEl.className='connectStatus err'; statusEl.textContent='El código de sesión consta de 4 números.'; return; }
+// ---- Conexión de un cliente (alumno o 2º profesor) con la sesión del anfitrión ----
+// Lógica común: crea un Peer cliente, conecta con el código del anfitrión y, al abrir,
+// entra en la app. El rol (alumno / 2º profesor) ya está fijado por quien la llama.
+async function connectToHost(code, statusEl){
   statusEl.className='connectStatus'; statusEl.textContent='Conectando…';
   if(PEER){ try{PEER.destroy();}catch(e){} }
   clearTimeout(connectTimer);
@@ -830,8 +926,7 @@ async function attemptJoin(){
     HOST_CONN.on('close', ()=>{ NET=false; netBadge(false);
       statusEl.className='connectStatus err'; statusEl.textContent='Conexión perdida. Pulsa Conectar para reintentar.'; });
     HOST_CONN.on('error', ()=>{ NET=false; netBadge(false);
-      statusEl.className='connectStatus err'; statusEl.textContent='No se pudo conectar. Comprueba el código con tu profesor.'; });
-    // si la conexión se queda "conectando" sin llegar a abrirse, avisa con detalle
+      statusEl.className='connectStatus err'; statusEl.textContent='No se pudo conectar. Comprueba el código.'; });
     connectTimer=setTimeout(()=>{
       if(!HOST_CONN.open){ statusEl.className='connectStatus err'; statusEl.textContent=STUCK_MSG; }
     }, 15000);
@@ -839,9 +934,29 @@ async function attemptJoin(){
   PEER.on('error', err=>{
     statusEl.className='connectStatus err';
     statusEl.textContent = err.type==='peer-unavailable'
-      ? 'Ese código no existe o tu profesor aún no ha creado la sesión. Comprueba que lo has escrito bien y que el profesor ya tiene su sesión abierta.'
+      ? 'Ese código no existe o la sesión aún no se ha creado. Comprueba el código y que el otro profesor/alumno ya tiene su sesión abierta.'
       : 'Error de conexión ('+err.type+'). Inténtalo de nuevo.';
   });
+}
+// ---- Alumno: se une con el código del profesor ----
+function attemptJoin(){
+  const input=document.getElementById('joinCode'), statusEl=document.getElementById('guestStatus');
+  const code=input.value.trim().replace(/\D+/g,'');
+  if(!code){ statusEl.className='connectStatus err'; statusEl.textContent='Escribe el código que te ha dado tu profesor.'; return; }
+  if(code.length!==4){ statusEl.className='connectStatus err'; statusEl.textContent='El código de sesión consta de 4 números.'; return; }
+  isHost=true; role='student';   // el alumno no es autoridad ni envía órdenes
+  connectToHost(code, statusEl);
+}
+// ---- 2º profesor: se une a la sesión del primero para CONTROLAR junto a él ----
+// (co-control total: ve y manda sobre cualquier avión; el primero sigue siendo la
+// autoridad que ejecuta la física y retransmite el estado).
+function joinAsCoInstructor(){
+  const input=document.getElementById('coCode'), statusEl=document.getElementById('coStatus');
+  const code=(input&&input.value||'').trim().replace(/\D+/g,'');
+  if(code.length!==4){ statusEl.className='connectStatus err'; statusEl.textContent='El código de la sesión son 4 números.'; return; }
+  role='instructor'; isHost=false;   // 2º profesor: NO es la autoridad
+  // dejamos de intentar ser anfitrión (enter('instructor') había abierto una sesión propia)
+  connectToHost(code, statusEl);
 }
 function onHostState(m){
   if(!m||m.type!=='state') return;
@@ -849,9 +964,18 @@ function onHostState(m){
   simRunning=m.running; simTime=m.time; simSpeed=m.speed;
   schedule=m.schedule||[]; aircraft=m.aircraft||[];
   if(m.studentAcLabels!==undefined) studentAcLabels=!!m.studentAcLabels;
+  if(m.activeRwy) applyActiveRwy(m.activeRwy);   // pista activa compartida (2º profesor)
+  // si el 2º profesor está arrastrando un avión en el radar, conservamos su posición
+  // local sobre el estado entrante para que el arrastre no "salte" hasta soltarlo
+  if(dragAc){ const na=aircraft.find(a=>a.id===dragAc.id); if(na){ na.x=dragAc.x; na.y=dragAc.y; dragAc=na; } }
   selected = selectedId!=null ? aircraft.find(a=>a.id===selectedId)||null : null;
   const clk=document.getElementById('clock'); if(clk)clk.textContent=fmtT(simTime);
   const sp=document.getElementById('spdLbl'); if(sp)sp.textContent='x'+simSpeed;
+  // el 2º profesor refleja el reloj y los ajustes del anfitrión en sus controles
+  if(role==='instructor'){
+    syncPlayBtn();
+    const chk=document.getElementById('studentLabelsChk'); if(chk) chk.checked=studentAcLabels;
+  }
   syncUI();
   render();
 }
@@ -960,7 +1084,7 @@ function addFlight(){
   const cs=document.getElementById('f_cs').value.trim().toUpperCase();
   if(t===null){alert('Hora inválida. Usa mm:ss, p.ej. 01:30');return;}
   if(!cs){alert('Indicativo obligatorio');return;}
-  schedule.push({
+  const f={
     time:t, cs,
     type:document.getElementById('f_type').value.trim().toUpperCase()||'C295',
     op:document.getElementById('f_op').value,
@@ -970,12 +1094,18 @@ function addFlight(){
               // se planifica/edita desde la propia ficha de vuelo (ver exitPtPicker)
     lvl:document.getElementById('f_lvl').value.trim().toUpperCase()||'035',
     spawned:false
-  });
+  };
+  if(relayRC('addflight',[f])) return;
+  addFlightObj(f);
+}
+function addFlightObj(f){
+  schedule.push(f);
   schedule.sort((a,b)=>a.time-b.time);
   renderSchedList();
 }
-function delFlight(i){schedule.splice(i,1);renderSchedList();}
+function delFlight(i){ if(relayRC('delflight',[i])) return; schedule.splice(i,1); renderSchedList(); }
 function loadDemo(){
+  if(relayRC('loaddemo')) return;
   // Reinicia el estado de la simulación para dejarla lista y poder pulsar
   // «Iniciar» de inmediato (si se cargaba el programa con la sim. en marcha,
   // el botón se quedaba en «Pausar/Reanudar» y parecía que no se podía iniciar).
@@ -1019,7 +1149,8 @@ function shuffle(arr){
   return a;
 }
 function generateRandomSchedule(){
-  if(schedule.length && !confirm('Esto reemplazará el programa de vuelos actual por uno aleatorio. ¿Continuar?')) return;
+  if(schedule.length && !applyingRemote && !confirm('Esto reemplazará el programa de vuelos actual por uno aleatorio. ¿Continuar?')) return;
+  if(relayRC('gensched')) return;
 
   const VFR_PT_LIST=['N-1','N','E-1','E','S','W'];
   const IFR_PT_LIST=Object.keys(APP_REF).filter(p=>p!=='BBI');
@@ -1162,19 +1293,26 @@ function saveScheduleAs(){
 function loadSavedSchedule(name){
   const entry=getSavedSchedules().find(s=>s.name===name);
   if(!entry) return;
-  // mismo reinicio que al cargar el programa de entrenamiento, para que se
-  // pueda pulsar «Iniciar» de inmediato tras cargar el programa guardado
+  const flights=entry.flights.map(f=>({...f, spawned:false}));
+  // los programas guardados viven en el navegador de cada profesor, así que el 2º
+  // profesor envía los VUELOS (no el nombre) para que el anfitrión los cargue
+  if(relayRC('loadschedule',[flights])) return;
+  applyLoadedSchedule(flights, `Programa «${name}» cargado (${flights.length} vuelo${flights.length===1?'':'s'})`);
+}
+// Carga un conjunto de vuelos como programa activo, con el mismo reinicio que el
+// «programa de entrenamiento» (para poder pulsar «Iniciar» de inmediato).
+function applyLoadedSchedule(flights, msg){
   simRunning=false; simTime=0; lastTs=null; stopSimClock(); aircraft=[]; selected=null; selectedId=null;
   const playBtn=document.getElementById('playBtn');
   if(playBtn){playBtn.textContent='▶ Iniciar'; playBtn.className='btn go';}
   const clockEl=document.getElementById('clock');
   if(clockEl) clockEl.textContent=fmtT(0);
-  schedule=entry.flights.map(f=>({...f, spawned:false}));
+  schedule=(flights||[]).map(f=>({...f, spawned:false}));
   schedule.sort((a,b)=>a.time-b.time);
   renderSchedList();
   syncUI();
   render();
-  flash(`Programa «${name}» cargado (${schedule.length} vuelo${schedule.length===1?'':'s'})`);
+  if(msg) flash(msg);
 }
 function deleteSavedSchedule(name){
   if(!confirm(`¿Eliminar el programa guardado «${name}»? Esta acción no se puede deshacer.`)) return;
@@ -1237,6 +1375,15 @@ function renderSchedList(){
 function renderProgList(){
   const el=document.getElementById('progList');
   if(!el)return;
+  // Mientras el profesor esté editando la hora de un vuelo en este panel, NO
+  // reconstruimos la lista (syncUI la llama ~10 veces/seg con la sim en marcha y
+  // borraría lo que está escribiendo, por lo que la edición "no se guardaba"):
+  // sólo refrescamos el parpadeo y salimos.
+  const act=document.activeElement;
+  if(act && el.contains(act) && act.classList && act.classList.contains('ttEdit')){
+    updateProgBlink();
+    return;
+  }
   document.getElementById('progCount').textContent=schedule.length;
   if(!schedule.length){el.innerHTML='<div class="empty2">No hay vuelos programados.</div>';return;}
   el.innerHTML=schedule.map((f,i)=>{
@@ -1325,6 +1472,7 @@ function saveScheduledTime(i, val){
   if(!f || f.spawned) return;
   const t=parseT(val);
   if(t===null){ alert('Hora inválida. Usa mm:ss, p.ej. 01:30'); renderSchedList(); return; }
+  if(relayRC('savetime',[i,val])) return;
   f.time=t;
   schedule.sort((a,b)=>a.time-b.time);
   renderSchedList();
@@ -1337,6 +1485,7 @@ function saveScheduledTime(i, val){
 function startFlightNow(i){
   const f=schedule[i];
   if(!f||f.spawned)return;
+  if(relayRC('startnow',[i])) return;
   f.spawned=true;
   spawn(f);
   const ac=aircraft[aircraft.length-1];
@@ -1348,7 +1497,8 @@ function startFlightNow(i){
 function removeScheduledFlight(i){
   const f=schedule[i];
   if(!f||f.spawned)return;
-  if(!confirm(`¿Eliminar el vuelo ${f.cs} del programa?`)) return;
+  if(!applyingRemote && !confirm(`¿Eliminar el vuelo ${f.cs} del programa?`)) return;
+  if(relayRC('delsched',[i])) return;
   schedule.splice(i,1);
   renderSchedList();
 }
@@ -1358,10 +1508,9 @@ function removeScheduledFlight(i){
    =========================================================== */
 function toggleSim(){
   if(!simRunning && !schedule.length){alert('Programa al menos un vuelo antes de iniciar.');return;}
+  if(relayRC('simtoggle')) return;   // 2º profesor: el reloj lo lleva el anfitrión
   simRunning=!simRunning;
-  const b=document.getElementById('playBtn');
-  b.textContent=simRunning?'⏸ Pausar':'▶ Reanudar';
-  b.className='btn '+(simRunning?'stop':'go');
+  syncPlayBtn();
   if(simRunning){
     lastTs=performance.now();
     if(!simIntervalId) simIntervalId=setInterval(simTick,100);
@@ -1369,18 +1518,27 @@ function toggleSim(){
     stopSimClock();
   }
 }
+// Pone el botón ▶/⏸ acorde al estado actual del reloj (lo usan tanto el anfitrión
+// como el 2º profesor, que lo refresca al recibir el estado).
+function syncPlayBtn(){
+  const b=document.getElementById('playBtn'); if(!b) return;
+  if(!simRunning && simTime===0){ b.textContent='▶ Iniciar'; b.className='btn go'; }
+  else { b.textContent=simRunning?'⏸ Pausar':'▶ Reanudar'; b.className='btn '+(simRunning?'stop':'go'); }
+}
 function stopSimClock(){
   if(simIntervalId){ clearInterval(simIntervalId); simIntervalId=null; }
 }
 function setSpeed(){
+  if(relayRC('simspeed')) return;
   const ns = simSpeed===1?2:simSpeed===2?4:1;
   simSpeed=ns; document.getElementById('spdLbl').textContent='x'+simSpeed;
 }
 // Reinicia la simulación al instante 0, con el mismo programa de vuelos pero sin tráfico ni progreso
 function resetSim(){
-  if(simRunning || simTime>0 || aircraft.length){
+  if(!applyingRemote && (simRunning || simTime>0 || aircraft.length)){
     if(!confirm('¿Reiniciar la simulación desde cero? Se perderá todo el progreso actual.')) return;
   }
+  if(relayRC('simreset')) return;
   simRunning=false; simTime=0; lastTs=null; simSpeed=1; stopSimClock();
   aircraft=[]; selected=null; selectedId=null; plannedRoute=[]; dragAc=null; dragMoved=false;
   schedule.forEach(f=>{ f.spawned=false; });
@@ -1423,7 +1581,10 @@ function spawn(f){
     target:null, route:null, cmdHist:[], tContact:null, tTakeoff:null,
     manualSpd:null, manualAlt:null,
     plannedExitPt:null, // punto de salida planificado por el controlador (sólo salidas, antes de despegar)
-    circuitSide:null    // lado de circuito (R/L) asignado al ordenar "viento en cola" — usado luego por "Base"
+    circuitSide:null,   // lado de circuito (R/L) asignado al ordenar "viento en cola" — usado luego por "Base"
+    landRoll:false,     // aterrizando: rodando por la pista tras tomar tierra (frenando)
+    touchAndGo:false,   // maniobra de toma y despegue en curso
+    parkOnArrive:false  // al terminar el rodaje, estacionar en plataforma (en vez de quedar en espera)
   };
   if(f.op==='DEP'){
     const mil = (f.type[0]==='C'||f.type==='C295'||f.type==='C101'||f.dest==='LEAB');
@@ -1450,7 +1611,7 @@ function spawn(f){
     ac.hdg=RWY.hdg; ac.spd=0; ac.platform = platform;
   }else{
     // llegada: entra desde un punto de aproximación lejano hacia BBI / ILS 21
-    const entry=APP_REF['DSK']||REF['E']; ac.x=entry.x; ac.y=entry.y; ac.alt=2595+5500; ac.spd=240;
+    const entry=APP_REF['DSK']||REF['E']; ac.x=entry.x; ac.y=entry.y; ac.alt=2595+5500; ac.spd=120;
     ac.hdg=(Math.atan2(-entry.x,entry.y)*180/Math.PI+360)%360;
     ac.target={mode:'point',pt:'BBI'}; ac.platform='CIV';
   }
@@ -1562,7 +1723,21 @@ function step(dt){
       }
       else ac.alt=tAlt;
     }
-    if(ac.state===STATES.PISTA && ac.spd>110 && ac.op==='DEP'){ ac.state=STATES.AIRE; ac.tTakeoff=simTime; }
+    // despegue (salida) o ascenso tras toma y despegue: al superar la velocidad de
+    // rotación, la aeronave deja la pista y sube
+    if(ac.state===STATES.PISTA && ac.spd>110 && (ac.op==='DEP'||ac.touchAndGo)){
+      ac.state=STATES.AIRE; ac.tTakeoff=simTime; ac.touchAndGo=false;
+    }
+    // aterrizaje completo: cuando ha frenado lo suficiente en la pista, abandona
+    // automáticamente por la calle de rodaje paralela y se detiene allí, a la espera
+    // de instrucciones (rodar a plataforma o a punto de espera).
+    if(ac.state===STATES.PISTA && ac.landRoll && ac.spd<=35){
+      ac.landRoll=false; ac.state=STATES.RODAJE;
+      const t=Math.max(0.08,Math.min(0.92, rwyParam({x:ac.x,y:ac.y})));
+      const exit=parallelPt(t);
+      ac.target={mode:'xy', x:exit.x, y:exit.y}; ac.route=null;
+      log(`${ac.cs}: pista libre, abandonando por la calle de rodaje`);
+    }
   });
   // limpiar los que se van lejos tras despegar
   aircraft=aircraft.filter(ac=>{
@@ -1578,10 +1753,10 @@ function targetSpeed(ac){
     case STATES.PROG: return 0;
     case STATES.RODAJE: return 30;     // rodaje ~30 kt
     case STATES.ESPERA: return 0;
-    case STATES.PISTA: return ac.op==='DEP'?140:8;
-    case STATES.AIRE: return 200;
-    case STATES.APROX: return 180;
-    case STATES.FINAL: return 130;     // velocidad de aproximación final realista
+    case STATES.PISTA: return (ac.op==='DEP'||ac.touchAndGo)?140:8;
+    case STATES.AIRE: return 120;      // velocidad de crucero / en ruta
+    case STATES.APROX: return 120;
+    case STATES.FINAL: return 110;     // velocidad de aproximación final realista
     default: return ac.spd;
   }
 }
@@ -1607,8 +1782,30 @@ function isCircuitTraffic(ac){
 }
 function arriveTarget(ac){
   const t=ac.target;
+  if(ac.state===STATES.FINAL){
+    // TOMA DE CONTACTO en la cabecera. Maniobra completa y automática:
+    ac.alt=2595; ac.hdg=depHdg(ac); // sobre el suelo y alineado con el eje de la pista
+    const far=rwyEnds()['thr'+(activeRwy==='21'?'03':'21')];
+    if(ac.touchAndGo){
+      // toma y despegue: acelera por el eje y vuelve a subir (como un despegue)
+      ac.state=STATES.PISTA; ac.target=null;
+      log(`${ac.cs}: toma y despegue — al aire de nuevo`);
+    }else{
+      // aterrizaje: rueda por el eje frenando; al reducir velocidad abandona la
+      // pista por la calle de rodaje (ver step) y queda a la espera
+      ac.state=STATES.PISTA; ac.landRoll=true;
+      ac.target={mode:'xy', x:far.x, y:far.y};
+      log(`${ac.cs}: tomando tierra, frenando en pista`);
+    }
+    return;
+  }
   if(t.mode==='point'&&t.pt==='BBI'&&ac.op==='ARR'){
     ac.state=STATES.APROX; ac.target={mode:'point',pt:'E'}; log(`${ac.cs} sobre BBI, vectores ILS`);
+  }else if(ac.state===STATES.RODAJE && ac.parkOnArrive){
+    // terminó de rodar a la plataforma: queda estacionado
+    ac.state=STATES.PROG; ac.spd=0; ac.target=null; ac.route=null;
+    ac.manualSpd=null; ac.manualAlt=null; ac.parkOnArrive=false;
+    log(`${ac.cs}: estacionado en plataforma`);
   }else if(ac.state===STATES.RODAJE){
     // llegó al punto de espera: se detiene del todo y aguarda instrucciones, sin
     // moverse más. Importante: hay que anular también "manualSpd" — si el instructor
@@ -1635,10 +1832,15 @@ function arriveTarget(ac){
    =========================================================== */
 function cmd(action,arg){
   if(!selected){flash('Selecciona una aeronave primero');return;}
+  if(relayRC('cmd',[action,arg])) return;   // 2º profesor: la orden la aplica el anfitrión
   const ac=selected;
   if(action!=='taxi_hold'){ ac.route=null; plannedRoute=[]; }
   // una nueva instrucción retoma el control automático de velocidad/altitud
   ac.manualSpd=null; ac.manualAlt=null;
+  // cualquier instrucción nueva cancela las maniobras automáticas en curso
+  // (aterrizaje, toma y despegue, rodaje a plataforma); cada caso vuelve a fijar
+  // la que corresponda más abajo.
+  ac.landRoll=false; ac.touchAndGo=false; ac.parkOnArrive=false;
   switch(action){
     case 'taxi_hold': {
       ac.state=STATES.RODAJE;
@@ -1690,7 +1892,30 @@ function cmd(action,arg){
       log(`${ac.cs}: autorizado despegue`);
       break;
     }
-    case 'land': ac.state=STATES.FINAL; ac.target={mode:'xy',...rwyEnds()['thr'+activeRwy]}; log(`${ac.cs}: autorizado aterrizar RWY ${activeRwy}`);break;
+    case 'land':
+      // Aterrizaje completo y automático: la aeronave se dirige a la cabecera activa
+      // descendiendo, toma tierra, frena por la pista y la abandona automáticamente por
+      // la calle de rodaje, donde queda a la espera (ver arriveTarget/step).
+      ac.state=STATES.FINAL; ac.target={mode:'xy',...rwyEnds()['thr'+activeRwy]};
+      log(`${ac.cs}: autorizado aterrizar RWY ${activeRwy}`);
+      break;
+    case 'touchgo':
+      // Toma y despegue: igual descenso hasta tocar tierra, pero en vez de frenar
+      // acelera y vuelve a subir por el eje de la pista.
+      ac.state=STATES.FINAL; ac.touchAndGo=true; ac.target={mode:'xy',...rwyEnds()['thr'+activeRwy]};
+      log(`${ac.cs}: autorizado toma y despegue RWY ${activeRwy}`);
+      break;
+    case 'taxi_apron': {
+      // Rodar a plataforma desde la calle de rodaje (típicamente tras aterrizar):
+      // recorre la paralela hasta el conector de su plataforma y estaciona allí.
+      ac.state=STATES.RODAJE; ac.parkOnArrive=true;
+      const t_exit=(ac.platform==='MIL')?0.603:0.333;
+      const route=[parallelPt(t_exit), apronEdgePt(ac), apronParkPt(ac)];
+      ac.target={mode:'xy', x:route[0].x, y:route[0].y};
+      ac.route=route.slice(1);
+      log(`${ac.cs}: ruede a plataforma`);
+      break;
+    }
     case 'downwind': {
       // El instructor elige directamente, para ESTA aeronave, por qué lado entra al
       // circuito (botones "Viento en cola DER./IZQ." — los tráficos de E-1/E/S entran
@@ -1719,8 +1944,8 @@ function cmd(action,arg){
   ac.cmdHist.push(action+(arg?' '+arg:''));
   syncUI();
 }
-function cmdLabel(a,arg){return {taxi_hold:'rodar a punto de espera',lineup:'alinearse',takeoff:'autorizado despegue',
-  land:'autorizado aterrizar',downwind:'viento en cola, lado '+(arg==='L'?'izquierdo':'derecho'),base:'vuelo base',final:'a final',orbit:'orbite',
+function cmdLabel(a,arg){return {taxi_hold:'rodar a punto de espera',taxi_apron:'rodar a plataforma',lineup:'alinearse',takeoff:'autorizado despegue',
+  land:'autorizado aterrizar',touchgo:'toma y despegue',downwind:'viento en cola, lado '+(arg==='L'?'izquierdo':'derecho'),base:'vuelo base',final:'a final',orbit:'orbite',
   rp:'proceda a '+arg,toBBI:'proceda a BBI',ils:'establézcase ILS '+activeRwy}[a]||a;}
 // Todas las operaciones (rodaje, despegue, aterrizaje) se dirigen a la cabecera
 // ACTIVA elegida por el instructor — por defecto la 21, salvo que se seleccione la 03.
@@ -1760,6 +1985,15 @@ function apronEdgePt(ac){
   const base=lerpPt(e.thr03,e.thr21,Math.max(0.04,Math.min(0.96,t)));
   return {x:base.x+px*nearEdge, y:base.y+py*nearEdge};
 }
+// Punto de estacionamiento en la plataforma (centro), con la misma fórmula que usa
+// spawn() para colocar las salidas: sirve de destino al «Rodar a plataforma» de una
+// llegada que ya ha aterrizado y abandonado la pista.
+function apronParkPt(ac){
+  const dir=RWY.hdg*Math.PI/180;
+  const px=Math.cos(dir), py=Math.sin(dir), ax=Math.sin(dir), ay=-Math.cos(dir);
+  if(ac.platform==='MIL') return {x:px*590+ax*260, y:py*590+ay*260};
+  return {x:px*510+ax*(-420), y:py*510+ay*(-420)};
+}
 // Viento en cola: el desvío lateral respecto al eje recíproco de pista se sitúa a la
 // derecha (+25°) o a la izquierda (-25°) según el lado de circuito que el instructor
 // elija para ESA aeronave (botones "Viento en cola DER./IZQ.") — los tráficos que
@@ -1798,6 +2032,7 @@ function selectAcByCs(cs){ const ac=aircraft.find(a=>a.cs===cs); if(ac) selectAc
 // sin ninguna rampa o transición progresiva — se fija el valor directamente.
 function setAcSpeed(v){
   if(!selected)return;
+  if(relayRC('spd',[+v])) return;
   // Mientras la aeronave está parada en tierra SIN que se le haya dado ninguna
   // instrucción de movimiento (en su posición de plataforma -PROG- o detenida en
   // el punto de espera -ESPERA-, sin pista/ruta asignada), la barra de velocidad
@@ -1814,6 +2049,7 @@ function setAcSpeed(v){
 }
 function setAcAlt(v){
   if(!selected)return;
+  if(relayRC('alt',[+v])) return;
   selected.manualAlt=+v;
   selected.alt=+v;             // aplicación inmediata, sin transición
   const lbl=document.getElementById('altSliderVal'); if(lbl)lbl.textContent=Math.round(+v)+' ft';
@@ -1908,7 +2144,8 @@ function removeAircraft(id){
   const idx=aircraft.findIndex(a=>a.id===id);
   if(idx<0) return;
   const ac=aircraft[idx];
-  if(!confirm(`¿Eliminar el vuelo ${ac.cs} de la simulación?`)) return;
+  if(!applyingRemote && !confirm(`¿Eliminar el vuelo ${ac.cs} de la simulación?`)) return;
+  if(relayRC('delac',[id])) return;
   aircraft.splice(idx,1);
   if(selected&&selected.id===id){ selected=null; selectedId=null; plannedRoute=[]; }
   log(`${ac.cs}: vuelo retirado de la simulación por el controlador`);
@@ -1967,6 +2204,33 @@ function radarProjParams(w,h){
   const baseNM=8;   // alcance visible por defecto (radarZoom=1): toda la CTR/ATZ con los puntos VFR
   return {cx:w/2+radarPan.x, cy:h/2+radarPan.y, scale:(R/(baseNM*NM))*radarZoom};
 }
+// Devuelve la ruta que el avión sigue ahora mismo como lista de puntos {x,y}:
+// el destino actual (sea un punto con nombre o unas coordenadas) seguido de la cola
+// de waypoints pendientes (ac.route). Se usa para AÑADIR puntos con Ctrl+clic sin
+// perder la ruta ya trazada cuando plannedRoute se ha vaciado (tras reseleccionar).
+function currentRouteOf(ac){
+  const r=[];
+  if(ac.target){
+    if(ac.target.mode==='xy') r.push({x:ac.target.x,y:ac.target.y});
+    else if(ac.target.mode==='point'){ const p=REF[ac.target.pt]||APP_REF[ac.target.pt]; if(p) r.push({x:p.x,y:p.y}); }
+  }
+  if(ac.route) ac.route.forEach(p=>{ if(p) r.push({x:p.x,y:p.y}); });
+  return r;
+}
+// Aplicaciones de bajo nivel (sin red) de las acciones de radar — las llaman tanto el
+// profesor local/anfitrión como el anfitrión al recibir la acción de un 2º profesor.
+function applyDirectTo(ac,x,y){
+  ac.route=null;
+  ac.target={mode:'xy', x, y};
+  if(ac.state===STATES.PROG||ac.state===STATES.ESPERA) ac.state=STATES.AIRE;
+}
+function applyRoute(ac,pts){
+  if(!pts||!pts.length) return;
+  ac.target={mode:'xy', x:pts[0].x, y:pts[0].y};
+  ac.route=pts.slice(1);
+  if(ac.state===STATES.PROG||ac.state===STATES.ESPERA) ac.state=STATES.AIRE;
+}
+function applyMove(ac,x,y){ ac.x=x; ac.y=y; }
 // Clic en el radar: si hay un avión cerca del clic, lo selecciona;
 // si ya hay uno seleccionado, lo dirige («directo a») hacia el punto pulsado.
 radar.addEventListener('click',function(e){
@@ -1982,10 +2246,16 @@ radar.addEventListener('click',function(e){
   // ahí, cada Ctrl+clic agrega un tramo más, en el orden en que se van pulsando.
   if(e.ctrlKey){
     if(!selected){ flash('Selecciona una aeronave para trazarle una ruta con Ctrl+clic'); return; }
+    // Si la ruta dibujada (plannedRoute) está vacía pero el avión YA lleva una ruta
+    // asignada — p.ej. porque se deseleccionó y se volvió a seleccionar, lo que borra
+    // plannedRoute —, la reconstruimos a partir del destino/cola de puntos actuales
+    // del avión. Así el Ctrl+clic AÑADE un punto a la ruta existente en vez de
+    // sustituirla y mandar el avión directo al último punto (bug anterior).
+    if(plannedRoute.length===0) plannedRoute=currentRouteOf(selected);
     plannedRoute.push({x:wx,y:wy});
-    selected.target={mode:'xy', x:plannedRoute[0].x, y:plannedRoute[0].y};
-    selected.route=plannedRoute.slice(1);
-    if(selected.state===STATES.PROG||selected.state===STATES.ESPERA) selected.state=STATES.AIRE;
+    const pts=plannedRoute.map(p=>({x:p.x,y:p.y}));
+    // 2º profesor: envía la ruta al anfitrión; anfitrión/local: la aplica directamente
+    if(!relayRC('route',[pts])) applyRoute(selected, pts);
     log(`${selected.cs}: ruta trazada por el controlador — ${plannedRoute.length} punto(s)`);
     syncUI();
     return;
@@ -2002,9 +2272,7 @@ radar.addEventListener('click',function(e){
     // El clic normal fija el PRIMER punto de la ruta (sustituye cualquier ruta anterior);
     // a partir de aquí, cada Ctrl+clic añade el siguiente punto en cadena (2º, 3º…).
     plannedRoute=[{x:wx,y:wy}];
-    selected.route=null;
-    selected.target={mode:'xy', x:wx, y:wy};
-    if(selected.state===STATES.PROG||selected.state===STATES.ESPERA) selected.state=STATES.AIRE;
+    if(!relayRC('directto',[wx,wy])) applyDirectTo(selected, wx, wy);
     log(`${selected.cs}: directo a punto seleccionado en pantalla`);
     syncUI();
   }
@@ -2047,7 +2315,11 @@ radar.addEventListener('mousemove',function(e){
 window.addEventListener('mouseup',function(){
   if(dragPan){ dragPan=null; }
   if(dragAc){
-    if(dragMoved) log(`${dragAc.cs}: reposicionado manualmente por el controlador en el radar`);
+    if(dragMoved){
+      // 2º profesor: envía la posición final al anfitrión; anfitrión/local: ya está aplicada
+      relayRC('move',[dragAc.x,dragAc.y], dragAc.id);
+      log(`${dragAc.cs}: reposicionado manualmente por el controlador en el radar`);
+    }
     dragAc=null;
   }
 });
@@ -2447,6 +2719,13 @@ const CAM={
   pos:{x:1400,y:600}
 };
 let cloudSeed=[];
+// Parches de césped: se generan UNA sola vez (posición/tamaño/tono fijos) y luego
+// se redibujan idénticos en cada fotograma. Antes se sorteaban con Math.random()
+// en cada frame, lo que hacía que el terreno "parpadeara"; ahora es una imagen sólida.
+let grassSeed=[];
+function initGrass(){ if(grassSeed.length)return;
+  for(let i=0;i<40;i++)grassSeed.push({rx:Math.random(), ty:Math.pow(Math.random(),2), wr:Math.random(), light:Math.random()>0.5});
+}
 function initClouds(){ if(cloudSeed.length)return;
   for(let i=0;i<7;i++)cloudSeed.push({x:Math.random()*1.2-0.1,y:0.04+Math.random()*0.14,s:0.6+Math.random()*1.1,sp:0.0006+Math.random()*0.0012});
 }
@@ -2517,10 +2796,11 @@ function drawTower(){
   let grd=tctx.createLinearGradient(0,horizonY,0,h);
   grd.addColorStop(0,'#7a9450');grd.addColorStop(0.4,'#5f7d3a');grd.addColorStop(1,'#46602b');
   tctx.fillStyle=grd;tctx.fillRect(0,horizonY,w,h-horizonY);
+  initGrass();
   tctx.save();tctx.globalAlpha=0.12;
-  for(let i=0;i<40;i++){const yy=horizonY+Math.pow(Math.random(),2)*(h-horizonY);const xx=Math.random()*w;
-    const ww=20+Math.random()*120*((yy-horizonY)/(h-horizonY)+0.2);
-    tctx.fillStyle=Math.random()>0.5?'#3f5826':'#86954e';tctx.fillRect(xx,yy,ww,ww*0.25);}
+  grassSeed.forEach(g=>{const yy=horizonY+g.ty*(h-horizonY);const xx=g.rx*w;
+    const ww=20+g.wr*120*((yy-horizonY)/(h-horizonY)+0.2);
+    tctx.fillStyle=g.light?'#86954e':'#3f5826';tctx.fillRect(xx,yy,ww,ww*0.25);});
   tctx.restore();
 
   drawRunwayGround(w,h);
@@ -2864,6 +3144,26 @@ window.addEventListener('resize',resizeAll);
     const pl = document.getElementById('progList');
     const newH = Math.max(60, Math.min(window.innerHeight*0.55, h0+(e.clientY-y0)));
     pl.style.height = newH+'px';
+  });
+  document.addEventListener('mouseup', ()=>{ drag=false; });
+})();
+
+// Divisor vertical arrastrable: regula el ANCHO de la columna de vuelos (#colStrips)
+(function(){
+  const handle = document.getElementById('colWSplitter');
+  if(!handle) return;
+  let drag=false, x0=0, w0=0;
+  handle.addEventListener('mousedown', e=>{
+    drag=true; x0=e.clientX;
+    w0=document.getElementById('colStrips').offsetWidth;
+    e.preventDefault();
+  });
+  document.addEventListener('mousemove', e=>{
+    if(!drag) return;
+    const col=document.getElementById('colStrips');
+    const newW=Math.max(220, Math.min(window.innerWidth*0.55, w0+(e.clientX-x0)));
+    col.style.flex='0 0 '+newW+'px';
+    resizeAll(); // el radar ocupa el espacio restante: hay que recalcular su canvas
   });
   document.addEventListener('mouseup', ()=>{ drag=false; });
 })();
