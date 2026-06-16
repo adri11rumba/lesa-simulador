@@ -148,18 +148,30 @@
 
   #colStrips{flex:0 0 340px}
   #stripList{flex:1;overflow-y:auto;padding:10px;display:flex;flex-direction:column;gap:10px}
-  .progList{height:190px;min-height:110px;max-height:65vh;resize:vertical;overflow-y:auto;padding:10px;display:flex;flex-direction:column;gap:6px}
-  /* Diseño flexible que envuelve en dos líneas en vez de forzar columnas fijas:
-     así nunca se corta ni se sale texto, sea cual sea el ancho del panel o la
-     longitud del indicativo/ruta/botones (antes se desbordaba con "grid"). */
-  .progRow{display:flex;flex-wrap:wrap;align-items:center;gap:5px 8px;
-    border:1px solid var(--line);border-radius:6px;padding:6px 9px;font-family:'JetBrains Mono';font-size:11px;
+  .progList{height:200px;min-height:60px;overflow-y:auto;padding:5px 8px;display:flex;flex-direction:column;gap:3px}
+  #colSplitter{flex:0 0 8px;cursor:ns-resize;background:var(--line);margin:2px 8px;border-radius:4px;display:flex;align-items:center;justify-content:center;transition:background .15s}
+  #colSplitter:hover{background:var(--amber)}
+  #colSplitter::after{content:'';width:24px;height:2px;background:currentColor;border-radius:2px;opacity:.5;box-shadow:0 3px 0 currentColor,0 -3px 0 currentColor}
+  /* Una sola línea por vuelo: todo cabe en el ancho del panel sin segundo renglón */
+  .progRow{display:flex;flex-wrap:nowrap;align-items:center;gap:4px 5px;
+    border:1px solid var(--line);border-radius:5px;padding:3px 7px;font-family:'JetBrains Mono';font-size:11px;
     overflow:hidden}
   .progRow .tt{color:var(--amber);font-weight:700;flex:0 0 auto}
   .progRow .cs{font-weight:700;flex:0 0 auto}
   .progRow .tag{flex:0 0 auto}
-  .progRow .rte{flex:1 1 60px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .progRow .acts{flex:0 0 100%;display:flex;justify-content:flex-end;align-items:center;gap:6px}
+  .progRow .rte{flex:1 1 30px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .progRow .acts{flex:0 0 auto;display:flex;align-items:center;gap:5px;margin-left:auto}
+  .progRow .ttEdit{flex:0 0 auto;width:40px;background:var(--panel2);border:1px solid var(--line);border-radius:4px;
+    color:var(--amber);font-weight:700;font-family:'JetBrains Mono';font-size:11px;padding:1px 2px;text-align:center}
+  .progRow .ttEdit:focus{outline:none;border-color:var(--amber);background:var(--panel)}
+  .progRow .save2{flex:0 0 auto;font-size:11px;cursor:pointer;padding:2px 6px;border-radius:4px;background:var(--panel2);border:1px solid var(--line);transition:.12s}
+  .progRow .save2:hover{background:var(--amber);color:#3a2c00;border-color:var(--amber)}
+  /* Aviso de activación inminente (faltan <=2 min): parpadeo brillante sin afectar la legibilidad */
+  @keyframes progSoonBlink{
+    0%,100%{background:var(--panel2);border-color:var(--line);box-shadow:none}
+    50%{background:rgba(255,209,76,.35);border-color:#ffd14c;box-shadow:0 0 8px rgba(255,209,76,.55)}
+  }
+  .progRow.soon{animation:progSoonBlink 1s ease-in-out infinite}
   .progRow.done{background:rgba(61,220,132,.08);border-color:rgba(61,220,132,.4);color:var(--green)}
   .progRow.done .cs{color:var(--green)}
   .progRow.pending{background:var(--panel2);color:var(--ink-dim)}
@@ -278,10 +290,14 @@
   .formGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
   .formGrid .f label{font-size:10px;letter-spacing:1px;color:var(--ink-dim);text-transform:uppercase;display:block;margin-bottom:4px}
   .schedList{display:flex;flex-direction:column;gap:7px;max-height:230px;overflow-y:auto}
-  .schedRow{display:grid;grid-template-columns:60px 90px 70px 1fr 70px 30px;gap:10px;align-items:center;background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:7px 10px;font-family:'JetBrains Mono';font-size:12px}
+  .schedRow{display:grid;grid-template-columns:60px 90px 70px 1fr 70px 30px 30px;gap:10px;align-items:center;background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:7px 10px;font-family:'JetBrains Mono';font-size:12px}
   .schedRow .tt{color:var(--amber);font-weight:700}
+  .schedRow .ttEdit{width:100%;background:var(--panel);border:1px solid var(--line);border-radius:4px;color:var(--amber);font-weight:700;font-family:'JetBrains Mono';font-size:12px;padding:2px 4px;text-align:center}
+  .schedRow .ttEdit:focus{outline:none;border-color:var(--amber)}
   .schedRow .cs{color:var(--green);font-weight:700}
   .schedRow .del{color:var(--red);cursor:pointer;text-align:center;font-weight:700}
+  .schedRow .save2{font-size:12px;cursor:pointer;text-align:center;padding:2px 4px;border-radius:4px;background:var(--panel);border:1px solid var(--line);transition:.12s}
+  .schedRow .save2:hover{background:var(--amber);color:#3a2c00;border-color:var(--amber)}
   .schedRow .loadBtn{padding:3px 8px;font-size:10px;border-radius:4px;background:var(--green-dim);border:1px solid var(--green);color:#eafff3;cursor:pointer;white-space:nowrap;text-align:center}
   .schedFoot{padding:14px 20px;border-top:1px solid var(--line);display:flex;gap:10px;justify-content:flex-end;background:var(--panel2)}
   .tag{display:inline-block;font-size:10px;padding:1px 6px;border-radius:3px;letter-spacing:1px}
@@ -388,6 +404,7 @@
       <div class="col" id="colStrips">
         <h3>Programa de vuelos <span class="pill" id="progCount">0</span></h3>
         <div id="progList" class="progList"><div class="empty2">No hay vuelos programados.</div></div>
+        <div id="colSplitter" title="Arrastra para ajustar el reparto vertical"></div>
         <h3>Fichas de progreso <span class="pill" id="stripCount">0</span></h3>
         <div id="stripList"><div class="empty2">No hay vuelos. Pulsa «Programar vuelos».</div></div>
       </div>
@@ -482,6 +499,7 @@
       <div style="display:flex;gap:10px;align-items:center">
         <button class="btn go" onclick="addFlight()">+ Añadir al programa</button>
         <button class="btn" onclick="loadDemo()">📅 Cargar programa de entrenamiento (10 vuelos)</button>
+        <button class="btn" onclick="generateRandomSchedule()">🎲 Generar programa aleatorio</button>
         <span class="hint" style="margin-left:auto">Para llegadas, la hora es la de entrada en CTR.</span>
       </div>
       <div>
@@ -635,7 +653,8 @@ function rwyEnds(){
 /* ===========================================================
    ESTADO
    =========================================================== */
-let role=null, simRunning=false, simTime=0, simSpeed=1, lastTs=null;
+let role=null, simRunning=false, simTime=0, simSpeed=1, lastTs=null, simIntervalId=null;
+let lastNetUpdate=0, lastExtrapTs=0; // alumno: control de la extrapolación local entre estados recibidos
 // Vista única de radar del instructor: fusiona el antiguo radar de torre (ATZ/CTR
 // con los puntos VFR N, N-1, E, E-1, S, W) y el modo aproximación (vista cenital
 // de plataforma) en un solo plano «desde arriba» navegable con zoom (rueda del
@@ -762,6 +781,32 @@ function broadcastState(){
 }
 setInterval(()=>{ if(role==='instructor') broadcastState(); }, 100);   // ~10 Hz
 
+// ---- Alumno: extrapolación local entre estados recibidos ----
+// Si la pestaña del profesor queda en segundo plano, sus timers pueden
+// ralentizarse y los mensajes de estado llegan más espaciados. Para que el
+// avión no se "congele" en la pantalla del alumno mientras tanto, si hace
+// más de 250ms que no llega un estado nuevo, el alumno mueve brevemente cada
+// avión según su rumbo/velocidad actuales (extrapolación), hasta que llegue
+// la siguiente actualización real, que corrige cualquier pequeña desviación.
+setInterval(()=>{ if(role==='student') studentTick(); }, 100);
+function studentTick(){
+  if(!simRunning) return;
+  const now=performance.now();
+  if(now-lastNetUpdate<250) return;
+  const dt=Math.min((now-lastExtrapTs)/1000,1)*simSpeed;
+  lastExtrapTs=now;
+  simTime+=dt;
+  aircraft.forEach(ac=>{
+    if(ac.spd>0.3){
+      const v=ac.spd*KT*dt;
+      ac.x+=Math.sin(ac.hdg*Math.PI/180)*v;
+      ac.y+=-Math.cos(ac.hdg*Math.PI/180)*v;
+    }
+  });
+  const clk=document.getElementById('clock'); if(clk)clk.textContent=fmtT(simTime);
+  render();
+}
+
 // ---- Alumno: se une con el código del profesor ----
 async function attemptJoin(){
   const input=document.getElementById('joinCode'), statusEl=document.getElementById('guestStatus');
@@ -800,6 +845,7 @@ async function attemptJoin(){
 }
 function onHostState(m){
   if(!m||m.type!=='state') return;
+  lastNetUpdate=performance.now(); lastExtrapTs=lastNetUpdate;
   simRunning=m.running; simTime=m.time; simSpeed=m.speed;
   schedule=m.schedule||[]; aircraft=m.aircraft||[];
   if(m.studentAcLabels!==undefined) studentAcLabels=!!m.studentAcLabels;
@@ -933,7 +979,7 @@ function loadDemo(){
   // Reinicia el estado de la simulación para dejarla lista y poder pulsar
   // «Iniciar» de inmediato (si se cargaba el programa con la sim. en marcha,
   // el botón se quedaba en «Pausar/Reanudar» y parecía que no se podía iniciar).
-  simRunning=false; simTime=0; lastTs=null; aircraft=[]; selected=null; selectedId=null;
+  simRunning=false; simTime=0; lastTs=null; stopSimClock(); aircraft=[]; selected=null; selectedId=null;
   const playBtn=document.getElementById('playBtn');
   if(playBtn){playBtn.textContent='▶ Iniciar'; playBtn.className='btn go';}
   const clockEl=document.getElementById('clock');
@@ -960,6 +1006,85 @@ function loadDemo(){
 }
 
 /* ===========================================================
+   PROGRAMA ALEATORIO — genera un programa de entrenamiento
+   variado: ~70% vuelos VFR (puntos N-1, N, E-1, E, S, W) y
+   ~30% vuelos IFR (puntos de aproximación variados de APP_REF),
+   con 3:30 (210 s) de separación entre vuelos consecutivos.
+   =========================================================== */
+function rndInt(a,b){return a+Math.floor(Math.random()*(b-a+1));}
+function pick(arr){return arr[Math.floor(Math.random()*arr.length)];}
+function shuffle(arr){
+  const a=arr.slice();
+  for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}
+  return a;
+}
+function generateRandomSchedule(){
+  if(schedule.length && !confirm('Esto reemplazará el programa de vuelos actual por uno aleatorio. ¿Continuar?')) return;
+
+  const VFR_PT_LIST=['N-1','N','E-1','E','S','W'];
+  const IFR_PT_LIST=Object.keys(APP_REF).filter(p=>p!=='BBI');
+  const VFR_TYPES=['PA28','TB20','C172','DA40','C101','C295'];
+  const IFR_TYPES=['A320','A321','B738','A359','E170','B744'];
+  const MIL_PFX=['BUH','GAF','ORCA','FOCA','DVN','AME','HUR','EJC'];
+  const ARL_PFX=['IBE','RYR','VLG','EIN','QTR','AFR','DLH','TAP'];
+  const VFR_DESTS=['LEVD','LETO','LESO','LEZG','LEAB'];
+  const IFR_DESTS=['LEMD','LEBL','LEZL','LEAL','LEMG'];
+
+  const N=14, SEP=210; // 14 vuelos, separados 3:30
+
+  // los puntos IFR se barajan y se reparten sin repetir hasta agotar la lista,
+  // para que los vuelos instrumentales usen puntos de aproximación variados
+  let ifrPool=shuffle(IFR_PT_LIST), ifrIdx=0;
+  function nextIfrPt(){
+    if(ifrIdx>=ifrPool.length){ifrPool=shuffle(IFR_PT_LIST);ifrIdx=0;}
+    return ifrPool[ifrIdx++];
+  }
+
+  const newSchedule=[];
+  let t=30;
+  for(let i=0;i<N;i++){
+    const isVFR=Math.random()<0.7;
+    const op=Math.random()<0.5?'DEP':'ARR';
+    let cs,type,orig,dest,route,lvl;
+    if(isVFR){
+      type=pick(VFR_TYPES);
+      cs=Math.random()<0.5
+        ? `EC${String.fromCharCode(65+rndInt(0,25))}${String.fromCharCode(65+rndInt(0,25))}${String.fromCharCode(65+rndInt(0,25))}`
+        : `${pick(MIL_PFX)}${rndInt(1,99)}`;
+      const pt=pick(VFR_PT_LIST);
+      lvl=String(rndInt(3,6)*10).padStart(3,'0');
+      if(op==='DEP'){
+        orig='LESA'; dest=pick(VFR_DESTS);
+        route=`${pt} N0${rndInt(11,15)*10} F${lvl}`;
+      }else{
+        orig=pick(VFR_DESTS); dest='LESA';
+        route=`${pt} VFR F${lvl}`;
+      }
+    }else{
+      type=pick(IFR_TYPES);
+      cs=`${pick(ARL_PFX)}${rndInt(10,999)}${Math.random()<0.3?String.fromCharCode(65+rndInt(0,25)):''}`;
+      const pt=nextIfrPt();
+      lvl=String(rndInt(18,31)*10).padStart(3,'0');
+      if(op==='DEP'){
+        orig='LESA'; dest=pick(IFR_DESTS);
+        route=`BBI ${pt} N0${rndInt(40,46)*10} F${lvl}`;
+      }else{
+        orig=pick(IFR_DESTS); dest='LESA';
+        route=`${pt} BBI ILS 21`;
+      }
+    }
+    newSchedule.push({time:t, cs, type, op, orig, dest, route, lvl, spawned:false});
+    t+=SEP;
+  }
+  schedule=newSchedule;
+  schedule.sort((a,b)=>a.time-b.time);
+  renderSchedList();
+  syncUI();
+  render();
+  flash(`Programa aleatorio generado: ${N} vuelos cada ${fmtMS(SEP)} (≈70% VFR / 30% IFR)`);
+}
+
+/* ===========================================================
    PROGRAMAS GUARDADOS — el profesor puede guardar el programa de
    vuelos actual con un nombre y volver a cargarlo más adelante.
    Se guardan en localStorage (persisten en este navegador/equipo).
@@ -972,6 +1097,47 @@ function getSavedSchedules(){
 function setSavedSchedules(list){
   try{ localStorage.setItem(SAVED_SCHED_KEY, JSON.stringify(list)); }catch(e){}
 }
+
+/* ------------------------------------------------------------------
+   Programas de entrenamiento predefinidos.
+   Se instalan en localStorage la primera vez (y si el usuario los borra
+   no vuelven a aparecer, salvo que limpie el almacenamiento del navegador).
+   ------------------------------------------------------------------ */
+(function seedBuiltinSchedules(){
+  const BUILTINS = [
+    { name:'Torre', flights:[
+      {time: 60, cs:'MARTE21', type:'C18',  op:'ARR', orig:'LEZG', dest:'LESA', route:'Sur',                               lvl:'060'},
+      {time:120, cs:'ORCA44',  type:'E55P', op:'ARR', orig:'LERT', dest:'LESA', route:'E E-1',                             lvl:'050'},
+      {time:200, cs:'RYR2643', type:'B738', op:'ARR', orig:'LEZL', dest:'LESA', route:'OXACA CCS',                         lvl:'080'},
+      {time:300, cs:'BUH025',  type:'CN35', op:'DEP', orig:'LESA', dest:'LESA', route:'N0200 F012',                        lvl:'012'},
+      {time:360, cs:'BUH026',  type:'CN35', op:'DEP', orig:'LESA', dest:'LESA', route:'N0210 F036',                        lvl:'036'},
+      {time:380, cs:'EIN5818', type:'A321', op:'ARR', orig:'EGLL', dest:'LESA', route:'VES ROVAK VETAN ZMR',               lvl:'090'},
+      {time:420, cs:'VLG2574', type:'A320', op:'DEP', orig:'LESA', dest:'LEBL', route:'ZANKO NEA DGO VASUM VAKIN LOBAR',   lvl:'280'},
+      {time:480, cs:'FOCA27',  type:'L45',  op:'ARR', orig:'LETO', dest:'LESA', route:'E E-1',                             lvl:'050'},
+      {time:510, cs:'GAF26',   type:'C212', op:'ARR', orig:'LEAB', dest:'LESA', route:'W N-1',                             lvl:'050'},
+      {time:540, cs:'QTR4742', type:'A359', op:'DEP', orig:'LESA', dest:'LEVT', route:'ZANKO NEA VTA',                     lvl:'200'},
+      {time:600, cs:'DVN35',   type:'TB20', op:'DEP', orig:'LESA', dest:'LEVX', route:'N1 N',                              lvl:'036'},
+    ]},
+    { name:'Aproximacion', flights:[
+      {time: 60, cs:'RAM2379', type:'B744', op:'ARR', orig:'GMMM', dest:'LESA', route:'NVS BBI',   lvl:'090'},
+      {time:120, cs:'RYR2643', type:'B738', op:'ARR', orig:'EIDW', dest:'LESA', route:'CCS BBI',   lvl:'090'},
+      {time:300, cs:'VOE4323', type:'A320', op:'DEP', orig:'LESA', dest:'LEBL', route:'LESA NVS',  lvl:'300'},
+      {time:360, cs:'EXS4551', type:'A321', op:'ARR', orig:'EFHK', dest:'LESA', route:'ZMR BBI',   lvl:'090'},
+      {time:420, cs:'LOT4358', type:'E170', op:'DEP', orig:'LESA', dest:'EPWA', route:'CCS',       lvl:'310'},
+      {time:480, cs:'IBE05LT', type:'A321', op:'ARR', orig:'LEBL', dest:'LESA', route:'TLD BBI',   lvl:'090'},
+    ]},
+  ];
+  const saved = getSavedSchedules();
+  let changed = false;
+  BUILTINS.forEach(b => {
+    if(!saved.find(s => s.name === b.name)){
+      saved.push({name:b.name, flights:b.flights, savedAt:0});
+      changed = true;
+    }
+  });
+  if(changed) setSavedSchedules(saved);
+})();
+
 function saveScheduleAs(){
   const inp=document.getElementById('sched_saveName');
   const name=(inp&&inp.value||'').trim();
@@ -998,7 +1164,7 @@ function loadSavedSchedule(name){
   if(!entry) return;
   // mismo reinicio que al cargar el programa de entrenamiento, para que se
   // pueda pulsar «Iniciar» de inmediato tras cargar el programa guardado
-  simRunning=false; simTime=0; lastTs=null; aircraft=[]; selected=null; selectedId=null;
+  simRunning=false; simTime=0; lastTs=null; stopSimClock(); aircraft=[]; selected=null; selectedId=null;
   const playBtn=document.getElementById('playBtn');
   if(playBtn){playBtn.textContent='▶ Iniciar'; playBtn.className='btn go';}
   const clockEl=document.getElementById('clock');
@@ -1048,11 +1214,14 @@ function renderSchedList(){
     if(!schedule.length){el.innerHTML='<div class="empty2">Aún no hay vuelos programados.</div>';}
     else el.innerHTML=schedule.map((f,i)=>`
       <div class="schedRow">
-        <span class="tt">${fmtMS(f.time)}</span>
+        <input class="ttEdit" type="text" inputmode="numeric" maxlength="5" value="${fmtMS(f.time)}"
+          onkeydown="if(event.key==='Enter'){event.preventDefault();saveScheduledTime(${i},this.value);}"
+          title="Hora (mm:ss). Edítala y pulsa 💾 o Intro para guardar.">
         <span class="cs">${f.cs}</span>
         <span>${f.type}</span>
         <span>${f.orig}→${f.dest}</span>
         <span class="tag ${f.op}">${f.op}</span>
+        <span class="save2" title="Guardar nueva hora" onclick="saveScheduledTime(${i},this.closest('.schedRow').querySelector('.ttEdit').value)">💾</span>
         <span class="del" onclick="delFlight(${i})">✕</span>
       </div>`).join('');
   }
@@ -1061,8 +1230,10 @@ function renderSchedList(){
 
 /* ---------- Programa de vuelos · panel del profesor ----------
    Vuelos ya en el aire/rodaje (spawned) en verde, pendientes en gris.
-   Las salidas pendientes incluyen un botón «Take off» para lanzarlas
-   de inmediato en línea recta (el instructor las dirige después). */
+   Los vuelos pendientes incluyen un botón «Iniciar ahora» para
+   adelantar su aparición: las salidas aparecen en su plataforma
+   correspondiente (para rodar con normalidad) y las llegadas, en su
+   punto de entrada en la CTR. */
 function renderProgList(){
   const el=document.getElementById('progList');
   if(!el)return;
@@ -1070,28 +1241,49 @@ function renderProgList(){
   if(!schedule.length){el.innerHTML='<div class="empty2">No hay vuelos programados.</div>';return;}
   el.innerHTML=schedule.map((f,i)=>{
     const done=!!f.spawned;
-    let action, delBtn;
+    let action, delBtn, timeField, saveBtn='';
     if(done){
       action=`<span class="st2">en curso</span>`;
       // el vuelo ya está volando/rodando: también se puede retirar de la simulación
       // desde aquí (equivale a pulsar la "✕" de su ficha de progreso)
       delBtn=`<span class="del2" data-delcs="${f.cs}" title="Eliminar este vuelo de la simulación">✕</span>`;
+      timeField=`<span class="tt">${fmtMS(f.time)}</span>`;
     }else{
-      action = (f.op==='DEP')
-        ? `<span class="go2" data-quicktakeoff="${i}">🛫 Take off</span>`
-        : `<span class="go2" data-startnow="${i}">▶ Iniciar ahora</span>`;
+      action = `<span class="go2" data-startnow="${i}">▶ Iniciar ahora</span>`;
       delBtn=`<span class="del2" data-delsched="${i}" title="Eliminar este vuelo del programa">✕</span>`;
+      // hora editable: clic, escribe mm:ss y pulsa 💾 (o Intro) para guardar
+      timeField=`<input class="ttEdit" type="text" inputmode="numeric" maxlength="5" data-idx="${i}" value="${fmtMS(f.time)}" title="Hora de aparición (mm:ss). Edítala y pulsa 💾 o Intro para guardar.">`;
+      saveBtn=`<span class="save2" data-savetime="${i}" title="Guardar nueva hora">💾</span>`;
     }
     // si el vuelo ya está en curso (ha aparecido), seleccionar su ficha también selecciona
     // la aeronave correspondiente en el radar (igual que con las fichas de progreso)
-    return `<div class="progRow ${done?'done':'pending'}" ${done?`data-selcs="${f.cs}" style="cursor:pointer"`:''}>
-        <span class="tt">${fmtMS(f.time)}</span>
+    // ruta: puntos de paso (E, E-1, N, etc.) en vez de origen/destino
+    // momento real de activación (aparición en pantalla): para salidas, 3 min antes
+    // de la hora mostrada (igual que en el bucle de spawn de step()); se usa para el
+    // aviso parpadeante de "quedan <=2 min" (ver updateProgBlink)
+    const spawnAt=(f.op==='DEP')?(f.time-180):f.time;
+    const extraAttr = done ? `data-selcs="${f.cs}" style="cursor:pointer"` : `data-spawnat="${spawnAt}"`;
+    return `<div class="progRow ${done?'done':'pending'}" ${extraAttr}>
+        ${timeField}
         <span class="cs">${f.cs}</span>
         <span class="tag ${f.op}">${f.op}</span>
-        <span class="rte" title="${f.orig} → ${f.dest}">${f.orig}→${f.dest}</span>
-        <span class="acts">${action}${delBtn}</span>
+        <span class="rte" title="${f.orig} → ${f.dest}${f.route?' · '+f.route:''}">${f.route||'—'}</span>
+        <span class="acts">${saveBtn}${action}${delBtn}</span>
       </div>`;
   }).join('');
+  updateProgBlink();
+}
+// Resalta con un parpadeo brillante (sin perder legibilidad) las fichas pendientes
+// cuya activación está a <=2 minutos. Sólo cambia clases CSS sobre el DOM ya
+// existente (no reconstruye el HTML), así no interrumpe la edición de la hora.
+function updateProgBlink(){
+  const el=document.getElementById('progList');
+  if(!el) return;
+  el.querySelectorAll('.progRow[data-spawnat]').forEach(row=>{
+    const spawnAt=+row.getAttribute('data-spawnat');
+    const remaining=spawnAt-simTime;
+    row.classList.toggle('soon', remaining>0 && remaining<=120);
+  });
 }
 // Delegamos los clics del programa de vuelos en el contenedor — igual que en «fichas
 // de progreso» — porque la lista se reconstruye continuamente mientras la simulación
@@ -1101,30 +1293,55 @@ function renderProgList(){
   const progListEl=document.getElementById('progList');
   if(!progListEl) return;
   progListEl.addEventListener('mousedown',function(e){
-    const tko=e.target.closest('[data-quicktakeoff]');
-    if(tko){ e.stopPropagation(); quickTakeoff(+tko.getAttribute('data-quicktakeoff')); return; }
     const sn=e.target.closest('[data-startnow]');
     if(sn){ e.stopPropagation(); startFlightNow(+sn.getAttribute('data-startnow')); return; }
     const del=e.target.closest('[data-delsched]');
     if(del){ e.stopPropagation(); removeScheduledFlight(+del.getAttribute('data-delsched')); return; }
     const delcs=e.target.closest('[data-delcs]');
     if(delcs){ e.stopPropagation(); removeAircraftByCs(delcs.getAttribute('data-delcs')); return; }
+    const save=e.target.closest('[data-savetime]');
+    if(save){
+      e.stopPropagation();
+      const idx=+save.getAttribute('data-savetime');
+      const inp=progListEl.querySelector(`input.ttEdit[data-idx="${idx}"]`);
+      if(inp) saveScheduledTime(idx, inp.value);
+      return;
+    }
     const row=e.target.closest('[data-selcs]');
     if(row) selectAcByCs(row.getAttribute('data-selcs'));
   });
+  // Intro dentro del campo de hora = guardar (sin tener que pulsar 💾)
+  progListEl.addEventListener('keydown',function(e){
+    if(e.key==='Enter' && e.target.matches('input.ttEdit')){
+      e.preventDefault();
+      saveScheduledTime(+e.target.getAttribute('data-idx'), e.target.value);
+    }
+  });
 })();
-// Adelanta la entrada en escena de una llegada programada — equivalente a «Take off»
-// para las salidas, pero para vuelos ARR: aparece de inmediato desde su punto de entrada
-// en la CTR, antes de su hora prevista, para no tener que esperar al instructor.
+// Modifica la hora de aparición de un vuelo aún no iniciado del programa.
+// Reordena el programa por hora (igual que al añadir un vuelo nuevo) y refresca la lista.
+function saveScheduledTime(i, val){
+  const f=schedule[i];
+  if(!f || f.spawned) return;
+  const t=parseT(val);
+  if(t===null){ alert('Hora inválida. Usa mm:ss, p.ej. 01:30'); renderSchedList(); return; }
+  f.time=t;
+  schedule.sort((a,b)=>a.time-b.time);
+  renderSchedList();
+  flash(`Hora de ${f.cs} actualizada a ${fmtMS(t)}`);
+}
+// Adelanta la entrada en escena de un vuelo programado, antes de su hora prevista,
+// para no tener que esperar al instructor. Las salidas aparecen en su plataforma
+// correspondiente (como si fuera su hora de aparición normal) y ruedan con
+// normalidad hasta la pista; las llegadas aparecen en su punto de entrada en la CTR.
 function startFlightNow(i){
   const f=schedule[i];
   if(!f||f.spawned)return;
-  if(f.op==='DEP'){ quickTakeoff(i); return; }
   f.spawned=true;
   spawn(f);
   const ac=aircraft[aircraft.length-1];
   if(ac){ if(ac.tContact==null) ac.tContact=simTime; selectAc(ac.id); }
-  log(`${f.cs}: entrada en CTR adelantada manualmente por el controlador`);
+  log(`${f.cs}: ${f.op==='DEP'?'aparición en plataforma':'entrada en CTR'} adelantada manualmente por el controlador`);
   syncUI();
 }
 // Elimina del programa un vuelo que aún no ha aparecido (p.ej. si se programó por error)
@@ -1136,34 +1353,6 @@ function removeScheduledFlight(i){
   renderSchedList();
 }
 
-/* Lanza de inmediato un vuelo de salida programado: lo coloca alineado en
-   pista y lo deja despegar en línea recta; a partir de ahí el instructor
-   le da las instrucciones (rumbo, punto, etc.) como a cualquier tráfico. */
-function quickTakeoff(i){
-  const f=schedule[i];
-  if(!f||f.op!=='DEP')return;
-  let ac=aircraft.find(x=>x.cs===f.cs);
-  if(!ac){
-    f.spawned=true;
-    spawn(f);
-    ac=aircraft[aircraft.length-1];
-  }
-  const dir=RWY.hdg*Math.PI/180;
-  const ax=Math.sin(dir), ay=-Math.cos(dir);
-  const sgn = activeRwy==='21'? +1 : -1;   // alineado en la cabecera activa (21 o 03)
-  ac.x = ax*(RWY.len/2-40)*sgn;
-  ac.y = ay*(RWY.len/2-40)*sgn;
-  ac.hdg = depHdg(ac);
-  ac.state = STATES.PISTA;
-  ac.spd = Math.max(ac.spd,40);
-  ac.target = null;          // vuelo recto: sin rumbo asignado, a la espera de órdenes
-  if(!ac.tContact) ac.tContact=simTime;
-  ac.tTakeoff = simTime;
-  log(`${ac.cs}: despegue inmediato autorizado — sale en línea recta a la espera de instrucciones`);
-  selectAc(ac.id);
-  syncUI();
-}
-
 /* ===========================================================
    SIM CLOCK
    =========================================================== */
@@ -1173,7 +1362,15 @@ function toggleSim(){
   const b=document.getElementById('playBtn');
   b.textContent=simRunning?'⏸ Pausar':'▶ Reanudar';
   b.className='btn '+(simRunning?'stop':'go');
-  if(simRunning){lastTs=performance.now();requestAnimationFrame(loop);}
+  if(simRunning){
+    lastTs=performance.now();
+    if(!simIntervalId) simIntervalId=setInterval(simTick,100);
+  }else{
+    stopSimClock();
+  }
+}
+function stopSimClock(){
+  if(simIntervalId){ clearInterval(simIntervalId); simIntervalId=null; }
 }
 function setSpeed(){
   const ns = simSpeed===1?2:simSpeed===2?4:1;
@@ -1184,7 +1381,7 @@ function resetSim(){
   if(simRunning || simTime>0 || aircraft.length){
     if(!confirm('¿Reiniciar la simulación desde cero? Se perderá todo el progreso actual.')) return;
   }
-  simRunning=false; simTime=0; lastTs=null; simSpeed=1;
+  simRunning=false; simTime=0; lastTs=null; simSpeed=1; stopSimClock();
   aircraft=[]; selected=null; selectedId=null; plannedRoute=[]; dragAc=null; dragMoved=false;
   schedule.forEach(f=>{ f.spawned=false; });
   const playBtn=document.getElementById('playBtn');
@@ -1196,14 +1393,21 @@ function resetSim(){
   log('Simulación reiniciada — lista para comenzar de cero');
 }
 
-function loop(ts){
+// Avanza la física de la simulación según el tiempo real transcurrido.
+// Se dispara con setInterval (no requestAnimationFrame) para que siga
+// funcionando aunque la ventana del profesor quede en segundo plano: los
+// navegadores pausan casi por completo requestAnimationFrame en pestañas
+// no visibles, pero mantienen los setInterval (aunque los limiten un poco),
+// así el avión sigue moviéndose para el alumno aunque el profesor cambie
+// de ventana. El renderizado (render()) sigue aparte, vía idle()+rAF.
+function simTick(){
   if(!simRunning)return;
-  const dt=(ts-lastTs)/1000*simSpeed; lastTs=ts;
+  const now=performance.now();
+  const dt=(now-lastTs)/1000*simSpeed; lastTs=now;
   simTime+=dt;
   step(dt);
-  document.getElementById('clock').textContent=fmtT(simTime);
-  render();
-  requestAnimationFrame(loop);
+  const clockEl=document.getElementById('clock'); if(clockEl) clockEl.textContent=fmtT(simTime);
+  updateProgBlink();
 }
 
 /* ===========================================================
@@ -1264,8 +1468,9 @@ function step(dt){
   const ends=rwyEnds();
   aircraft.forEach(ac=>{
     const tgtSpd = (ac.manualSpd!=null) ? ac.manualSpd : targetSpeed(ac);
-    // aceleración realista: ~3 kt/s despegue, frenado mayor
-    const accel = (tgtSpd>ac.spd? 3 : 5) * dt;
+    // aceleración: carrera de despegue ~18 kt/s, rodaje 6 kt/s, otros 3 kt/s; frenado 8 kt/s
+    const pistaRoll = ac.state===STATES.PISTA && ac.op==='DEP';
+    const accel = (tgtSpd>ac.spd ? (pistaRoll?18 : (ac.state===STATES.RODAJE?6:3)) : 8) * dt;
     if(Math.abs(tgtSpd-ac.spd)<accel*1.2) ac.spd=tgtSpd;
     else ac.spd += Math.sign(tgtSpd-ac.spd)*accel;
 
@@ -1371,7 +1576,7 @@ function targetSpeed(ac){
   if(ac.target&&ac.target.mode==='hold') return 0; // inmóvil sobre el punto: sin velocidad
   switch(ac.state){
     case STATES.PROG: return 0;
-    case STATES.RODAJE: return 15;     // rodaje ~15 kt
+    case STATES.RODAJE: return 30;     // rodaje ~30 kt
     case STATES.ESPERA: return 0;
     case STATES.PISTA: return ac.op==='DEP'?140:8;
     case STATES.AIRE: return 200;
@@ -1394,6 +1599,11 @@ function targetAlt(ac){
   if(ac.state===STATES.APROX) return base+1000;
   if(ac.state===STATES.AIRE && ac.target && (ac.target.mode==='xy'||ac.target.mode==='hold'||ac.target.mode==='orbit')) return base+1000; // tráficos (viento en cola/base/orbit/inmóvil)
   return base+3000; // en ruta
+}
+// tráficos haciendo circuito (viento en cola/base/orbit/inmóvil): se ven muy
+// pequeños y al controlador le cuesta distinguirlos, así que se agrandan
+function isCircuitTraffic(ac){
+  return ac.state===STATES.AIRE && ac.target && (ac.target.mode==='xy'||ac.target.mode==='hold'||ac.target.mode==='orbit');
 }
 function arriveTarget(ac){
   const t=ac.target;
@@ -1447,9 +1657,9 @@ function cmd(action,arg){
     case 'lineup': {
       // "Alinearse": entra en pista y se sitúa exactamente sobre el eje de la
       // pista activa, en la cabecera desde la que va a iniciar la carrera de
-      // despegue (misma fórmula que usa quickTakeoff) — así, cuando se autorice
-      // el despegue, el avión rueda recto por el eje de pista y no por un punto
-      // desplazado lateralmente (p.ej. el punto de espera, junto al borde).
+      // despegue — así, cuando se autorice el despegue, el avión rueda recto
+      // por el eje de pista y no por un punto desplazado lateralmente (p.ej.
+      // el punto de espera, junto al borde).
       const dir=RWY.hdg*Math.PI/180;
       const ax=Math.sin(dir), ay=-Math.cos(dir);
       const sgn = activeRwy==='21' ? +1 : -1;
@@ -1890,6 +2100,7 @@ function drawRadar(canvas, ctx){
   // p.ej. el «modo radar» del alumno — pasando su <canvas> y contexto 2D;
   // sin argumentos, dibuja en el radar del profesor como siempre.
   canvas = canvas || radar; ctx = ctx || rctx;
+  const isInstructor = (canvas === radar); // etiquetas extras solo en la vista del profesor
   const w=canvas.width,h=canvas.height;
   const {cx,cy,scale}=radarProjParams(w,h);
   const R=Math.min(w,h)*0.46;
@@ -2106,6 +2317,26 @@ function drawRadar(canvas, ctx){
     ctx.stroke();
     ctx.setLineDash([]);
     ctx.restore();
+    // ── ETA sobre la línea de ruta (sólo instructor, solo si hay movimiento) ──
+    if(isInstructor && a.spd>0.5){
+      let dist=0, prev={x:a.x,y:a.y};
+      pts.forEach(p=>{ dist+=Math.hypot(p.x-prev.x,p.y-prev.y); prev=p; });
+      const etaSec=dist/(a.spd*1852/3600);
+      if(etaSec>=5 && etaSec<7200){
+        const mm=Math.floor(etaSec/60), ss=Math.round(etaSec%60);
+        const etaStr=mm+':'+ss.toString().padStart(2,'0');
+        // punto medio del primer tramo (avión → primer waypoint)
+        const sx=cx+(a.x+pts[0].x)*0.5*scale, sy=cy+(a.y+pts[0].y)*0.5*scale;
+        const col=a.op==='DEP'?'rgba(61,220,132,.9)':'rgba(93,169,255,.9)';
+        ctx.save();
+        ctx.font='bold 9px JetBrains Mono';
+        ctx.textAlign='center'; ctx.textBaseline='middle';
+        ctx.lineWidth=2.5; ctx.strokeStyle='rgba(5,14,8,.92)';
+        ctx.strokeText(etaStr,sx,sy);
+        ctx.fillStyle=col; ctx.fillText(etaStr,sx,sy);
+        ctx.restore();
+      }
+    }
   });
 
   // ruta trazada por el controlador con Ctrl+clic (encadenada a la aeronave seleccionada)
@@ -2140,7 +2371,13 @@ function drawRadar(canvas, ctx){
   blips.forEach(({a,px,py})=>{
     const isSel=selected&&selected.id===a.id;
     // silueta orientada según el rumbo, igual que en la vista de plataforma
-    const sz=Math.max(5,scale*9);
+    // en rodaje/espera se ven muy pequeños sobre la calle de rodaje: se agrandan
+    const taxiMult=(a.state===STATES.RODAJE||a.state===STATES.ESPERA)?1.6:1;
+    const isCircuit=isCircuitTraffic(a);
+    const circuitMult=isCircuit?2:1;
+    // en el aire (en ruta, ILS, etc., fuera del circuito) también se agrandan algo
+    const airMult=(!isCircuit&&(a.state===STATES.AIRE||a.state===STATES.APROX||a.state===STATES.FINAL))?1.3:1;
+    const sz=Math.max(6,scale*10)*taxiMult*circuitMult*airMult;
     ctx.save();ctx.translate(px,py);ctx.rotate(a.hdg*Math.PI/180);
     ctx.fillStyle = isSel?'#ffffff':(a.op==='DEP'?'#3ddc84':'#5da9ff');
     ctx.beginPath();ctx.moveTo(0,-sz*1.3);ctx.lineTo(sz*0.85,sz*1.0);ctx.lineTo(0,sz*0.55);ctx.lineTo(-sz*0.85,sz*1.0);ctx.closePath();ctx.fill();
@@ -2478,24 +2715,39 @@ function drawApronPoly(type, alongShift, gap, sz, w,h){
 function drawTowerAircraft(w,h){
   const list=aircraft.map(a=>({a,pr:project(a.x,a.y,(a.alt-2595),w,h)})).filter(o=>o.pr.vis).sort((A,B)=>B.pr.fwd-A.pr.fwd);
   list.forEach(({a,pr})=>{
-    // El tamaño aparente combina la perspectiva real (pr.scale, según 1/distancia a la
-    // cámara) con un desvanecimiento adicional MUY pronunciado (cúbico) a medida que la
-    // aeronave se acerca a las 2 NM: así se va haciendo notablemente más pequeña — mucho
-    // más deprisa de lo que indicaría sólo la perspectiva — hasta resultar imperceptible
-    // y dejar de dibujarse justo a esa distancia, tal y como ocurriría a simple vista
-    // desde la torre real.
     const distNM=pr.fwd/NM;
-    if(distNM>=2) return;
-    const fade=Math.max(0,1-distNM/2);
-    // Sobre la pista (alineado/rodando la pista de despegue/aterrizando) se ve
-    // un poco más grande, para distinguirlo mejor en ese momento clave.
-    const pistaMult=(a.state===STATES.PISTA)?1.18:1;
-    const sz=pr.scale*30*fade*fade*fade*pistaMult;
+    // Tamaño coherente para toda la torre: una única fórmula basada en la
+    // perspectiva real (pr.scale) con desvanecimiento LINEAL hasta 5 NM (antes
+    // el tráfico en tierra usaba un desvanecimiento cúbico que lo aplastaba, y
+    // el tráfico en el aire un suelo aparte que lo hacía gigante de cerca).
+    // Un mínimo (5px) evita que sea invisible y un máximo (55px) evita que un
+    // avión muy cercano (p.ej. justo tras despegar) ocupe media pantalla.
+    const maxDist=5;
+    if(distNM>=maxDist) return;
+    const fade=Math.max(0,1-distNM/maxDist);
+    let sz=Math.max(pr.scale*30*fade,5);
+    // pequeños ajustes según estado, para compensar lo que cuesta distinguir
+    // a simple vista (rodaje/espera, pista, viento en cola/base/órbita)
+    if(a.state===STATES.PISTA) sz*=1.15;
+    if(a.state===STATES.RODAJE||a.state===STATES.ESPERA) sz*=1.4;
+    if(isCircuitTraffic(a)) sz*=1.3;
+    sz=Math.min(sz,55);
     if(sz<0.5) return; // ya inapreciable: no merece la pena dibujarlo
     const sel=selected&&selected.id===a.id;
+    // Orientación en pantalla: proyectamos un punto un poco por delante (según
+    // el rumbo real del avión) y otro por detrás, y usamos la dirección entre
+    // ambos para rotar la silueta. Así la nave "apunta" hacia donde realmente
+    // se dirige, tal y como se vería desde la torre.
+    const hdgRad=a.hdg*Math.PI/180;
+    const step=120; // metros
+    const prF=project(a.x+Math.sin(hdgRad)*step, a.y-Math.cos(hdgRad)*step, (a.alt-2595), w, h);
+    const prB=project(a.x-Math.sin(hdgRad)*step, a.y+Math.cos(hdgRad)*step, (a.alt-2595), w, h);
+    let screenAngle=0;
+    if(prF.vis) screenAngle=Math.atan2(prF.sy-pr.sy, prF.sx-pr.sx);
+    else if(prB.vis) screenAngle=Math.atan2(pr.sy-prB.sy, pr.sx-prB.sx);
     if(a.alt<2640){const sh=project(a.x,a.y,0,w,h);if(sh.vis){tctx.fillStyle='rgba(0,0,0,.22)';
-      tctx.beginPath();tctx.ellipse(sh.sx,sh.sy,sz*1.1,sz*0.3,0,0,7);tctx.fill();}}
-    drawPlane(pr.sx,pr.sy,sz,a,sel);
+      tctx.beginPath();tctx.ellipse(sh.sx,sh.sy,sz*1.1,sz*0.3,screenAngle,0,7);tctx.fill();}}
+    drawPlane(pr.sx,pr.sy,sz,a,sel,screenAngle);
     // El alumno NUNCA ve la altitud ni la velocidad de los tráficos (debe estimarlas
     // a ojo, como en la torre real); el indicativo sí puede mostrarse/ocultarse
     // según la opción que decida el profesor («studentAcLabels», sincronizada por red).
@@ -2524,8 +2776,8 @@ function acftLook(a){
 // Silueta plana de avión (vista en planta, morro a la derecha): fuselaje +
 // alas en flecha + estabilizador de cola, fácilmente reconocible como avión —
 // con proporciones (bl/ws/ts) y color propios de cada aeronave (ver acftLook).
-function drawPlane(x,y,sz,a,sel){
-  tctx.save();tctx.translate(x,y);
+function drawPlane(x,y,sz,a,sel,angle){
+  tctx.save();tctx.translate(x,y);tctx.rotate(angle||0);
   const look=acftLook(a);
   const bl=look.bodyLen, ws=look.wingSweep, ts=look.tailSize;
   const body=sel?'#ffffff':look.color;
@@ -2597,7 +2849,26 @@ function resizeAll(){
 }
 window.addEventListener('resize',resizeAll);
 
-function idle(){ render(); requestAnimationFrame(idle);} 
+// Divisor arrastrable entre Programa de vuelos y Fichas de progreso
+(function(){
+  const handle = document.getElementById('colSplitter');
+  if(!handle) return;
+  let drag=false, y0=0, h0=0;
+  handle.addEventListener('mousedown', e=>{
+    drag=true; y0=e.clientY;
+    h0=document.getElementById('progList').offsetHeight;
+    e.preventDefault();
+  });
+  document.addEventListener('mousemove', e=>{
+    if(!drag) return;
+    const pl = document.getElementById('progList');
+    const newH = Math.max(60, Math.min(window.innerHeight*0.55, h0+(e.clientY-y0)));
+    pl.style.height = newH+'px';
+  });
+  document.addEventListener('mouseup', ()=>{ drag=false; });
+})();
+
+function idle(){ render(); requestAnimationFrame(idle);}
 requestAnimationFrame(idle);
 </script>
 </body>
