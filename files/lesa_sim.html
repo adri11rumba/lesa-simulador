@@ -546,15 +546,15 @@
         <div class="secTitle" style="margin-bottom:8px;color:var(--green)">Programas guardados</div>
         <div style="display:flex;gap:10px;align-items:center;margin-bottom:10px">
           <input id="sched_saveName" class="mono" placeholder="Nombre del programa, p. ej. «Sesión básica»" style="flex:1" onkeydown="if(event.key==='Enter')saveScheduleAs()">
-          <button class="btn go" onclick="saveScheduleAs()">💾 Guardar programa actual</button>
+          <button class="btn go" onclick="saveScheduleAs()">💾 Guardar para reutilizar</button>
         </div>
         <div class="schedList" id="savedSchedList"><div class="empty2">No hay programas guardados todavía.</div></div>
         <p class="hint" style="margin-top:6px">Guarda el programa con un nombre para poder cargarlo en otra sesión; se guarda en este navegador.</p>
       </div>
     </div>
     <div class="schedFoot">
-      <button class="btn" onclick="closeSched()">Cerrar</button>
-      <button class="btn go" onclick="closeSched()">Guardar programa</button>
+      <span class="hint" style="margin-right:auto">Los vuelos se añaden a la secuencia al instante; no hace falta «guardar» para que estén activos.</span>
+      <button class="btn go" onclick="closeSched()">Cerrar</button>
     </div>
   </div>
 </div>
@@ -1801,6 +1801,10 @@ function spawn(f){
       ac.alt=2595+(VFR_PTS.has(entry)?2500:4500);   // los visuales más bajos que los instrumentales
       ac.hdg=(Math.atan2(p.x-ac.x, -(p.y-ac.y))*180/Math.PI+360)%360;  // rumbo hacia el punto
       ac.target={mode:'point', pt:entry};
+      // Llegada INSTRUMENTAL: ruta automática punto → BBI (de ahí, vectores ILS). El
+      // profesor puede sustituirla en cualquier momento trazando otra ruta o dando una
+      // instrucción (ambos reemplazan ac.route).
+      if(APP_REF[entry] && entry!=='BBI') ac.route=[{pt:'BBI'}];
     }else{
       // respaldo: final directo a la cabecera activa, 15 NM
       const e=rwyEnds(); const dir=RWY.hdg*Math.PI/180; const ax=Math.sin(dir), ay=-Math.cos(dir);
@@ -1862,7 +1866,7 @@ function step(dt){
               ac.x=dest.x; ac.y=dest.y; // ajuste exacto al punto: ni de más ni de menos
               if(ac.route&&ac.route.length){
                 const nxt=ac.route.shift();
-                ac.target={mode:'xy',x:nxt.x,y:nxt.y};
+                ac.target = nxt.pt ? {mode:'point',pt:nxt.pt} : {mode:'xy',x:nxt.x,y:nxt.y};
               }else{
                 arriveTarget(ac); // detiene la aeronave aquí mismo, sin más instrucciones
               }
@@ -1882,7 +1886,7 @@ function step(dt){
             if(dist<arriveDist){
               if(ac.route&&ac.route.length){
                 const nxt=ac.route.shift();
-                ac.target={mode:'xy',x:nxt.x,y:nxt.y};
+                ac.target = nxt.pt ? {mode:'point',pt:nxt.pt} : {mode:'xy',x:nxt.x,y:nxt.y};
                 // el punto alcanzado desaparece de la ruta dibujada (Ctrl+clic)
                 if(ac===selected && plannedRoute.length) plannedRoute.shift();
               }else{
@@ -2429,7 +2433,7 @@ function currentRouteOf(ac){
     if(ac.target.mode==='xy') r.push({x:ac.target.x,y:ac.target.y});
     else if(ac.target.mode==='point'){ const p=REF[ac.target.pt]||APP_REF[ac.target.pt]; if(p) r.push({x:p.x,y:p.y}); }
   }
-  if(ac.route) ac.route.forEach(p=>{ if(p) r.push({x:p.x,y:p.y}); });
+  if(ac.route) ac.route.forEach(p=>{ const q=p&&p.pt?(REF[p.pt]||APP_REF[p.pt]):p; if(q) r.push({x:q.x,y:q.y}); });
   return r;
 }
 // Aplicaciones de bajo nivel (sin red) de las acciones de radar — las llaman tanto el
@@ -2792,7 +2796,7 @@ function drawRadar(canvas, ctx){
     const isSel=selected&&selected.id===a.id;
     if(isSel && plannedRoute.length) return; // ya se dibuja la ruta trazada con Ctrl+clic, más prominente
     const pts=[]; const d0=resolveDest(a.target);
-    if(d0){ pts.push(d0); if(a.route&&a.route.length) a.route.forEach(p=>pts.push(p)); }
+    if(d0){ pts.push(d0); if(a.route&&a.route.length) a.route.forEach(p=>{ const rp=p.pt?(REF[p.pt]||APP_REF[p.pt]):p; if(rp) pts.push(rp); }); }
     if(!pts.length) return;
     ctx.save();
     ctx.strokeStyle = isSel ? 'rgba(255,255,255,.55)' : (a.op==='DEP'?'rgba(61,220,132,.32)':'rgba(93,169,255,.32)');
@@ -2811,7 +2815,9 @@ function drawRadar(canvas, ctx){
       const etaSec=dist/(a.spd*1852/3600);
       if(etaSec>=5 && etaSec<7200){
         const mm=Math.floor(etaSec/60), ss=Math.round(etaSec%60);
-        const etaStr=mm+':'+ss.toString().padStart(2,'0');
+        // tiempo estimado y DISTANCIA en NM hasta el final de la ruta dibujada
+        const nm=dist/NM;
+        const etaStr=mm+':'+ss.toString().padStart(2,'0')+'  '+(nm<10?nm.toFixed(1):Math.round(nm))+' NM';
         // punto medio del primer tramo (avión → primer waypoint)
         const sx=cx+(a.x+pts[0].x)*0.5*scale, sy=cy+(a.y+pts[0].y)*0.5*scale;
         const col=a.op==='DEP'?'rgba(61,220,132,.9)':'rgba(93,169,255,.9)';
