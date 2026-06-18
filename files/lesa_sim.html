@@ -679,6 +679,12 @@ let lastNetUpdate=0, lastExtrapTs=0; // alumno: control de la extrapolación loc
 // mientras el anfitrión aplica una acción recibida (para no pedir confirmaciones ni
 // reenviarla otra vez).
 let isHost=true, applyingRemote=false;
+// RELEVO DE ANFITRIÓN: si el profesor principal (anfitrión) cierra/cae, el 2º profesor
+// toma el relevo registrándose con el MISMO código de sesión y la simulación continúa;
+// los alumnos reconectan solos a ese código. sessionCode guarda el código en uso (en el
+// anfitrión = su id de peer; en los que se unen = el código tecleado). leftSession evita
+// reconexiones/relevos cuando se abandona la sesión a propósito (volver al menú).
+let sessionCode=null, leftSession=false, takeoverTries=0;
 // Vista única de radar del instructor: fusiona el antiguo radar de torre (ATZ/CTR
 // con los puntos VFR N, N-1, E, E-1, S, W) y el modo aproximación (vista cenital
 // de plataforma) en un solo plano «desde arriba» navegable con zoom (rueda del
@@ -769,6 +775,16 @@ const STUCK_MSG = 'No se ha podido completar la conexión directa tras unos segu
   + 'vez de una red de empresa/centro educativo, o 3) compartir conexión desde el '
   + 'móvil (datos) en uno de los dos equipos.';
 
+// Cablea una conexión entrante (alumno o 2º profesor) en el anfitrión: la añade a
+// CONNS, escucha sus acciones (handleRemote) y limpia al cerrarse. Compartido por
+// startHosting (sesión nueva) y becomeHost (relevo del anfitrión).
+function wireIncoming(conn){
+  CONNS.add(conn);
+  conn.on('open', ()=>{ netBadge(true); enterApp(); });
+  conn.on('data', m=>handleRemote(m));   // sólo el 2º profesor envía datos; el alumno no
+  conn.on('close', ()=>{ CONNS.delete(conn); if(!CONNS.size) netBadge(false); });
+  conn.on('error', ()=>{ CONNS.delete(conn); if(!CONNS.size) netBadge(false); });
+}
 // ---- Profesor: crea la sesión y espera a que el alumno se una ----
 async function startHosting(){
   const codeEl=document.getElementById('hostCode'), statusEl=document.getElementById('hostStatus');
@@ -780,22 +796,14 @@ async function startHosting(){
   const ice=await getIceConfig();
   PEER=new Peer(code, { config: ice, debug: 1 });
   PEER.on('open', id=>{
+    sessionCode=id;   // código de la sesión (para el relevo de anfitrión)
     codeEl.textContent=id;
     statusEl.className='connectStatus'; statusEl.textContent='Esperando a que tu alumno se conecte…';
   });
   PEER.on('connection', conn=>{
     clearTimeout(connectTimer);
-    CONNS.add(conn);
-    conn.on('open', ()=>{
-      netBadge(true);
-      statusEl.className='connectStatus ok'; statusEl.textContent='✓ Conectado';
-      enterApp();
-    });
-    // acciones que llegan de un 2º profesor (co-control): el anfitrión las aplica.
-    // Los alumnos nunca envían datos, así que esto sólo afecta a profesores invitados.
-    conn.on('data', m=>handleRemote(m));
-    conn.on('close', ()=>{ CONNS.delete(conn); if(!CONNS.size) netBadge(false); });
-    conn.on('error', ()=>{ CONNS.delete(conn); if(!CONNS.size) netBadge(false); });
+    wireIncoming(conn);
+    conn.on('open', ()=>{ statusEl.className='connectStatus ok'; statusEl.textContent='✓ Conectado'; });
     // si la conexión se queda "conectando" sin llegar a abrirse, avisa
     connectTimer=setTimeout(()=>{
       if(!conn.open){ statusEl.className='connectStatus err'; statusEl.textContent=STUCK_MSG; }
@@ -806,6 +814,38 @@ async function startHosting(){
     statusEl.className='connectStatus err';
     statusEl.textContent='No se pudo crear la sesión ('+err.type+'). Reintentando…';
     setTimeout(startHosting,1500);
+  });
+}
+// ---- RELEVO: el 2º profesor pasa a ser anfitrión cuando el principal se va ----
+// Conserva el estado actual (aviones, programa, reloj) y se registra con el MISMO
+// código de sesión, de modo que los alumnos —que reconectan en bucle a ese código—
+// vuelven a este nuevo anfitrión y la simulación continúa sin cortes.
+async function becomeHost(){
+  if(isHost || leftSession || !sessionCode) return;
+  isHost=true; takeoverTries=0;
+  if(PEER){ try{PEER.destroy();}catch(e){} PEER=null; }
+  HOST_CONN=null; CONNS=new Set();
+  registerAsHost(sessionCode);
+  // reanuda el reloj local si la simulación estaba en marcha (la física pasa a correr aquí)
+  if(simRunning){ lastTs=performance.now(); if(!simIntervalId) simIntervalId=setInterval(simTick,100); }
+  flash('Te has convertido en profesor principal: la sesión continúa.');
+}
+async function registerAsHost(code){
+  const ice=await getIceConfig();
+  PEER=new Peer(code, { config: ice, debug: 1 });
+  PEER.on('open', ()=>{ sessionCode=code; netBadge(true); });
+  PEER.on('connection', conn=>{ wireIncoming(conn); });
+  PEER.on('error', err=>{
+    if(leftSession) return;
+    if(err.type==='unavailable-id'){
+      // el broker aún no ha liberado el id del anfitrión caído: reintentamos con el
+      // MISMO código unas cuantas veces; si sigue ocupado, es que otro 2º profesor lo
+      // ha tomado, así que nos unimos a él como co-profesor.
+      if(++takeoverTries<=6){ setTimeout(()=>registerAsHost(code), 1200); }
+      else { isHost=false; connectToHost(code, document.getElementById('coStatus')||document.getElementById('guestStatus')); }
+      return;
+    }
+    setTimeout(()=>registerAsHost(code), 1500);
   });
 }
 function broadcastState(){
@@ -909,6 +949,7 @@ function studentTick(){
 // Lógica común: crea un Peer cliente, conecta con el código del anfitrión y, al abrir,
 // entra en la app. El rol (alumno / 2º profesor) ya está fijado por quien la llama.
 async function connectToHost(code, statusEl){
+  sessionCode=code; leftSession=false;   // recordamos el código (para relevo/reconexión)
   statusEl.className='connectStatus'; statusEl.textContent='Conectando…';
   if(PEER){ try{PEER.destroy();}catch(e){} }
   clearTimeout(connectTimer);
@@ -923,8 +964,7 @@ async function connectToHost(code, statusEl){
       enterApp();
     });
     HOST_CONN.on('data', onHostState);
-    HOST_CONN.on('close', ()=>{ NET=false; netBadge(false);
-      statusEl.className='connectStatus err'; statusEl.textContent='Conexión perdida. Pulsa Conectar para reintentar.'; });
+    HOST_CONN.on('close', ()=>{ NET=false; netBadge(false); onHostLost(statusEl); });
     HOST_CONN.on('error', ()=>{ NET=false; netBadge(false);
       statusEl.className='connectStatus err'; statusEl.textContent='No se pudo conectar. Comprueba el código.'; });
     connectTimer=setTimeout(()=>{
@@ -932,11 +972,34 @@ async function connectToHost(code, statusEl){
     }, 15000);
   });
   PEER.on('error', err=>{
+    // si estábamos reconectando (el nuevo anfitrión aún no existe), no es un error fatal:
+    // el bucle de reconexión del alumno volverá a intentarlo en breve
+    if(role==='student' && !NET && !leftSession && err.type==='peer-unavailable') return;
     statusEl.className='connectStatus err';
     statusEl.textContent = err.type==='peer-unavailable'
       ? 'Ese código no existe o la sesión aún no se ha creado. Comprueba el código y que el otro profesor/alumno ya tiene su sesión abierta.'
       : 'Error de conexión ('+err.type+'). Inténtalo de nuevo.';
   });
+}
+// Se ha perdido la conexión con el anfitrión. Según el rol:
+//  · 2º profesor → toma el relevo como anfitrión principal (misma sesión).
+//  · alumno → reconecta en bucle al mismo código (al nuevo anfitrión que tome el relevo).
+function onHostLost(statusEl){
+  if(leftSession) return;   // hemos abandonado la sesión a propósito: no reconectar
+  if(role==='instructor' && !isHost){
+    statusEl.className='connectStatus'; statusEl.textContent='El profesor principal se ha desconectado: tomando el relevo…';
+    becomeHost();
+  } else if(role==='student'){
+    statusEl.className='connectStatus err'; statusEl.textContent='Conexión perdida. Reconectando…';
+    studentReconnectLoop();
+  }
+}
+// El alumno reintenta conectar al mismo código cada pocos segundos hasta lograrlo
+// (cuando el 2º profesor haya terminado de registrarse como nuevo anfitrión).
+function studentReconnectLoop(){
+  if(role!=='student' || NET || leftSession || !sessionCode) return;
+  connectToHost(sessionCode, document.getElementById('guestStatus'));
+  setTimeout(()=>{ if(role==='student' && !NET && !leftSession) studentReconnectLoop(); }, 3500);
 }
 // ---- Alumno: se une con el código del profesor ----
 function attemptJoin(){
@@ -1000,6 +1063,7 @@ const STATES={
    =========================================================== */
 function enter(r){
   role=r;
+  isHost=true; leftSession=false; sessionCode=null; takeoverTries=0;
   document.getElementById('roleScreen').style.display='none';
   document.getElementById('connectScreen').style.display='flex';
   document.getElementById('hostPanel').style.display = r==='instructor'?'flex':'none';
@@ -1061,6 +1125,7 @@ function toggleStudentViewMode(){
   setStudentViewMode(studentViewMode==='tower' ? 'radar' : 'tower');
 }
 function backToRole(){
+  leftSession=true; isHost=true; sessionCode=null;   // salida voluntaria: sin relevo ni reconexión
   if(PEER){ try{PEER.destroy();}catch(e){} PEER=null; }
   CONNS=new Set(); HOST_CONN=null; NET=false;
   const badge=document.getElementById('netBadge'); if(badge) badge.remove();
