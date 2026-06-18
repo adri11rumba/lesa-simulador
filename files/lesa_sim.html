@@ -179,6 +179,12 @@
   .progRow.done .cs{color:var(--green)}
   .progRow.pending{background:var(--panel2);color:var(--ink-dim)}
   .progRow.pending .cs{color:var(--ink-dim)}
+  /* Vuelo terminado o cancelado: fila en gris, como registro */
+  .progRow.cancelled{background:var(--panel2);border-color:var(--line);opacity:.5}
+  .progRow.cancelled .cs{color:var(--ink-dim);text-decoration:line-through}
+  .progRow.cancelled .tt{color:var(--ink-dim)}
+  .progRow.cancelled .tag{opacity:.5}
+  .progRow.cancelled .st2{color:var(--ink-dim)}
   .progRow .go2{padding:3px 8px;font-size:10px;border-radius:4px;background:var(--green-dim);border:1px solid var(--green);color:#eafff3;cursor:pointer;white-space:nowrap}
   .progRow .st2{font-size:10px;letter-spacing:.5px}
   .progRow .del2{font-size:11px;color:#9a8f78;cursor:pointer;padding:2px 7px;border-radius:4px;text-align:center;transition:.12s;white-space:nowrap}
@@ -218,6 +224,7 @@
   .segBtn:hover{color:#fff}
   .segBtn.on{background:var(--green-dim);color:#eafff3;font-weight:700}
   .secTitle{font-size:11px;letter-spacing:2px;color:var(--amber);text-transform:uppercase;border-bottom:1px dashed var(--line);padding-bottom:5px}
+  .subLbl{display:block;font-size:10px;letter-spacing:1px;color:var(--ink-dim);text-transform:uppercase;margin:2px 0 -2px}
   .sliderBox{display:flex;flex-direction:column;gap:4px}
   .sliderBox label{font-size:11px;letter-spacing:1px;color:var(--ink-dim);text-transform:uppercase;display:flex;justify-content:space-between;margin-top:6px}
   .sliderBox label:first-child{margin-top:0}
@@ -452,13 +459,21 @@
             </div>
             <span class="hint" style="margin:0">predeterminada: 21</span>
           </div>
+          <span class="subLbl">Rodaje en tierra</span>
           <div class="cmdGrid">
             <div class="cmd" onclick="cmd('taxi_hold')">Rodar a punto espera<small><span class="rwyActiveLbl">RWY 21</span></small></div>
-            <div class="cmd" onclick="cmd('taxi_apron')">Rodar a plataforma<small>to apron</small></div>
             <div class="cmd" onclick="cmd('lineup')">Alinearse<small>line up</small></div>
-            <div class="cmd" onclick="cmd('takeoff')">Autorizado despegue<small>cleared T/O</small></div>
-            <div class="cmd" onclick="cmd('land')">Autorizado aterrizar<small>cleared LDG · maniobra completa</small></div>
+          </div>
+          <span class="subLbl">Despegue y aterrizaje</span>
+          <div class="cmdGrid three">
+            <div class="cmd" onclick="cmd('takeoff')">Despegue<small>cleared T/O</small></div>
+            <div class="cmd" onclick="cmd('land')">Aterrizaje<small>cleared LDG</small></div>
             <div class="cmd" onclick="cmd('touchgo')">Toma y despegue<small>touch &amp; go</small></div>
+          </div>
+          <span class="subLbl">Rodar a plataforma</span>
+          <div class="cmdGrid">
+            <div class="cmd" onclick="cmd('taxi_apron','MIL')">Plataforma militar<small>to mil apron</small></div>
+            <div class="cmd" onclick="cmd('taxi_apron','CIV')">Plataforma civil<small>to civ apron</small></div>
           </div>
           <div class="secTitle">Circuito</div>
           <span class="hint" style="display:block;margin:-4px 0 2px">Tráficos de E-1 / E / S → viento en cola izquierdo; el resto, derecho</span>
@@ -501,8 +516,17 @@
         <div class="f"><label>Hora (mm:ss)</label><input id="f_time" class="mono" placeholder="00:30" value="00:30"></div>
         <div class="f"><label>Indicativo</label><input id="f_cs" class="mono" placeholder="BUH006" value="BUH006"></div>
         <div class="f"><label>Tipo aeronave</label><input id="f_type" class="mono" placeholder="C295" value="C295"></div>
+        <div class="f"><label>Regla</label>
+          <select id="f_rule" onchange="updatePointOptions()">
+            <option value="VFR">Visual (VFR)</option>
+            <option value="IFR">Instrumental (IFR)</option>
+          </select>
+        </div>
         <div class="f"><label>Operación</label>
           <select id="f_op"><option value="DEP">Salida (DEP)</option><option value="ARR">Llegada (ARR)</option></select>
+        </div>
+        <div class="f"><label>Punto</label>
+          <select id="f_point"><!-- se rellena según la regla (ver updatePointOptions) --></select>
         </div>
         <div class="f"><label>Origen</label><input id="f_orig" class="mono" placeholder="LESA" value="LESA"></div>
         <div class="f"><label>Destino</label><input id="f_dest" class="mono" placeholder="LETO" value="LETO"></div>
@@ -512,7 +536,7 @@
         <button class="btn go" onclick="addFlight()">+ Añadir al programa</button>
         <button class="btn" onclick="loadDemo()">📅 Cargar programa de entrenamiento (10 vuelos)</button>
         <button class="btn" onclick="generateRandomSchedule()">🎲 Generar programa aleatorio</button>
-        <span class="hint" style="margin-left:auto">Para llegadas, la hora es la de entrada en CTR.</span>
+        <span class="hint" style="margin-left:auto">Elige regla (visual/instrumental) y punto. Las llegadas aparecen ~10 NM en alejamiento del punto, volando hacia él.</span>
       </div>
       <div>
         <div class="secTitle" style="margin-bottom:8px;color:var(--green)">Vuelos programados</div>
@@ -522,15 +546,15 @@
         <div class="secTitle" style="margin-bottom:8px;color:var(--green)">Programas guardados</div>
         <div style="display:flex;gap:10px;align-items:center;margin-bottom:10px">
           <input id="sched_saveName" class="mono" placeholder="Nombre del programa, p. ej. «Sesión básica»" style="flex:1" onkeydown="if(event.key==='Enter')saveScheduleAs()">
-          <button class="btn go" onclick="saveScheduleAs()">💾 Guardar programa actual</button>
+          <button class="btn go" onclick="saveScheduleAs()">💾 Guardar para reutilizar</button>
         </div>
         <div class="schedList" id="savedSchedList"><div class="empty2">No hay programas guardados todavía.</div></div>
         <p class="hint" style="margin-top:6px">Guarda el programa con un nombre para poder cargarlo en otra sesión; se guarda en este navegador.</p>
       </div>
     </div>
     <div class="schedFoot">
-      <button class="btn" onclick="closeSched()">Cerrar</button>
-      <button class="btn go" onclick="closeSched()">Guardar programa</button>
+      <span class="hint" style="margin-right:auto">Los vuelos se añaden a la secuencia al instante; no hace falta «guardar» para que estén activos.</span>
+      <button class="btn go" onclick="closeSched()">Cerrar</button>
     </div>
   </div>
 </div>
@@ -554,15 +578,16 @@ function brgRng(brgDeg,nm){const a=(brgDeg)*Math.PI/180,d=nm*NM;return{x:Math.si
 // Puntos de referencia VFR de la CTR (rumbo MAG / distancia NM desde ARP, según carta)
 // N (November) es el punto EXTERIOR (más lejos); N-1 el intermedio (más cerca).
 const REF={
-  // November y Echo (exteriores) se separan más de sus puntos intermedios (N-1, E-1):
-  // se acercan los interiores al campo y se alejan/abren un poco los exteriores, para
-  // que en pantalla no aparezcan casi pegados (la separación queda similar a W↔N-1).
-  'N-1':brgRng(350, 3.0),   // intermedio, más cerca del campo
-  'N'  :brgRng(334, 7.4),   // November: exterior, más lejos y más abierto
-  'E'  :brgRng(94 , 7.4),   // ESE, más lejos y más abierto
-  'E-1':brgRng(114, 3.2),   // ESE interior, más cerca del campo
-  'S'  :brgRng(178, 6.8),   // S, hacia Alba de Tormes
-  'W'  :brgRng(262, 6.2)    // W
+  // Puntos VFR exteriores (N, E, S, W) a 13 NM del campo; los intermedios N-1 y E-1
+  // a 5 NM y PERPENDICULARES a la pista 03/21 (eje 028°/208°): la perpendicular son
+  // los rumbos 118° (SE → E-1) y 298° (NW → N-1). Así ambos quedan a 90° del eje, uno
+  // a cada lado, como referencias de base de uno y otro lado del campo.
+  'N-1':brgRng(298, 5.0),   // perpendicular a la pista, lado NW
+  'E-1':brgRng(118, 5.0),   // perpendicular a la pista, lado SE
+  'N'  :brgRng(334, 13),    // November (exterior)
+  'E'  :brgRng(94 , 13),    // Echo (exterior)
+  'S'  :brgRng(178, 13),    // Sur (hacia Alba de Tormes)
+  'W'  :brgRng(262, 13)     // Oeste
 };
 // Puntos de la fase de APROXIMACIÓN.
 // En el ejercicio, BBI es la referencia central, situada casi sobre el campo.
@@ -590,13 +615,41 @@ REF['BBI']=BBI_POS;
 // los que pasan por puntos de aproximación instrumental (BBI, VETAN, ZMR, ADORO…)
 // son vuelos INSTRUMENTALES (IFR). Se usa para etiquetar cada ficha de progreso.
 const VFR_PTS=new Set(['N','N-1','E','E-1','S','W']);
+// Indicativos COMERCIALES (vuelos instrumentales / IFR). El resto se consideran
+// militares/visuales (VFR) — los militares suelen usar nombres de animal (BUH=búho,
+// ORCA, FOCA=foca, GAF, etc.). Se usa para decidir, cuando no hay otra pista, si una
+// llegada es visual (aparece por un punto VFR) o instrumental (final ILS), y para la
+// etiqueta VFR/IFR de la ficha.
+const AIRLINE_PREFIXES=new Set(['IBE','RYR','VLG','EIN','QTR','AFR','DLH','TAP','RAM','VOE','EXS','LOT','BAW','UAE','KLM','AEA','ANE','EZY','WZZ','UAL','AAL','DAL','SWR','AUA','TVF','NOZ','JKK']);
+function isVisualCallsign(cs){
+  if(!cs) return true;
+  const m=String(cs).toUpperCase().match(/^[A-Z]+/);
+  return !AIRLINE_PREFIXES.has(m?m[0]:'');   // comercial → IFR(false); resto → VFR(true)
+}
+// Punto de entrada de una LLEGADA en este modo (torre): un punto VFR (N, E, S, W,
+// N-1, E-1) si es visual, o 'FINAL21' (aproximación directa a la 21) si es instrumental.
+// Prioridad: 1) lo elegido en «Crear vuelos» (f.entry); 2) un punto VFR escrito en la
+// ruta; 3) el indicativo (comercial→final IFR, militar/animal→visual por defecto N).
+function arrivalEntryOf(f){
+  if(f.point && (VFR_PTS.has(f.point)||APP_REF[f.point])) return f.point;  // punto elegido al crear el vuelo
+  if(f.entry && (VFR_PTS.has(f.entry)||f.entry==='FINAL21')) return f.entry;
+  if(f.route){
+    // primer punto reconocible escrito en la ruta: VFR (N, E…) o instrumental (DSK,
+    // ZMR, VLD/NUB…). Se conserva la barra de 'VLD/NUB' al partir en tokens.
+    const tok=String(f.route).toUpperCase().split(/[^A-Z0-9/-]+/).find(t=>VFR_PTS.has(t)||(APP_REF[t]&&t!=='BBI'));
+    if(tok) return tok;
+  }
+  return isVisualCallsign(f.cs) ? 'N' : 'FINAL21';
+}
 function flightRule(ac){
+  if(ac.rule==='VFR'||ac.rule==='IFR') return ac.rule;   // regla elegida al crear el vuelo
   const pts=[];
   if(ac.plannedExitPt) pts.push(ac.plannedExitPt); // punto de salida planificado por el controlador (antes del despegue)
   if(ac.target&&ac.target.mode==='point') pts.push(ac.target.pt);
   if(ac.route) ac.route.forEach(p=>{ if(p&&p.pt) pts.push(p.pt); });
-  if(!pts.length) return null;
-  return pts.every(p=>VFR_PTS.has(p)) ? 'VFR' : 'IFR';
+  if(pts.length) return pts.every(p=>VFR_PTS.has(p)) ? 'VFR' : 'IFR';
+  // sin puntos con nombre (p.ej. llegada IFR en final): por indicativo
+  return isVisualCallsign(ac.cs) ? 'VFR' : 'IFR';
 }
 // Puntos que el controlador puede asignar de antemano como "punto de salida" de una
 // salida (antes de que despegue): los seis puntos VFR de la CTR más BBI, paso obligado
@@ -658,12 +711,35 @@ function setExitPoint(id,pt){
 }
 // Pista activa 03/21 (eje 028° MAG). THR 03 al SW, THR 21 al NE del ARP
 const RWY={hdg:28, len:2513, w:45};
+// Disposición lateral (metros desde el EJE de pista): calle de rodaje paralela y borde
+// próximo de cada plataforma. Más separación = se distingue mejor si el avión está en
+// pista, en la calle de rodaje o en plataforma. (Antes: paralela 120; plataformas 340/360.)
+const TWY_OFF=210;                       // calle de rodaje paralela
+const APRON_EDGE={CIV:470, MIL:500};     // borde próximo de plataforma civil / militar
+// Centro de cada plataforma (donde estacionan los aviones), coherente con el dibujo de
+// la plataforma (borde próximo + media profundidad) y con el desplazamiento a lo largo.
+function apronCenter(platform){
+  const dir=RWY.hdg*Math.PI/180; const px=Math.cos(dir), py=Math.sin(dir), ax=Math.sin(dir), ay=-Math.cos(dir);
+  const r = platform==='MIL' ? APRON_EDGE.MIL+210 : APRON_EDGE.CIV+150;  // borde + media profundidad
+  const along = platform==='MIL' ? 260 : -420;
+  return {x:px*r+ax*along, y:py*r+ay*along};
+}
 function rwyEnds(){
   const dir=RWY.hdg*Math.PI/180;
   const half=RWY.len/2;
   const dx=Math.sin(dir)*half, dy=-Math.cos(dir)*half;
   // thr03 = extremo SW (cabecera 03 mira al NE) ; thr21 = extremo NE
   return{thr03:{x:-dx,y:-dy}, thr21:{x:dx,y:dy}};
+}
+// Punto de mira del aterrizaje: ~300 m DENTRO de la pista desde la cabecera activa
+// (zona de toma de contacto). Como la toma se dispara ~300 m antes del objetivo, apuntar
+// aquí hace que el avión tome tierra justo en la cabecera (no antes, sobre el campo).
+function landingAimPoint(){
+  const e=rwyEnds(); const dir=RWY.hdg*Math.PI/180; const ax=Math.sin(dir), ay=-Math.cos(dir);
+  const land21 = activeRwy!=='03';
+  const thr = land21 ? e.thr21 : e.thr03;
+  const into = land21 ? -1 : +1;   // hacia el extremo opuesto (dentro de la pista)
+  return {x: thr.x+ax*300*into, y: thr.y+ay*300*into};
 }
 
 /* ===========================================================
@@ -888,6 +964,7 @@ const RC={
   move:(x,y)=>{ if(selected) applyMove(selected,x,y); },
   startnow:(i)=>startFlightNow(i),
   delsched:(i)=>removeScheduledFlight(i),
+  cancelsched:(i)=>cancelScheduledFlight(i),
   delac:(id)=>removeAircraft(id),
   addflight:(f)=>addFlightObj(f),
   delflight:(i)=>delFlight(i),
@@ -1137,7 +1214,17 @@ function backToRole(){
 /* ===========================================================
    SCHEDULER
    =========================================================== */
-function openSched(){document.getElementById('sched').style.display='flex';renderSchedList();renderSavedSchedList();}
+function openSched(){document.getElementById('sched').style.display='flex';updatePointOptions();renderSchedList();renderSavedSchedList();}
+// Rellena el desplegable de "Punto" según la regla elegida: visuales (N, E, S, W, N-1,
+// E-1) o instrumentales (puntos de aproximación de APP_REF: DSK, VETAN, ZMR, ADORO, ...).
+function updatePointOptions(){
+  const ruleEl=document.getElementById('f_rule'), sel=document.getElementById('f_point');
+  if(!ruleEl||!sel) return;
+  const opts = ruleEl.value==='IFR' ? Object.keys(APP_REF) : ['N','N-1','E','E-1','S','W'];
+  const cur=sel.value;
+  sel.innerHTML=opts.map(p=>`<option value="${p}">${p}</option>`).join('');
+  if(opts.includes(cur)) sel.value=cur;
+}
 function closeSched(){document.getElementById('sched').style.display='none';}
 function parseT(s){const m=String(s).trim().match(/^(\d{1,2}):(\d{2})$/);if(!m)return null;return (+m[1])*60+(+m[2]);}
 function fmtT(sec){const h=Math.floor(sec/3600),m=Math.floor(sec%3600/60),s=Math.floor(sec%60);
@@ -1158,6 +1245,8 @@ function addFlight(){
     route:'', // se elimina el campo de ruta del formulario: el punto de salida real
               // se planifica/edita desde la propia ficha de vuelo (ver exitPtPicker)
     lvl:document.getElementById('f_lvl').value.trim().toUpperCase()||'035',
+    rule:document.getElementById('f_rule')?document.getElementById('f_rule').value:'VFR',   // VFR (visual) / IFR (instrumental)
+    point:document.getElementById('f_point')?document.getElementById('f_point').value:'',   // punto elegido (entrada para llegadas / salida para salidas)
     spawned:false
   };
   if(relayRC('addflight',[f])) return;
@@ -1241,13 +1330,14 @@ function generateRandomSchedule(){
   for(let i=0;i<N;i++){
     const isVFR=Math.random()<0.7;
     const op=Math.random()<0.5?'DEP':'ARR';
-    let cs,type,orig,dest,route,lvl;
+    let cs,type,orig,dest,route,lvl,pt,rule;
     if(isVFR){
+      rule='VFR';
       type=pick(VFR_TYPES);
       cs=Math.random()<0.5
         ? `EC${String.fromCharCode(65+rndInt(0,25))}${String.fromCharCode(65+rndInt(0,25))}${String.fromCharCode(65+rndInt(0,25))}`
         : `${pick(MIL_PFX)}${rndInt(1,99)}`;
-      const pt=pick(VFR_PT_LIST);
+      pt=pick(VFR_PT_LIST);
       lvl=String(rndInt(3,6)*10).padStart(3,'0');
       if(op==='DEP'){
         orig='LESA'; dest=pick(VFR_DESTS);
@@ -1257,9 +1347,10 @@ function generateRandomSchedule(){
         route=`${pt} VFR F${lvl}`;
       }
     }else{
+      rule='IFR';
       type=pick(IFR_TYPES);
       cs=`${pick(ARL_PFX)}${rndInt(10,999)}${Math.random()<0.3?String.fromCharCode(65+rndInt(0,25)):''}`;
-      const pt=nextIfrPt();
+      pt=nextIfrPt();
       lvl=String(rndInt(18,31)*10).padStart(3,'0');
       if(op==='DEP'){
         orig='LESA'; dest=pick(IFR_DESTS);
@@ -1269,7 +1360,7 @@ function generateRandomSchedule(){
         route=`${pt} BBI ILS 21`;
       }
     }
-    newSchedule.push({time:t, cs, type, op, orig, dest, route, lvl, spawned:false});
+    newSchedule.push({time:t, cs, type, op, orig, dest, route, lvl, rule, point:pt, spawned:false});
     t+=SEP;
   }
   schedule=newSchedule;
@@ -1341,7 +1432,7 @@ function saveScheduleAs(){
   if(!schedule.length){ alert('No hay vuelos programados que guardar.'); return; }
   // guardamos solo los datos del vuelo (sin "spawned"): cada vez que se cargue
   // el programa, todos los vuelos empiezan como pendientes
-  const flights=schedule.map(({time,cs,type,op,orig,dest,route,lvl})=>({time,cs,type,op,orig,dest,route,lvl}));
+  const flights=schedule.map(({time,cs,type,op,orig,dest,route,lvl,rule,point})=>({time,cs,type,op,orig,dest,route,lvl,rule,point}));
   const list=getSavedSchedules();
   const i=list.findIndex(s=>s.name===name);
   if(i>=0){
@@ -1449,20 +1540,30 @@ function renderProgList(){
     updateProgBlink();
     return;
   }
-  document.getElementById('progCount').textContent=schedule.length;
+  document.getElementById('progCount').textContent=schedule.filter(f=>!f.cancelled).length;
   if(!schedule.length){el.innerHTML='<div class="empty2">No hay vuelos programados.</div>';return;}
   el.innerHTML=schedule.map((f,i)=>{
+    // Vuelo terminado o cancelado: fila en GRIS (se mantiene como registro, sin botones).
+    if(f.cancelled){
+      return `<div class="progRow cancelled" title="Vuelo ${f.spawned?'terminado':'cancelado'}">
+        <span class="tt">${fmtMS(f.time)}</span>
+        <span class="cs">${f.cs}</span>
+        <span class="tag ${f.op}">${f.op}</span>
+        <span class="rte">${f.route||'—'}</span>
+        <span class="acts"><span class="st2">${f.spawned?'terminado':'cancelado'}</span></span>
+      </div>`;
+    }
     const done=!!f.spawned;
     let action, delBtn, timeField, saveBtn='';
     if(done){
       action=`<span class="st2">en curso</span>`;
-      // el vuelo ya está volando/rodando: también se puede retirar de la simulación
-      // desde aquí (equivale a pulsar la "✕" de su ficha de progreso)
-      delBtn=`<span class="del2" data-delcs="${f.cs}" title="Eliminar este vuelo de la simulación">✕</span>`;
+      // la "✕" marca el vuelo como TERMINADO (gris) y retira su aeronave de la simulación
+      delBtn=`<span class="del2" data-cancelsched="${i}" title="Marcar como terminado (queda en gris)">✕</span>`;
       timeField=`<span class="tt">${fmtMS(f.time)}</span>`;
     }else{
       action = `<span class="go2" data-startnow="${i}">▶ Iniciar ahora</span>`;
-      delBtn=`<span class="del2" data-delsched="${i}" title="Eliminar este vuelo del programa">✕</span>`;
+      // la "✕" marca el vuelo como CANCELADO (gris): no aparecerá a su hora
+      delBtn=`<span class="del2" data-cancelsched="${i}" title="Marcar como cancelado (queda en gris)">✕</span>`;
       // hora editable: clic, escribe mm:ss y pulsa 💾 (o Intro) para guardar
       timeField=`<input class="ttEdit" type="text" inputmode="numeric" maxlength="5" data-idx="${i}" value="${fmtMS(f.time)}" title="Hora de aparición (mm:ss). Edítala y pulsa 💾 o Intro para guardar.">`;
       saveBtn=`<span class="save2" data-savetime="${i}" title="Guardar nueva hora">💾</span>`;
@@ -1507,10 +1608,8 @@ function updateProgBlink(){
   progListEl.addEventListener('mousedown',function(e){
     const sn=e.target.closest('[data-startnow]');
     if(sn){ e.stopPropagation(); startFlightNow(+sn.getAttribute('data-startnow')); return; }
-    const del=e.target.closest('[data-delsched]');
-    if(del){ e.stopPropagation(); removeScheduledFlight(+del.getAttribute('data-delsched')); return; }
-    const delcs=e.target.closest('[data-delcs]');
-    if(delcs){ e.stopPropagation(); removeAircraftByCs(delcs.getAttribute('data-delcs')); return; }
+    const cancel=e.target.closest('[data-cancelsched]');
+    if(cancel){ e.stopPropagation(); cancelScheduledFlight(+cancel.getAttribute('data-cancelsched')); return; }
     const save=e.target.closest('[data-savetime]');
     if(save){
       e.stopPropagation();
@@ -1566,6 +1665,22 @@ function removeScheduledFlight(i){
   if(relayRC('delsched',[i])) return;
   schedule.splice(i,1);
   renderSchedList();
+}
+// Marca un vuelo de la secuencia como TERMINADO/CANCELADO: queda en gris (como registro)
+// en vez de desaparecer. Si ya estaba en el aire/rodaje, retira su aeronave; si aún era
+// pendiente, no aparecerá a su hora (el bucle de spawn omite los cancelados).
+function cancelScheduledFlight(i){
+  const f=schedule[i];
+  if(!f || f.cancelled) return;
+  if(!applyingRemote && !confirm(`¿Marcar el vuelo ${f.cs} como ${f.spawned?'terminado':'cancelado'}? Quedará en gris en la secuencia.`)) return;
+  if(relayRC('cancelsched',[i])) return;
+  if(f.spawned){
+    const idx=aircraft.findIndex(a=>a.cs===f.cs);
+    if(idx>=0){ const ac=aircraft[idx]; aircraft.splice(idx,1); if(selected&&selected.id===ac.id){selected=null;selectedId=null;plannedRoute=[];} }
+  }
+  f.cancelled=true;
+  log(`${f.cs}: ${f.spawned?'vuelo finalizado':'vuelo cancelado'}`);
+  syncUI(); render();
 }
 
 /* ===========================================================
@@ -1645,6 +1760,7 @@ function spawn(f){
     state: f.op==='DEP'?STATES.PROG:STATES.AIRE,
     target:null, route:null, cmdHist:[], tContact:null, tTakeoff:null,
     manualSpd:null, manualAlt:null,
+    rule:f.rule||null,  // regla del vuelo elegida al crearlo: 'VFR' (visual) / 'IFR' (instrumental)
     plannedExitPt:null, // punto de salida planificado por el controlador (sólo salidas, antes de despegar)
     circuitSide:null,   // lado de circuito (R/L) asignado al ordenar "viento en cola" — usado luego por "Base"
     landRoll:false,     // aterrizando: rodando por la pista tras tomar tierra (frenando)
@@ -1657,13 +1773,9 @@ function spawn(f){
     const dir=RWY.hdg*Math.PI/180;
     const px=Math.cos(dir), py=Math.sin(dir);      // perpendicular este (x,y_sim)
     const ax=Math.sin(dir), ay=-Math.cos(dir);     // a lo largo
-    const gapPar=120;
-    let baseX,baseY;
-    if(mil){ const gap=gapPar+260, along=260;
-      baseX=px*(gap+210)+ax*along; baseY=py*(gap+210)+ay*along; }
-    else   { const gap=gapPar+240, along=-420;
-      baseX=px*(gap+150)+ax*along; baseY=py*(gap+150)+ay*along; }
     const platform = mil?'MIL':'CIV';
+    const c=apronCenter(platform);
+    let baseX=c.x, baseY=c.y;
     // repartir los aviones por distintos puntos de la plataforma (en cuadrícula),
     // para que no aparezcan todos amontonados unos sobre otros
     const onGround = aircraft.filter(x=>x.op==='DEP' && x.platform===platform &&
@@ -1674,11 +1786,34 @@ function spawn(f){
     ac.x = baseX + ax*offAlong + px*offPerp;
     ac.y = baseY + ay*offAlong + py*offPerp;
     ac.hdg=RWY.hdg; ac.spd=0; ac.platform = platform;
+    if(f.point) ac.plannedExitPt=f.point;   // punto de salida planificado (elegido al crear el vuelo)
   }else{
-    // llegada: entra desde un punto de aproximación lejano hacia BBI / ILS 21
-    const entry=APP_REF['DSK']||REF['E']; ac.x=entry.x; ac.y=entry.y; ac.alt=2595+5500; ac.spd=120;
-    ac.hdg=(Math.atan2(-entry.x,entry.y)*180/Math.PI+360)%360;
-    ac.target={mode:'point',pt:'BBI'}; ac.platform='CIV';
+    // LLEGADA: aparece ~10 NM EN ALEJAMIENTO de su punto de entrada (radial campo→punto,
+    // 10 NM más allá), volando hacia él. El punto puede ser visual (N, E, S, W, N-1, E-1)
+    // o instrumental (DSK, VETAN, ZMR, ...). Sin punto definido, entra en final directo a
+    // la pista activa (respaldo).
+    const entry = f.point || arrivalEntryOf(f);
+    const p = REF[entry] || APP_REF[entry];
+    ac.platform='CIV'; ac.spd=120; ac.state=STATES.AIRE;
+    if(p){
+      const d=Math.hypot(p.x,p.y)||1, ux=p.x/d, uy=p.y/d;
+      ac.x=p.x+ux*10*NM; ac.y=p.y+uy*10*NM;
+      ac.alt=2595+(VFR_PTS.has(entry)?2500:4500);   // los visuales más bajos que los instrumentales
+      ac.hdg=(Math.atan2(p.x-ac.x, -(p.y-ac.y))*180/Math.PI+360)%360;  // rumbo hacia el punto
+      ac.target={mode:'point', pt:entry};
+      // Llegada INSTRUMENTAL: ruta automática punto → BBI (de ahí, vectores ILS). El
+      // profesor puede sustituirla en cualquier momento trazando otra ruta o dando una
+      // instrucción (ambos reemplazan ac.route).
+      if(APP_REF[entry] && entry!=='BBI') ac.route=[{pt:'BBI'}];
+    }else{
+      // respaldo: final directo a la cabecera activa, 15 NM
+      const e=rwyEnds(); const dir=RWY.hdg*Math.PI/180; const ax=Math.sin(dir), ay=-Math.cos(dir);
+      const land21 = activeRwy!=='03';
+      const thr = land21 ? e.thr21 : e.thr03; const sgn = land21 ? +1 : -1;
+      ac.x=thr.x+ax*15*NM*sgn; ac.y=thr.y+ay*15*NM*sgn;
+      ac.alt=2595+4500; ac.hdg=land21?208:28;
+      ac.target={mode:'xy', x:thr.x, y:thr.y};
+    }
   }
   aircraft.push(ac);
   log(`${ac.cs} aparece (${f.op})`);
@@ -1688,7 +1823,7 @@ function step(dt){
   // spawn programados — las salidas aparecen en plataforma 3 minutos antes de su hora prevista
   schedule.forEach(f=>{
     const spawnAt = (f.op==='DEP') ? (f.time-180) : f.time;
-    if(!f.spawned && simTime>=spawnAt){f.spawned=true;spawn(f);}
+    if(!f.spawned && !f.cancelled && simTime>=spawnAt){f.spawned=true;spawn(f);}
   });
 
   const ends=rwyEnds();
@@ -1731,7 +1866,7 @@ function step(dt){
               ac.x=dest.x; ac.y=dest.y; // ajuste exacto al punto: ni de más ni de menos
               if(ac.route&&ac.route.length){
                 const nxt=ac.route.shift();
-                ac.target={mode:'xy',x:nxt.x,y:nxt.y};
+                ac.target = nxt.pt ? {mode:'point',pt:nxt.pt} : {mode:'xy',x:nxt.x,y:nxt.y};
               }else{
                 arriveTarget(ac); // detiene la aeronave aquí mismo, sin más instrucciones
               }
@@ -1751,7 +1886,7 @@ function step(dt){
             if(dist<arriveDist){
               if(ac.route&&ac.route.length){
                 const nxt=ac.route.shift();
-                ac.target={mode:'xy',x:nxt.x,y:nxt.y};
+                ac.target = nxt.pt ? {mode:'point',pt:nxt.pt} : {mode:'xy',x:nxt.x,y:nxt.y};
                 // el punto alcanzado desaparece de la ruta dibujada (Ctrl+clic)
                 if(ac===selected && plannedRoute.length) plannedRoute.shift();
               }else{
@@ -1778,7 +1913,21 @@ function step(dt){
     // en final desciende a la pista
     {
       const tAlt = (ac.manualAlt!=null) ? ac.manualAlt : targetAlt(ac);
-      if(ac.manualAlt==null && ac.state===STATES.FINAL) ac.alt=Math.max(2595, ac.alt-15*dt);
+      if(ac.manualAlt==null && ac.state===STATES.FINAL){
+        // SENDA DE PLANEO: la altitud objetivo baja proporcional a la distancia que
+        // queda hasta el umbral, así el avión toca tierra JUSTO en la cabecera de forma
+        // progresiva (antes "caía de golpe" al suelo al pulsar aterrizar). Sólo
+        // desciende, nunca sube: si va por debajo del plano, mantiene altitud hasta que
+        // el plano lo alcanza.
+        let gs=2595;
+        if(ac.target && ac.target.mode==='xy'){
+          const dd=Math.hypot(ac.target.x-ac.x, ac.target.y-ac.y);
+          // restamos ~300 m (la distancia a la que se dispara la toma de contacto) para
+          // que la senda llegue al suelo JUSTO en la toma, sin un escalón final brusco.
+          gs=2595+Math.min(Math.max(0, dd-300)*0.16, 5000);
+        }
+        if(ac.alt>gs) ac.alt=Math.max(gs, ac.alt-45*dt);
+      }
       else if(Math.abs(ac.alt-tAlt)>4){
         // el avión reacciona de inmediato a la orden de descender: tasa de bajada
         // mucho más rápida que la de ascenso, para notarse al momento
@@ -1793,15 +1942,18 @@ function step(dt){
     if(ac.state===STATES.PISTA && ac.spd>110 && (ac.op==='DEP'||ac.touchAndGo)){
       ac.state=STATES.AIRE; ac.tTakeoff=simTime; ac.touchAndGo=false;
     }
-    // aterrizaje completo: cuando ha frenado lo suficiente en la pista, abandona
-    // automáticamente por la calle de rodaje paralela y se detiene allí, a la espera
-    // de instrucciones (rodar a plataforma o a punto de espera).
-    if(ac.state===STATES.PISTA && ac.landRoll && ac.spd<=35){
-      ac.landRoll=false; ac.state=STATES.RODAJE;
-      const t=Math.max(0.08,Math.min(0.92, rwyParam({x:ac.x,y:ac.y})));
-      const exit=parallelPt(t);
-      ac.target={mode:'xy', x:exit.x, y:exit.y}; ac.route=null;
-      log(`${ac.cs}: pista libre, abandonando por la calle de rodaje`);
+    // aterrizaje completo: el avión frena en pista (a ~35 kt) y rueda hasta alcanzar
+    // su ÚLTIMA calle de salida (ac.exitT); allí abandona la pista girando a la calle
+    // de rodaje paralela y se detiene a la espera (rodar a plataforma / a punto de espera).
+    if(ac.state===STATES.PISTA && ac.landRoll){
+      const t=rwyParam({x:ac.x,y:ac.y});
+      const reached = (activeRwy==='03') ? (t>=ac.exitT) : (t<=ac.exitT);
+      if(reached){
+        ac.landRoll=false; ac.state=STATES.RODAJE;
+        const exit=parallelPt(ac.exitT);
+        ac.target={mode:'xy', x:exit.x, y:exit.y}; ac.route=null;
+        log(`${ac.cs}: pista libre, abandonando por la calle de rodaje`);
+      }
     }
   });
   // limpiar los que se van lejos tras despegar
@@ -1818,7 +1970,7 @@ function targetSpeed(ac){
     case STATES.PROG: return 0;
     case STATES.RODAJE: return 30;     // rodaje ~30 kt
     case STATES.ESPERA: return 0;
-    case STATES.PISTA: return (ac.op==='DEP'||ac.touchAndGo)?140:8;
+    case STATES.PISTA: return (ac.op==='DEP'||ac.touchAndGo)?140:(ac.landRoll?35:8); // aterrizaje: frena a ~35 kt y rueda hasta la salida
     case STATES.AIRE: return 120;      // velocidad de crucero / en ruta
     case STATES.APROX: return 120;
     case STATES.FINAL: return 110;     // velocidad de aproximación final realista
@@ -1856,9 +2008,13 @@ function arriveTarget(ac){
       ac.state=STATES.PISTA; ac.target=null;
       log(`${ac.cs}: toma y despegue — al aire de nuevo`);
     }else{
-      // aterrizaje: rueda por el eje frenando; al reducir velocidad abandona la
-      // pista por la calle de rodaje (ver step) y queda a la espera
+      // aterrizaje: rueda por el eje frenando y abandona por la ÚLTIMA calle de salida
+      // disponible (la más alejada en el sentido de la rodadura), para que use casi toda
+      // la pista — más realista. Calles de salida en t=0.333 y t=0.603 del eje:
+      //  · aterrizando por la 21 (rueda hacia la 03, t↓) la última es t=0.333
+      //  · aterrizando por la 03 (rueda hacia la 21, t↑) la última es t=0.603
       ac.state=STATES.PISTA; ac.landRoll=true;
+      ac.exitT = (activeRwy==='03') ? 0.603 : 0.333;
       ac.target={mode:'xy', x:far.x, y:far.y};
       log(`${ac.cs}: tomando tierra, frenando en pista`);
     }
@@ -1958,27 +2114,28 @@ function cmd(action,arg){
       break;
     }
     case 'land':
-      // Aterrizaje completo y automático: la aeronave se dirige a la cabecera activa
-      // descendiendo, toma tierra, frena por la pista y la abandona automáticamente por
-      // la calle de rodaje, donde queda a la espera (ver arriveTarget/step).
-      ac.state=STATES.FINAL; ac.target={mode:'xy',...rwyEnds()['thr'+activeRwy]};
+      // Aterrizaje completo y automático: la aeronave se dirige a la zona de toma de la
+      // cabecera activa descendiendo en senda de planeo, toma tierra, frena por la pista
+      // y la abandona por la última calle de rodaje, donde queda a la espera (ver step).
+      ac.state=STATES.FINAL; ac.target={mode:'xy',...landingAimPoint()};
       log(`${ac.cs}: autorizado aterrizar RWY ${activeRwy}`);
       break;
     case 'touchgo':
       // Toma y despegue: igual descenso hasta tocar tierra, pero en vez de frenar
       // acelera y vuelve a subir por el eje de la pista.
-      ac.state=STATES.FINAL; ac.touchAndGo=true; ac.target={mode:'xy',...rwyEnds()['thr'+activeRwy]};
+      ac.state=STATES.FINAL; ac.touchAndGo=true; ac.target={mode:'xy',...landingAimPoint()};
       log(`${ac.cs}: autorizado toma y despegue RWY ${activeRwy}`);
       break;
     case 'taxi_apron': {
-      // Rodar a plataforma desde la calle de rodaje (típicamente tras aterrizar):
-      // recorre la paralela hasta el conector de su plataforma y estaciona allí.
+      // Rodar a la plataforma indicada (MIL o CIV) desde la calle de rodaje (típicamente
+      // tras aterrizar): recorre la paralela hasta el conector de esa plataforma y estaciona.
+      ac.platform = (arg==='MIL') ? 'MIL' : 'CIV';   // destino elegido por el controlador
       ac.state=STATES.RODAJE; ac.parkOnArrive=true;
       const t_exit=(ac.platform==='MIL')?0.603:0.333;
       const route=[parallelPt(t_exit), apronEdgePt(ac), apronParkPt(ac)];
       ac.target={mode:'xy', x:route[0].x, y:route[0].y};
       ac.route=route.slice(1);
-      log(`${ac.cs}: ruede a plataforma`);
+      log(`${ac.cs}: ruede a plataforma ${ac.platform==='MIL'?'militar':'civil'}`);
       break;
     }
     case 'downwind': {
@@ -2038,13 +2195,13 @@ function parallelPt(t){
   const px=Math.cos(dir), py=Math.sin(dir);
   const tt=Math.max(0.04,Math.min(0.96,t));
   const base=lerpPt(e.thr03,e.thr21,tt);
-  return {x:base.x+px*120, y:base.y+py*120};
+  return {x:base.x+px*TWY_OFF, y:base.y+py*TWY_OFF};
 }
 // punto de entrada de la calle que conecta la paralela con cada plataforma
 // (borde próximo de la plataforma, donde acaba el conector visual)
 function apronEdgePt(ac){
   const t=(ac.platform==='MIL')?0.603:0.333;
-  const nearEdge=(ac.platform==='MIL')?360:340;
+  const nearEdge=(ac.platform==='MIL')?APRON_EDGE.MIL:APRON_EDGE.CIV;
   const e=rwyEnds(); const dir=RWY.hdg*Math.PI/180;
   const px=Math.cos(dir), py=Math.sin(dir);
   const base=lerpPt(e.thr03,e.thr21,Math.max(0.04,Math.min(0.96,t)));
@@ -2054,10 +2211,7 @@ function apronEdgePt(ac){
 // spawn() para colocar las salidas: sirve de destino al «Rodar a plataforma» de una
 // llegada que ya ha aterrizado y abandonado la pista.
 function apronParkPt(ac){
-  const dir=RWY.hdg*Math.PI/180;
-  const px=Math.cos(dir), py=Math.sin(dir), ax=Math.sin(dir), ay=-Math.cos(dir);
-  if(ac.platform==='MIL') return {x:px*590+ax*260, y:py*590+ay*260};
-  return {x:px*510+ax*(-420), y:py*510+ay*(-420)};
+  return apronCenter(ac.platform);
 }
 // Viento en cola: el desvío lateral respecto al eje recíproco de pista se sitúa a la
 // derecha (+25°) o a la izquierda (-25°) según el lado de circuito que el instructor
@@ -2266,7 +2420,7 @@ radar.addEventListener('wheel',function(e){
 // cuando el profesor arrastra la vista con el ratón.
 function radarProjParams(w,h){
   const R=Math.min(w,h)*0.46;
-  const baseNM=8;   // alcance visible por defecto (radarZoom=1): toda la CTR/ATZ con los puntos VFR
+  const baseNM=26;  // alcance visible por defecto (radarZoom=1): incluye los puntos VFR a 13 NM y las llegadas visuales que aparecen ~10 NM más allá (~23 NM). Las instrumentales aparecen más lejos: usar la rueda para alejar.
   return {cx:w/2+radarPan.x, cy:h/2+radarPan.y, scale:(R/(baseNM*NM))*radarZoom};
 }
 // Devuelve la ruta que el avión sigue ahora mismo como lista de puntos {x,y}:
@@ -2279,7 +2433,7 @@ function currentRouteOf(ac){
     if(ac.target.mode==='xy') r.push({x:ac.target.x,y:ac.target.y});
     else if(ac.target.mode==='point'){ const p=REF[ac.target.pt]||APP_REF[ac.target.pt]; if(p) r.push({x:p.x,y:p.y}); }
   }
-  if(ac.route) ac.route.forEach(p=>{ if(p) r.push({x:p.x,y:p.y}); });
+  if(ac.route) ac.route.forEach(p=>{ const q=p&&p.pt?(REF[p.pt]||APP_REF[p.pt]):p; if(q) r.push({x:q.x,y:q.y}); });
   return r;
 }
 // Aplicaciones de bajo nivel (sin red) de las acciones de radar — las llaman tanto el
@@ -2497,7 +2651,7 @@ function drawRadar(canvas, ctx){
   ctx.textAlign='left';
 
   // ---------- calle de rodaje paralela ----------
-  const gapPar=120, twPar=23/2;
+  const gapPar=TWY_OFF, twPar=23/2;
   const a0=lerpPt(e.thr03,e.thr21,0.04), a1=lerpPt(e.thr03,e.thr21,0.96);
   const parC=[
     {x:a0.x+px*(gapPar-twPar),y:a0.y+py*(gapPar-twPar)},{x:a1.x+px*(gapPar-twPar),y:a1.y+py*(gapPar-twPar)},
@@ -2530,12 +2684,12 @@ function drawRadar(canvas, ctx){
   // 2 stubs cortos: borde pista → paralela
   [{t:0.603},{t:0.333}].forEach(({t})=>{
     const b=lerpPt(e.thr03,e.thr21,Math.max(0.04,Math.min(0.96,t)));
-    drawRadarLink(b.x+px*22,b.y+py*22, b.x+px*120,b.y+py*120);
+    drawRadarLink(b.x+px*22,b.y+py*22, b.x+px*TWY_OFF,b.y+py*TWY_OFF);
   });
   // 2 conectores de plataforma: paralela → borde próximo de plataforma
-  [{t:0.603,edge:360},{t:0.333,edge:340}].forEach(({t,edge})=>{
+  [{t:0.603,edge:APRON_EDGE.MIL},{t:0.333,edge:APRON_EDGE.CIV}].forEach(({t,edge})=>{
     const b=lerpPt(e.thr03,e.thr21,Math.max(0.04,Math.min(0.96,t)));
-    drawRadarLink(b.x+px*120,b.y+py*120, b.x+px*edge,b.y+py*edge);
+    drawRadarLink(b.x+px*TWY_OFF,b.y+py*TWY_OFF, b.x+px*edge,b.y+py*edge);
   });
   ctx.lineCap='butt';
 
@@ -2557,8 +2711,8 @@ function drawRadar(canvas, ctx){
   });
 
   // ---------- plataformas civil y militar ----------
-  drawApronGround('mil', +260, 360, 420, gp,scale,px,py,ax,ay, ctx);
-  drawApronGround('civ', -420, 340, 300, gp,scale,px,py,ax,ay, ctx);
+  drawApronGround('mil', +260, APRON_EDGE.MIL, 420, gp,scale,px,py,ax,ay, ctx);
+  drawApronGround('civ', -420, APRON_EDGE.CIV, 300, gp,scale,px,py,ax,ay, ctx);
 
   // ---------- puntos VFR de la CTR (N, N-1, E, E-1, S, W) y BBI — bien visibles,
   // con halo oscuro para destacar el nombre sobre cualquier fondo del radar
@@ -2642,7 +2796,7 @@ function drawRadar(canvas, ctx){
     const isSel=selected&&selected.id===a.id;
     if(isSel && plannedRoute.length) return; // ya se dibuja la ruta trazada con Ctrl+clic, más prominente
     const pts=[]; const d0=resolveDest(a.target);
-    if(d0){ pts.push(d0); if(a.route&&a.route.length) a.route.forEach(p=>pts.push(p)); }
+    if(d0){ pts.push(d0); if(a.route&&a.route.length) a.route.forEach(p=>{ const rp=p.pt?(REF[p.pt]||APP_REF[p.pt]):p; if(rp) pts.push(rp); }); }
     if(!pts.length) return;
     ctx.save();
     ctx.strokeStyle = isSel ? 'rgba(255,255,255,.55)' : (a.op==='DEP'?'rgba(61,220,132,.32)':'rgba(93,169,255,.32)');
@@ -2661,7 +2815,9 @@ function drawRadar(canvas, ctx){
       const etaSec=dist/(a.spd*1852/3600);
       if(etaSec>=5 && etaSec<7200){
         const mm=Math.floor(etaSec/60), ss=Math.round(etaSec%60);
-        const etaStr=mm+':'+ss.toString().padStart(2,'0');
+        // tiempo estimado y DISTANCIA en NM hasta el final de la ruta dibujada
+        const nm=dist/NM;
+        const etaStr=mm+':'+ss.toString().padStart(2,'0')+'  '+(nm<10?nm.toFixed(1):Math.round(nm))+' NM';
         // punto medio del primer tramo (avión → primer waypoint)
         const sx=cx+(a.x+pts[0].x)*0.5*scale, sy=cy+(a.y+pts[0].y)*0.5*scale;
         const col=a.op==='DEP'?'rgba(61,220,132,.9)':'rgba(93,169,255,.9)';
@@ -2842,6 +2998,14 @@ function project(wx,wy,walt,w,h){
   const f=(w*0.5)*CAM.fov;
   return{vis:true, sx:w*0.5+(right/fwd)*f, sy:h*CAM.pitchHorizon-(dz/fwd)*f, fwd, scale:f/fwd};
 }
+// Grosor de línea en perspectiva para la vista de torre, ACOTADO. Usa la escala del
+// extremo MÁS LEJANO del segmento (la menor de las dos) para que un punto que quede casi
+// pegado a la cámara —p.ej. al girar la vista— no dispare el grosor, y aplica un tope
+// máximo (max) por seguridad. Antes la línea amarilla "se ensanchaba" por esto.
+function towerLW(pa, pb, mult, min, max){
+  const s = pb ? Math.min(pa.scale, pb.scale) : pa.scale;
+  return Math.max(min, Math.min(max, s*mult));
+}
 
 function drawTower(){
   const w=tower.width,h=tower.height; if(!w||!h)return;
@@ -2907,7 +3071,7 @@ function drawRunwayGround(w,h){
   for(let i=0;i<26;i++){const t1=i/26,t2=(i+0.5)/26;
     const a=lerpPt(e.thr03,e.thr21,t1), b=lerpPt(e.thr03,e.thr21,t2);
     const pa=project(a.x,a.y,0,w,h),pb=project(b.x,b.y,0,w,h);if(!pa.vis||!pb.vis)continue;
-    tctx.lineWidth=Math.max(1,pa.scale*2.2);tctx.beginPath();tctx.moveTo(pa.sx,pa.sy);tctx.lineTo(pb.sx,pb.sy);tctx.stroke();}
+    tctx.lineWidth=towerLW(pa,pb,2.2,1,6);tctx.beginPath();tctx.moveTo(pa.sx,pa.sy);tctx.lineTo(pb.sx,pb.sy);tctx.stroke();}
   drawThresholdBars(e.thr21,e.thr03,w,h);
   drawThresholdBars(e.thr03,e.thr21,w,h);
 }
@@ -2921,14 +3085,14 @@ function drawThresholdBars(thr,other,w,h){
   for(let k=-3;k<=3;k++){if(k===0)continue;const off=k*6;
     const a={x:base.x+px*off,y:base.y+py*off};const b=lerpPt(a,other,0.02);
     const pa=project(a.x,a.y,0,w,h),pb=project(b.x,b.y,0,w,h);if(!pa.vis||!pb.vis)continue;
-    tctx.lineWidth=Math.max(1.5,pa.scale*3);tctx.beginPath();tctx.moveTo(pa.sx,pa.sy);tctx.lineTo(pb.sx,pb.sy);tctx.stroke();}
+    tctx.lineWidth=towerLW(pa,pb,3,1.5,7);tctx.beginPath();tctx.moveTo(pa.sx,pa.sy);tctx.lineTo(pb.sx,pb.sy);tctx.stroke();}
 }
 
 // Calle de rodaje PARALELA a la pista (lado este)
 function drawParallelTaxiway(w,h){
   const e=rwyEnds();const dir=RWY.hdg*Math.PI/180;
   const px=Math.cos(dir), py=Math.sin(dir);
-  const gap=120, tw=23/2;
+  const gap=TWY_OFF, tw=23/2;
   // extremos de la paralela (96% de la pista)
   const a0=lerpPt(e.thr03,e.thr21,0.04), a1=lerpPt(e.thr03,e.thr21,0.96);
   const corners=[
@@ -2944,12 +3108,12 @@ function drawParallelTaxiway(w,h){
   // marcas de borde blancas a ambos lados
   tctx.strokeStyle='rgba(232,228,210,.55)';
   [[corners[0],corners[1]],[corners[2],corners[3]]].forEach(([pa,pb])=>{
-    tctx.lineWidth=Math.max(1,pa.scale*1.6);
+    tctx.lineWidth=towerLW(pa,pb,1.6,1,5);
     tctx.beginPath();tctx.moveTo(pa.sx,pa.sy);tctx.lineTo(pb.sx,pb.sy);tctx.stroke();
   });
   // eje amarillo continuo (centerline)
   const pa=project(a0.x+px*gap,a0.y+py*gap,0,w,h),pb=project(a1.x+px*gap,a1.y+py*gap,0,w,h);
-  if(pa.vis&&pb.vis){tctx.strokeStyle='#e8c659';tctx.lineWidth=Math.max(1,pa.scale*2.2);
+  if(pa.vis&&pb.vis){tctx.strokeStyle='#e8c659';tctx.lineWidth=towerLW(pa,pb,2.2,1,7);
     tctx.beginPath();tctx.moveTo(pa.sx,pa.sy);tctx.lineTo(pb.sx,pb.sy);tctx.stroke();}
 }
 
@@ -2967,27 +3131,27 @@ function drawTaxiways(w,h){
     if(!pa.vis||!pb.vis)return;
     let g=tctx.createLinearGradient(pa.sx,pa.sy,pb.sx,pb.sy);
     g.addColorStop(0,'#5a5e64');g.addColorStop(1,'#4c5056');
-    tctx.strokeStyle=g;tctx.lineWidth=Math.max(3,pa.scale*16);
+    tctx.strokeStyle=g;tctx.lineWidth=towerLW(pa,pb,16,3,70);
     tctx.beginPath();tctx.moveTo(pa.sx,pa.sy);tctx.lineTo(pb.sx,pb.sy);tctx.stroke();
     [-1,1].forEach(s=>{
       const ea=project(wx1+ax*hwLink*s,wy1+ay*hwLink*s,0,w,h);
       const eb=project(wx2+ax*hwLink*s,wy2+ay*hwLink*s,0,w,h);
-      if(ea.vis&&eb.vis){tctx.strokeStyle='rgba(232,228,210,.4)';tctx.lineWidth=Math.max(1,ea.scale*1.3);
+      if(ea.vis&&eb.vis){tctx.strokeStyle='rgba(232,228,210,.4)';tctx.lineWidth=towerLW(ea,eb,1.3,1,5);
         tctx.beginPath();tctx.moveTo(ea.sx,ea.sy);tctx.lineTo(eb.sx,eb.sy);tctx.stroke();}
     });
-    tctx.strokeStyle='#e8c659';tctx.lineWidth=Math.max(1,pa.scale*2.2);
+    tctx.strokeStyle='#e8c659';tctx.lineWidth=towerLW(pa,pb,2.2,1,7);
     tctx.beginPath();tctx.moveTo(pa.sx,pa.sy);tctx.lineTo(pb.sx,pb.sy);tctx.stroke();
   }
   // 2 stubs cortos: borde de pista (px*22) → calle paralela (px*120)
   // situados a la altura de cada plataforma
   [{t:0.603},{t:0.333}].forEach(({t})=>{
     const b=lerpPt(e.thr03,e.thr21,Math.max(0.04,Math.min(0.96,t)));
-    drawLink(b.x+px*22,b.y+py*22, b.x+px*120,b.y+py*120);
+    drawLink(b.x+px*22,b.y+py*22, b.x+px*TWY_OFF,b.y+py*TWY_OFF);
   });
-  // 2 conectores de plataforma: calle paralela (px*120) → borde próximo de plataforma
-  [{t:0.603,edge:360},{t:0.333,edge:340}].forEach(({t,edge})=>{
+  // 2 conectores de plataforma: calle paralela → borde próximo de plataforma
+  [{t:0.603,edge:APRON_EDGE.MIL},{t:0.333,edge:APRON_EDGE.CIV}].forEach(({t,edge})=>{
     const b=lerpPt(e.thr03,e.thr21,Math.max(0.04,Math.min(0.96,t)));
-    drawLink(b.x+px*120,b.y+py*120, b.x+px*edge,b.y+py*edge);
+    drawLink(b.x+px*TWY_OFF,b.y+py*TWY_OFF, b.x+px*edge,b.y+py*edge);
   });
   tctx.lineCap='butt';
 }
@@ -3005,7 +3169,7 @@ function drawHoldingPoints(w,h){
       const a={x:hx+ax*(-13)+px*d*0.2, y:hy+ay*(-13)+py*d*0.2};
       const b={x:hx+ax*(13)+px*d*0.2, y:hy+ay*(13)+py*d*0.2};
       const pa=project(a.x,a.y,0,w,h),pb=project(b.x,b.y,0,w,h);
-      if(pa.vis&&pb.vis){tctx.strokeStyle='#f2d23a';tctx.lineWidth=Math.max(1.5,pa.scale*2.4);
+      if(pa.vis&&pb.vis){tctx.strokeStyle='#f2d23a';tctx.lineWidth=towerLW(pa,pb,2.4,1.5,8);
         tctx.beginPath();tctx.moveTo(pa.sx,pa.sy);tctx.lineTo(pb.sx,pb.sy);tctx.stroke();}
     }
     // (cartel con el número de pista junto al punto de espera: eliminado de la
@@ -3015,8 +3179,8 @@ function drawHoldingPoints(w,h){
 
 // Plataformas (lado este, separadas, sin texto)
 function drawAprons(w,h){
-  drawApronPoly('mil', +260, 360, 420, w,h);
-  drawApronPoly('civ', -420, 340, 300, w,h);
+  drawApronPoly('mil', +260, APRON_EDGE.MIL, 420, w,h);
+  drawApronPoly('civ', -420, APRON_EDGE.CIV, 300, w,h);
 }
 function drawApronPoly(type, alongShift, gap, sz, w,h){
   const dir=RWY.hdg*Math.PI/180;
@@ -3046,14 +3210,8 @@ function drawApronPoly(type, alongShift, gap, sz, w,h){
     if(pa.vis&&pb.vis){
       tctx.beginPath();tctx.moveTo(pa.sx,pa.sy);tctx.lineTo(pb.sx,pb.sy);tctx.stroke();
     }}
-  // edificio / hangar (sin rótulo)
-  const bx=cx+px*sz*0.45, by=cy+py*sz*0.45;
-  const bTop=project(bx,by,type==='mil'?16:20,w,h),bBot=project(bx,by,0,w,h);
-  if(bTop.vis&&bBot.vis){const bw=Math.max(24,bTop.scale*(type==='mil'?360:240)),bh=Math.max(10,bBot.sy-bTop.sy);
-    tctx.fillStyle=type==='mil'?'#403a30':'#46515c';tctx.fillRect(bTop.sx-bw/2,bTop.sy,bw,bh);
-    if(type==='mil'){tctx.fillStyle='#332e26';tctx.beginPath();tctx.moveTo(bTop.sx-bw/2,bTop.sy);
-      tctx.quadraticCurveTo(bTop.sx,bTop.sy-bh*0.4,bTop.sx+bw/2,bTop.sy);tctx.fill();}
-    else{tctx.fillStyle='rgba(170,205,235,.6)';for(let i=0;i<6;i++)tctx.fillRect(bTop.sx-bw/2+5+i*(bw/6),bTop.sy+bh*0.3,bw/9,bh*0.4);}}
+  // (antes aquí se dibujaba un edificio/hangar en cada plataforma; eliminado a
+  // petición porque parecían edificios sueltos sobre la pista)
 }
 
 // Aviones proyectados
@@ -3067,10 +3225,12 @@ function drawTowerAircraft(w,h){
     // el tráfico en el aire un suelo aparte que lo hacía gigante de cerca).
     // Un mínimo (5px) evita que sea invisible y un máximo (55px) evita que un
     // avión muy cercano (p.ej. justo tras despegar) ocupe media pantalla.
-    const maxDist=5;
+    const maxDist=20;   // mostrar también el tráfico lejano (hasta 20 NM)
     if(distNM>=maxDist) return;
-    const fade=Math.max(0,1-distNM/maxDist);
-    let sz=Math.max(pr.scale*30*fade,5);
+    // Transparencia según distancia: cerca nítido, lejos difuminado, para que el alumno
+    // perciba a simple vista lo lejos que está el avión (el tamaño lo da la perspectiva).
+    const alpha = distNM<=2 ? 1 : Math.max(0.3, 1-(distNM-2)/(maxDist-2)*0.7);
+    let sz=Math.max(pr.scale*30,5);
     // pequeños ajustes según estado, para compensar lo que cuesta distinguir
     // a simple vista (rodaje/espera, pista, viento en cola/base/órbita)
     if(a.state===STATES.PISTA) sz*=1.15;
@@ -3085,11 +3245,17 @@ function drawTowerAircraft(w,h){
     // se dirige, tal y como se vería desde la torre.
     const hdgRad=a.hdg*Math.PI/180;
     const step=120; // metros
-    const prF=project(a.x+Math.sin(hdgRad)*step, a.y-Math.cos(hdgRad)*step, (a.alt-2595), w, h);
-    const prB=project(a.x-Math.sin(hdgRad)*step, a.y+Math.cos(hdgRad)*step, (a.alt-2595), w, h);
+    // Morro picado: si la aeronave está descendiendo (final/aproximación), proyectamos el
+    // punto de DELANTE más bajo y el de DETRÁS más alto, de modo que la silueta "apunta
+    // hacia abajo" en pantalla, como un avión en descenso.
+    const pitch=(a.state===STATES.FINAL||a.state===STATES.APROX)?70:0;
+    const prF=project(a.x+Math.sin(hdgRad)*step, a.y-Math.cos(hdgRad)*step, (a.alt-2595)-pitch, w, h);
+    const prB=project(a.x-Math.sin(hdgRad)*step, a.y+Math.cos(hdgRad)*step, (a.alt-2595)+pitch, w, h);
     let screenAngle=0;
     if(prF.vis) screenAngle=Math.atan2(prF.sy-pr.sy, prF.sx-pr.sx);
     else if(prB.vis) screenAngle=Math.atan2(pr.sy-prB.sy, pr.sx-prB.sx);
+    tctx.save();
+    tctx.globalAlpha=alpha;   // difuminado por distancia (afecta sombra, silueta y etiqueta)
     if(a.alt<2640){const sh=project(a.x,a.y,0,w,h);if(sh.vis){tctx.fillStyle='rgba(0,0,0,.22)';
       tctx.beginPath();tctx.ellipse(sh.sx,sh.sy,sz*1.1,sz*0.3,screenAngle,0,7);tctx.fill();}}
     drawPlane(pr.sx,pr.sy,sz,a,sel,screenAngle);
@@ -3101,6 +3267,7 @@ function drawTowerAircraft(w,h){
       tctx.font=`${Math.max(7,Math.min(15,sz))}px JetBrains Mono`;
       tctx.fillText(a.cs,pr.sx+sz+4,pr.sy-2);
     }
+    tctx.restore();
   });
 }
 // Variedad visual del tráfico: cada aeronave recibe un color y unas proporciones
