@@ -516,6 +516,12 @@
         <div class="f"><label>Hora (mm:ss)</label><input id="f_time" class="mono" placeholder="00:30" value="00:30"></div>
         <div class="f"><label>Indicativo</label><input id="f_cs" class="mono" placeholder="BUH006" value="BUH006"></div>
         <div class="f"><label>Tipo aeronave</label><input id="f_type" class="mono" placeholder="C295" value="C295"></div>
+        <div class="f"><label>Categoría</label>
+          <select id="f_cat">
+            <option value="CIV">Civil → plataforma civil</option>
+            <option value="MIL">Militar → plataforma militar</option>
+          </select>
+        </div>
         <div class="f"><label>Regla</label>
           <select id="f_rule" onchange="updatePointOptions()">
             <option value="VFR">Visual (VFR)</option>
@@ -1246,6 +1252,7 @@ function addFlight(){
               // se planifica/edita desde la propia ficha de vuelo (ver exitPtPicker)
     lvl:document.getElementById('f_lvl').value.trim().toUpperCase()||'035',
     rule:document.getElementById('f_rule')?document.getElementById('f_rule').value:'VFR',   // VFR (visual) / IFR (instrumental)
+    cat:document.getElementById('f_cat')?document.getElementById('f_cat').value:'CIV',      // MIL → plataforma militar / CIV → plataforma civil
     point:document.getElementById('f_point')?document.getElementById('f_point').value:'',   // punto elegido (entrada para llegadas / salida para salidas)
     spawned:false
   };
@@ -1360,7 +1367,7 @@ function generateRandomSchedule(){
         route=`${pt} BBI ILS 21`;
       }
     }
-    newSchedule.push({time:t, cs, type, op, orig, dest, route, lvl, rule, point:pt, spawned:false});
+    newSchedule.push({time:t, cs, type, op, orig, dest, route, lvl, rule, cat:(rule==='IFR'?'CIV':(Math.random()<0.5?'MIL':'CIV')), point:pt, spawned:false});
     t+=SEP;
   }
   schedule=newSchedule;
@@ -1432,7 +1439,7 @@ function saveScheduleAs(){
   if(!schedule.length){ alert('No hay vuelos programados que guardar.'); return; }
   // guardamos solo los datos del vuelo (sin "spawned"): cada vez que se cargue
   // el programa, todos los vuelos empiezan como pendientes
-  const flights=schedule.map(({time,cs,type,op,orig,dest,route,lvl,rule,point})=>({time,cs,type,op,orig,dest,route,lvl,rule,point}));
+  const flights=schedule.map(({time,cs,type,op,orig,dest,route,lvl,rule,cat,point})=>({time,cs,type,op,orig,dest,route,lvl,rule,cat,point}));
   const list=getSavedSchedules();
   const i=list.findIndex(s=>s.name===name);
   if(i>=0){
@@ -1768,7 +1775,9 @@ function spawn(f){
     parkOnArrive:false  // al terminar el rodaje, estacionar en plataforma (en vez de quedar en espera)
   };
   if(f.op==='DEP'){
-    const mil = (f.type[0]==='C'||f.type==='C295'||f.type==='C101'||f.dest==='LEAB');
+    // categoría elegida al crear el vuelo (MIL→plataforma militar / CIV→civil); si no se
+    // indicó (programas antiguos/demo), se deduce del tipo de aeronave como antes.
+    const mil = f.cat ? (f.cat==='MIL') : (f.type[0]==='C'||f.type==='C295'||f.type==='C101'||f.dest==='LEAB');
     // posición = misma fórmula que las plataformas 3D (perp este + along)
     const dir=RWY.hdg*Math.PI/180;
     const px=Math.cos(dir), py=Math.sin(dir);      // perpendicular este (x,y_sim)
@@ -1794,7 +1803,7 @@ function spawn(f){
     // la pista activa (respaldo).
     const entry = f.point || arrivalEntryOf(f);
     const p = REF[entry] || APP_REF[entry];
-    ac.platform='CIV'; ac.spd=120; ac.state=STATES.AIRE;
+    ac.platform=(f.cat==='MIL')?'MIL':'CIV'; ac.spd=120; ac.state=STATES.AIRE;  // a qué plataforma irá tras aterrizar
     if(p){
       const d=Math.hypot(p.x,p.y)||1, ux=p.x/d, uy=p.y/d;
       ac.x=p.x+ux*10*NM; ac.y=p.y+uy*10*NM;
@@ -1914,19 +1923,20 @@ function step(dt){
     {
       const tAlt = (ac.manualAlt!=null) ? ac.manualAlt : targetAlt(ac);
       if(ac.manualAlt==null && ac.state===STATES.FINAL){
-        // SENDA DE PLANEO: la altitud objetivo baja proporcional a la distancia que
-        // queda hasta el umbral, así el avión toca tierra JUSTO en la cabecera de forma
-        // progresiva (antes "caía de golpe" al suelo al pulsar aterrizar). Sólo
-        // desciende, nunca sube: si va por debajo del plano, mantiene altitud hasta que
-        // el plano lo alcanza.
-        let gs=2595;
-        if(ac.target && ac.target.mode==='xy'){
-          const dd=Math.hypot(ac.target.x-ac.x, ac.target.y-ac.y);
-          // restamos ~300 m (la distancia a la que se dispara la toma de contacto) para
-          // que la senda llegue al suelo JUSTO en la toma, sin un escalón final brusco.
-          gs=2595+Math.min(Math.max(0, dd-300)*0.16, 5000);
+        // SENDA DE PLANEO referida al CENTRO de la pista: la altitud objetivo baja
+        // proporcional a la distancia A LO LARGO del eje que falta hasta el centro, de
+        // modo que el avión TOCA TIERRA en el centro de la pista (no en el umbral) y
+        // cruza el umbral aún algo por encima del suelo. El descenso es siempre suave y
+        // progresivo (pendiente baja y ritmo de bajada contenido): nunca un picado.
+        const dir=RWY.hdg*Math.PI/180; const ax=Math.sin(dir), ay=-Math.cos(dir);
+        const land21=activeRwy!=='03'; const sgn=land21?+1:-1;
+        const ahead=((ac.x*ax)+(ac.y*ay))*sgn;   // metros antes del CENTRO de la pista (>0 en aproximación)
+        const gs=2595+Math.min(Math.max(0,ahead)*0.13, 8000);
+        if(ac.alt>gs){
+          const err=ac.alt-gs;
+          const rate=Math.min(70, Math.max(25, err*0.45));  // descenso suave y progresivo (sin picado)
+          ac.alt=Math.max(gs, ac.alt-rate*dt);
         }
-        if(ac.alt>gs) ac.alt=Math.max(gs, ac.alt-45*dt);
       }
       else if(Math.abs(ac.alt-tAlt)>4){
         // el avión reacciona de inmediato a la orden de descender: tasa de bajada
@@ -1937,6 +1947,9 @@ function step(dt){
       }
       else ac.alt=tAlt;
     }
+    // TOMA DE CONTACTO: se dispara por ALTITUD (cuando la senda lo ha posado en el
+    // suelo), no por distancia horizontal — así nunca cae de golpe.
+    if(ac.state===STATES.FINAL && ac.alt<=2595+20) touchdown(ac);
     // despegue (salida) o ascenso tras toma y despegue: al superar la velocidad de
     // rotación, la aeronave deja la pista y sube
     if(ac.state===STATES.PISTA && ac.spd>110 && (ac.op==='DEP'||ac.touchAndGo)){
@@ -1970,7 +1983,7 @@ function targetSpeed(ac){
     case STATES.PROG: return 0;
     case STATES.RODAJE: return 30;     // rodaje ~30 kt
     case STATES.ESPERA: return 0;
-    case STATES.PISTA: return (ac.op==='DEP'||ac.touchAndGo)?140:(ac.landRoll?35:8); // aterrizaje: frena a ~35 kt y rueda hasta la salida
+    case STATES.PISTA: return (ac.op==='DEP'||ac.touchAndGo)?140:(ac.landRoll?50:8); // aterrizaje: frena a ~50 kt y rueda hasta la salida
     case STATES.AIRE: return 120;      // velocidad de crucero / en ruta
     case STATES.APROX: return 120;
     case STATES.FINAL: return 110;     // velocidad de aproximación final realista
@@ -1997,27 +2010,33 @@ function targetAlt(ac){
 function isCircuitTraffic(ac){
   return ac.state===STATES.AIRE && ac.target && (ac.target.mode==='xy'||ac.target.mode==='hold'||ac.target.mode==='orbit');
 }
+// TOMA DE CONTACTO (se llama desde step cuando la senda ha posado el avión en el suelo).
+// Maniobra completa y automática; la toma depende de la ALTITUD, no de la distancia, así
+// que el descenso siempre es progresivo (nunca un escalón al rebasar la pista).
+function touchdown(ac){
+  ac.alt=2595; ac.hdg=depHdg(ac);   // en el suelo y alineado con el eje
+  if(ac.touchAndGo){
+    // toma y despegue: acelera por el eje y vuelve a subir (como un despegue)
+    ac.state=STATES.PISTA; ac.target=null;
+    log(`${ac.cs}: toma y despegue — al aire de nuevo`);
+  }else{
+    // aterrizaje: rueda por el eje frenando (~50 kt) y abandona por la ÚLTIMA calle de
+    // salida disponible (t=0.333 si aterriza por la 21; t=0.603 si por la 03).
+    ac.state=STATES.PISTA; ac.landRoll=true;
+    ac.exitT = (activeRwy==='03') ? 0.603 : 0.333;
+    const far=rwyEnds()['thr'+(activeRwy==='21'?'03':'21')];
+    ac.target={mode:'xy', x:far.x, y:far.y};
+    log(`${ac.cs}: tomando tierra, frenando en pista`);
+  }
+}
 function arriveTarget(ac){
   const t=ac.target;
   if(ac.state===STATES.FINAL){
-    // TOMA DE CONTACTO en la cabecera. Maniobra completa y automática:
-    ac.alt=2595; ac.hdg=depHdg(ac); // sobre el suelo y alineado con el eje de la pista
+    // Llegó al punto de mira pero AÚN EN EL AIRE (autorizado tarde/alto): no toma tierra
+    // aquí (eso lo decide la altitud en step); sigue volando hacia el extremo opuesto
+    // descendiendo, para tomar más adelante de forma progresiva.
     const far=rwyEnds()['thr'+(activeRwy==='21'?'03':'21')];
-    if(ac.touchAndGo){
-      // toma y despegue: acelera por el eje y vuelve a subir (como un despegue)
-      ac.state=STATES.PISTA; ac.target=null;
-      log(`${ac.cs}: toma y despegue — al aire de nuevo`);
-    }else{
-      // aterrizaje: rueda por el eje frenando y abandona por la ÚLTIMA calle de salida
-      // disponible (la más alejada en el sentido de la rodadura), para que use casi toda
-      // la pista — más realista. Calles de salida en t=0.333 y t=0.603 del eje:
-      //  · aterrizando por la 21 (rueda hacia la 03, t↓) la última es t=0.333
-      //  · aterrizando por la 03 (rueda hacia la 21, t↑) la última es t=0.603
-      ac.state=STATES.PISTA; ac.landRoll=true;
-      ac.exitT = (activeRwy==='03') ? 0.603 : 0.333;
-      ac.target={mode:'xy', x:far.x, y:far.y};
-      log(`${ac.cs}: tomando tierra, frenando en pista`);
-    }
+    ac.target={mode:'xy', x:far.x, y:far.y};
     return;
   }
   if(t.mode==='point'&&t.pt==='BBI'&&ac.op==='ARR'){
@@ -2681,8 +2700,9 @@ function drawRadar(canvas, ctx){
     ctx.strokeStyle='#e8c659';ctx.lineWidth=Math.max(1,scale*1.8);
     ctx.beginPath();ctx.moveTo(psa.sx,psa.sy);ctx.lineTo(pso.sx,pso.sy);ctx.stroke();
   }
-  // 2 stubs cortos: borde pista → paralela
-  [{t:0.603},{t:0.333}].forEach(({t})=>{
+  // stubs: borde pista → paralela, a la altura de las plataformas y de las cabeceras
+  // (puntos de espera), para que el rodaje al punto de espera vaya por calle, no por césped
+  [0.603,0.333,0.964,0.036].forEach(t=>{
     const b=lerpPt(e.thr03,e.thr21,Math.max(0.04,Math.min(0.96,t)));
     drawRadarLink(b.x+px*22,b.y+py*22, b.x+px*TWY_OFF,b.y+py*TWY_OFF);
   });
@@ -2950,6 +2970,31 @@ function initGrass(){ if(grassSeed.length)return;
 function initClouds(){ if(cloudSeed.length)return;
   for(let i=0;i<7;i++)cloudSeed.push({x:Math.random()*1.2-0.1,y:0.04+Math.random()*0.14,s:0.6+Math.random()*1.1,sp:0.0006+Math.random()*0.0012});
 }
+// Arbolitos de referencia hacia el SE (dirección E-1), para que al girar la vista a
+// ese lado el alumno tenga una referencia de posición en el horizonte. Posiciones
+// fijas (sembradas una vez) para que no parpadeen.
+let treeSeed=[];
+function initTrees(){ if(treeSeed.length)return;
+  for(let i=0;i<22;i++){
+    const brg=(95+Math.random()*55)*Math.PI/180;   // sector ~95-150° (E → SE, hacia E-1)
+    const d=1300+Math.random()*2200;                // 1.3-3.5 km
+    treeSeed.push({x:Math.sin(brg)*d, y:-Math.cos(brg)*d, s:0.75+Math.random()*0.6, dark:Math.random()>0.5});
+  }
+}
+function drawTrees(w,h){
+  initTrees();
+  treeSeed.map(t=>({t,pr:project(t.x,t.y,0,w,h)})).filter(o=>o.pr.vis && o.pr.fwd/NM<6)
+    .sort((A,B)=>B.pr.fwd-A.pr.fwd)
+    .forEach(({t,pr})=>{
+      const s=Math.max(3, pr.scale*75*t.s);
+      const cx=pr.sx, baseY=pr.sy;
+      tctx.strokeStyle='#5b4a2e'; tctx.lineWidth=Math.max(1,s*0.16); tctx.lineCap='round';
+      tctx.beginPath(); tctx.moveTo(cx,baseY); tctx.lineTo(cx,baseY-s*0.85); tctx.stroke();
+      tctx.fillStyle=t.dark?'#3f6b34':'#548a42';
+      tctx.beginPath(); tctx.ellipse(cx, baseY-s*1.15, s*0.6, s*0.8, 0,0,7); tctx.fill();
+    });
+  tctx.lineCap='butt';
+}
 
 /* ---------- Cámara orientable (alumno) ----------
    Sí: el alumno puede girar la vista de la torre para mirar hacia otras
@@ -2998,6 +3043,26 @@ function project(wx,wy,walt,w,h){
   const f=(w*0.5)*CAM.fov;
   return{vis:true, sx:w*0.5+(right/fwd)*f, sy:h*CAM.pitchHorizon-(dz/fwd)*f, fwd, scale:f/fwd};
 }
+// Proyecta un polígono del SUELO (lista de {x,y}) recortándolo al plano cercano de la
+// cámara. Devuelve los puntos de pantalla del trozo visible (o null si queda todo
+// detrás). Así una superficie (pista, plataforma, calle) sigue dibujándose aunque una
+// parte quede detrás de la cámara al girar la vista — antes desaparecía entera.
+function clipGroundPoly(worldPts, w, h){
+  const a=CAM.heading*Math.PI/180, sinA=Math.sin(a), cosA=Math.cos(a);
+  const f=(w*0.5)*CAM.fov, NEAR=10, dz=-CAM.hgt;
+  const cam=worldPts.map(p=>{ const dx=p.x-CAM.pos.x, dy=p.y-CAM.pos.y;
+    return { fwd:dx*sinA+dy*(-cosA), right:dx*cosA+dy*sinA }; });
+  const toScr=(fwd,right)=>({sx:w*0.5+(right/fwd)*f, sy:h*CAM.pitchHorizon-(dz/fwd)*f});
+  const scr=[];
+  for(let i=0;i<cam.length;i++){
+    const c=cam[i], n=cam[(i+1)%cam.length];
+    const ci=c.fwd>=NEAR, ni=n.fwd>=NEAR;
+    if(ci) scr.push(toScr(c.fwd,c.right));
+    if(ci!==ni){ const t=(NEAR-c.fwd)/(n.fwd-c.fwd);
+      scr.push(toScr(NEAR, c.right+(n.right-c.right)*t)); }
+  }
+  return scr.length>=3 ? scr : null;
+}
 // Grosor de línea en perspectiva para la vista de torre, ACOTADO. Usa la escala del
 // extremo MÁS LEJANO del segmento (la menor de las dos) para que un punto que quede casi
 // pegado a la cámara —p.ej. al girar la vista— no dispare el grosor, y aplica un tope
@@ -3009,7 +3074,6 @@ function towerLW(pa, pb, mult, min, max){
 
 function drawTower(){
   const w=tower.width,h=tower.height; if(!w||!h)return;
-  initClouds();
   tctx.clearRect(0,0,w,h);
   const horizonY=h*CAM.pitchHorizon;
 
@@ -3017,7 +3081,6 @@ function drawTower(){
   let sky=tctx.createLinearGradient(0,0,0,horizonY);
   sky.addColorStop(0,'#5a86ad');sky.addColorStop(0.55,'#83a8c4');sky.addColorStop(1,'#c2d4de');
   tctx.fillStyle=sky;tctx.fillRect(0,0,w,horizonY);
-  cloudSeed.forEach(c=>{c.x+=c.sp; if(c.x>1.25)c.x=-0.25; drawCloud(c.x*w,c.y*horizonY+8,c.s*80);});
   drawRidge(horizonY,w,'#7d93a0',0.45,26,0.013);
   drawRidge(horizonY,w,'#5f7682',0.0,40,0.008);
 
@@ -3032,6 +3095,7 @@ function drawTower(){
     tctx.fillStyle=g.light?'#86954e':'#3f5826';tctx.fillRect(xx,yy,ww,ww*0.25);});
   tctx.restore();
 
+  drawTrees(w,h);   // arbolitos de referencia (hacia E-1/SE), sobre el terreno
   drawRunwayGround(w,h);
   drawParallelTaxiway(w,h);
   drawTaxiways(w,h);
@@ -3060,9 +3124,11 @@ function drawRidge(horizonY,w,col,yoff,amp,freq){
 function drawRunwayGround(w,h){
   const e=rwyEnds();const hw=RWY.w/2;const dir=RWY.hdg*Math.PI/180;
   const px=Math.cos(dir), py=Math.sin(dir);
-  const C=[{x:e.thr03.x+px*hw,y:e.thr03.y+py*hw},{x:e.thr21.x+px*hw,y:e.thr21.y+py*hw},
-           {x:e.thr21.x-px*hw,y:e.thr21.y-py*hw},{x:e.thr03.x-px*hw,y:e.thr03.y-py*hw}].map(c=>project(c.x,c.y,0,w,h));
-  if(C.some(c=>!c.vis))return;
+  // superficie de la pista: recortada al plano de la cámara, así no desaparece entera
+  // cuando una cabecera queda detrás al girar la vista
+  const C=clipGroundPoly([{x:e.thr03.x+px*hw,y:e.thr03.y+py*hw},{x:e.thr21.x+px*hw,y:e.thr21.y+py*hw},
+           {x:e.thr21.x-px*hw,y:e.thr21.y-py*hw},{x:e.thr03.x-px*hw,y:e.thr03.y-py*hw}], w,h);
+  if(!C) return;
   tctx.fillStyle='#54565d';tctx.beginPath();tctx.moveTo(C[0].sx,C[0].sy);
   C.slice(1).forEach(c=>tctx.lineTo(c.sx,c.sy));tctx.closePath();tctx.fill();
   tctx.strokeStyle='#d9d6c6';tctx.lineWidth=2;tctx.stroke();
@@ -3095,19 +3161,22 @@ function drawParallelTaxiway(w,h){
   const gap=TWY_OFF, tw=23/2;
   // extremos de la paralela (96% de la pista)
   const a0=lerpPt(e.thr03,e.thr21,0.04), a1=lerpPt(e.thr03,e.thr21,0.96);
-  const corners=[
+  const wc=[
     {x:a0.x+px*(gap-tw),y:a0.y+py*(gap-tw)},{x:a1.x+px*(gap-tw),y:a1.y+py*(gap-tw)},
     {x:a1.x+px*(gap+tw),y:a1.y+py*(gap+tw)},{x:a0.x+px*(gap+tw),y:a0.y+py*(gap+tw)}
-  ].map(c=>project(c.x,c.y,0,w,h));
-  if(corners.some(c=>!c.vis))return;
-  // asfalto con leve degradado para dar sensación de superficie
-  let gAsf=tctx.createLinearGradient(corners[0].sx,corners[0].sy,corners[2].sx,corners[2].sy);
+  ];
+  const fill=clipGroundPoly(wc,w,h);
+  if(!fill) return;
+  const corners=wc.map(c=>project(c.x,c.y,0,w,h));
+  // asfalto con leve degradado para dar sensación de superficie (polígono recortado)
+  let gAsf=tctx.createLinearGradient(fill[0].sx,fill[0].sy,fill[Math.min(2,fill.length-1)].sx,fill[Math.min(2,fill.length-1)].sy);
   gAsf.addColorStop(0,'#5e626a');gAsf.addColorStop(1,'#494d53');
-  tctx.fillStyle=gAsf;tctx.beginPath();tctx.moveTo(corners[0].sx,corners[0].sy);
-  corners.slice(1).forEach(c=>tctx.lineTo(c.sx,c.sy));tctx.closePath();tctx.fill();
-  // marcas de borde blancas a ambos lados
+  tctx.fillStyle=gAsf;tctx.beginPath();tctx.moveTo(fill[0].sx,fill[0].sy);
+  fill.slice(1).forEach(c=>tctx.lineTo(c.sx,c.sy));tctx.closePath();tctx.fill();
+  // marcas de borde blancas a ambos lados (sólo los tramos visibles)
   tctx.strokeStyle='rgba(232,228,210,.55)';
   [[corners[0],corners[1]],[corners[2],corners[3]]].forEach(([pa,pb])=>{
+    if(!pa.vis||!pb.vis) return;
     tctx.lineWidth=towerLW(pa,pb,1.6,1,5);
     tctx.beginPath();tctx.moveTo(pa.sx,pa.sy);tctx.lineTo(pb.sx,pb.sy);tctx.stroke();
   });
@@ -3142,9 +3211,10 @@ function drawTaxiways(w,h){
     tctx.strokeStyle='#e8c659';tctx.lineWidth=towerLW(pa,pb,2.2,1,7);
     tctx.beginPath();tctx.moveTo(pa.sx,pa.sy);tctx.lineTo(pb.sx,pb.sy);tctx.stroke();
   }
-  // 2 stubs cortos: borde de pista (px*22) → calle paralela (px*120)
-  // situados a la altura de cada plataforma
-  [{t:0.603},{t:0.333}].forEach(({t})=>{
+  // stubs: borde de pista (px*22) → calle paralela. A la altura de cada plataforma
+  // (0.333/0.603) y TAMBIÉN en las cabeceras (0.036/0.964), donde están los puntos de
+  // espera — así el rodaje hasta el punto de espera va siempre por calle, no por césped.
+  [0.603,0.333,0.964,0.036].forEach(t=>{
     const b=lerpPt(e.thr03,e.thr21,Math.max(0.04,Math.min(0.96,t)));
     drawLink(b.x+px*22,b.y+py*22, b.x+px*TWY_OFF,b.y+py*TWY_OFF);
   });
@@ -3187,18 +3257,19 @@ function drawApronPoly(type, alongShift, gap, sz, w,h){
   const px=Math.cos(dir), py=Math.sin(dir), ax=Math.sin(dir), ay=-Math.cos(dir);
   const cx=px*(gap+sz/2)+ax*alongShift, cy=py*(gap+sz/2)+ay*alongShift;
   const wide=sz*(type==='mil'?1.3:1.0);
-  const corners=[
+  const wc=[
     {x:cx-px*sz/2-ax*wide/2,y:cy-py*sz/2-ay*wide/2},{x:cx+px*sz/2-ax*wide/2,y:cy+py*sz/2-ay*wide/2},
     {x:cx+px*sz/2+ax*wide/2,y:cy+py*sz/2+ay*wide/2},{x:cx-px*sz/2+ax*wide/2,y:cy-py*sz/2+ay*wide/2}
-  ].map(c=>project(c.x,c.y,0,w,h));
-  if(corners.some(c=>!c.vis))return;
-  // superficie con degradado (sensación de hormigón/asfalto de plataforma)
-  let gP=tctx.createLinearGradient(corners[0].sx,corners[0].sy,corners[2].sx,corners[2].sy);
+  ];
+  const fill=clipGroundPoly(wc,w,h);
+  if(!fill) return;
+  // superficie con degradado (sensación de hormigón/asfalto de plataforma; recortada)
+  let gP=tctx.createLinearGradient(fill[0].sx,fill[0].sy,fill[Math.min(2,fill.length-1)].sx,fill[Math.min(2,fill.length-1)].sy);
   if(type==='mil'){gP.addColorStop(0,'#7c7261');gP.addColorStop(1,'#5e564a');}
   else{gP.addColorStop(0,'#73797c');gP.addColorStop(1,'#5b6164');}
   tctx.fillStyle=gP;
-  tctx.beginPath();tctx.moveTo(corners[0].sx,corners[0].sy);
-  corners.slice(1).forEach(c=>tctx.lineTo(c.sx,c.sy));tctx.closePath();tctx.fill();
+  tctx.beginPath();tctx.moveTo(fill[0].sx,fill[0].sy);
+  fill.slice(1).forEach(c=>tctx.lineTo(c.sx,c.sy));tctx.closePath();tctx.fill();
   tctx.strokeStyle='rgba(230,225,200,.45)';tctx.lineWidth=1.2;tctx.stroke();
   // calles internas (líneas de guía de los puestos, sin rótulos)
   const nStands=type==='mil'?4:5;
@@ -3225,11 +3296,15 @@ function drawTowerAircraft(w,h){
     // el tráfico en el aire un suelo aparte que lo hacía gigante de cerca).
     // Un mínimo (5px) evita que sea invisible y un máximo (55px) evita que un
     // avión muy cercano (p.ej. justo tras despegar) ocupe media pantalla.
-    const maxDist=20;   // mostrar también el tráfico lejano (hasta 20 NM)
+    // Más allá de 7 NM no se dibuja el avión (se oculta el tráfico lejano de aproximación,
+    // 10+ NM). Distinción clave para el alumno: el tráfico CERCANO (circuito: viento en
+    // cola/base, a ~2,5-3,4 NM) se ve grande y CON nombre; el LEJANO (orbitando/llegando
+    // por N-1, E-1… a >3,5 NM) se ve mucho más pequeño, más tenue y SIN nombre, para que
+    // nunca se confunda con el que está en viento en cola.
+    const maxDist=7, farDist=3.5;
     if(distNM>=maxDist) return;
-    // Transparencia según distancia: cerca nítido, lejos difuminado, para que el alumno
-    // perciba a simple vista lo lejos que está el avión (el tamaño lo da la perspectiva).
-    const alpha = distNM<=2 ? 1 : Math.max(0.3, 1-(distNM-2)/(maxDist-2)*0.7);
+    const far = distNM>farDist;
+    const alpha = Math.max(0.22, 1 - (distNM/maxDist)*0.85);
     let sz=Math.max(pr.scale*30,5);
     // pequeños ajustes según estado, para compensar lo que cuesta distinguir
     // a simple vista (rodaje/espera, pista, viento en cola/base/órbita)
@@ -3237,6 +3312,7 @@ function drawTowerAircraft(w,h){
     if(a.state===STATES.RODAJE||a.state===STATES.ESPERA) sz*=1.4;
     if(isCircuitTraffic(a)) sz*=1.3;
     sz=Math.min(sz,55);
+    if(far) sz*=0.42;   // el tráfico lejano, mucho más pequeño que el del circuito
     if(sz<0.5) return; // ya inapreciable: no merece la pena dibujarlo
     const sel=selected&&selected.id===a.id;
     // Orientación en pantalla: proyectamos un punto un poco por delante (según
@@ -3254,15 +3330,22 @@ function drawTowerAircraft(w,h){
     let screenAngle=0;
     if(prF.vis) screenAngle=Math.atan2(prF.sy-pr.sy, prF.sx-pr.sx);
     else if(prB.vis) screenAngle=Math.atan2(pr.sy-prB.sy, pr.sx-prB.sx);
+    // ASPECTO (para dibujar la silueta en 3D según desde dónde se ve): coseno del ángulo
+    // entre la línea de visión (cámara→avión) y el rumbo. +1 = se aleja (se ve por detrás),
+    // -1 = viene de frente (se ve el morro), ~0 = cruzando (se ve de perfil/planta).
+    const losx=a.x-CAM.pos.x, losy=a.y-CAM.pos.y, ll=Math.hypot(losx,losy)||1;
+    const cosA=(losx/ll)*Math.sin(hdgRad)+(losy/ll)*(-Math.cos(hdgRad));
     tctx.save();
     tctx.globalAlpha=alpha;   // difuminado por distancia (afecta sombra, silueta y etiqueta)
     if(a.alt<2640){const sh=project(a.x,a.y,0,w,h);if(sh.vis){tctx.fillStyle='rgba(0,0,0,.22)';
       tctx.beginPath();tctx.ellipse(sh.sx,sh.sy,sz*1.1,sz*0.3,screenAngle,0,7);tctx.fill();}}
-    drawPlane(pr.sx,pr.sy,sz,a,sel,screenAngle);
+    drawPlane(pr.sx,pr.sy,sz,a,sel,screenAngle,cosA);
     // El alumno NUNCA ve la altitud ni la velocidad de los tráficos (debe estimarlas
     // a ojo, como en la torre real); el indicativo sí puede mostrarse/ocultarse
     // según la opción que decida el profesor («studentAcLabels», sincronizada por red).
-    if(studentAcLabels){
+    // El nombre solo se muestra en el tráfico CERCANO; el lejano va sin etiqueta para no
+    // confundirlo con el del circuito.
+    if(studentAcLabels && !far){
       tctx.textAlign='left';tctx.fillStyle=sel?'#fff':'rgba(255,255,255,.92)';
       tctx.font=`${Math.max(7,Math.min(15,sz))}px JetBrains Mono`;
       tctx.fillText(a.cs,pr.sx+sz+4,pr.sy-2);
@@ -3288,7 +3371,11 @@ function acftLook(a){
 // Silueta plana de avión (vista en planta, morro a la derecha): fuselaje +
 // alas en flecha + estabilizador de cola, fácilmente reconocible como avión —
 // con proporciones (bl/ws/ts) y color propios de cada aeronave (ver acftLook).
-function drawPlane(x,y,sz,a,sel,angle){
+function drawPlane(x,y,sz,a,sel,angle,cosA){
+  // Silueta según desde dónde se ve la aeronave (pseudo-3D): de frente cuando viene
+  // hacia la torre, de cola cuando se aleja, y de planta/perfil cuando cruza.
+  if(cosA!=null && cosA<=-0.55){ drawPlaneFront(x,y,sz,a,sel,false); return; } // viene de frente
+  if(cosA!=null && cosA>= 0.55){ drawPlaneFront(x,y,sz,a,sel,true);  return; } // se aleja (de cola)
   tctx.save();tctx.translate(x,y);tctx.rotate(angle||0);
   const look=acftLook(a);
   const bl=look.bodyLen, ws=look.wingSweep, ts=look.tailSize;
@@ -3337,6 +3424,49 @@ function drawPlane(x,y,sz,a,sel,angle){
   // morrito/cabina (línea central sutil)
   tctx.strokeStyle=edge; tctx.lineWidth=sel?Math.max(1,sz*0.09):Math.max(0.5,sz*0.035);
   tctx.beginPath();tctx.moveTo(sz*1.1,0);tctx.lineTo(-sz*0.9*bl,0);tctx.stroke();
+  tctx.restore();
+}
+// Vista de FRENTE (o de cola, rear=true): alas horizontales con diedro, fuselaje
+// central, deriva y estabilizador. Da sensación 3D cuando el avión viene/va de frente.
+function drawPlaneFront(x,y,sz,a,sel,rear){
+  const look=acftLook(a); const ws=look.wingSweep;
+  const body=sel?'#ffffff':look.color;
+  const edge=sel?'#ffd23f':'rgba(35,50,70,.55)';
+  const edgeW=sel?Math.max(1.4,sz*0.14):Math.max(0.5,sz*0.045);
+  tctx.save();tctx.translate(x,y);
+  tctx.fillStyle=body; tctx.strokeStyle=edge; tctx.lineWidth=edgeW;
+  const span=sz*1.35*ws;
+  // ala horizontal con extremos algo levantados (diedro)
+  tctx.beginPath();
+  tctx.moveTo(-span,      -sz*0.18);
+  tctx.lineTo(-sz*0.45,    sz*0.02);
+  tctx.lineTo( sz*0.45,    sz*0.02);
+  tctx.lineTo( span,      -sz*0.18);
+  tctx.lineTo( span,      -sz*0.05);
+  tctx.lineTo( sz*0.45,    sz*0.16);
+  tctx.lineTo(-sz*0.45,    sz*0.16);
+  tctx.lineTo(-span,      -sz*0.05);
+  tctx.closePath(); tctx.fill(); tctx.stroke();
+  // estabilizador horizontal (arriba, junto a la deriva)
+  tctx.beginPath();
+  tctx.moveTo(-sz*0.5,-sz*0.78);tctx.lineTo(sz*0.5,-sz*0.78);
+  tctx.lineTo(sz*0.5,-sz*0.66);tctx.lineTo(-sz*0.5,-sz*0.66);tctx.closePath();tctx.fill();tctx.stroke();
+  // deriva (vertical)
+  tctx.beginPath();
+  tctx.moveTo(-sz*0.09, sz*0.06);tctx.lineTo(-sz*0.05,-sz*0.95);
+  tctx.lineTo( sz*0.05,-sz*0.95);tctx.lineTo( sz*0.09, sz*0.06);
+  tctx.closePath(); tctx.fill(); tctx.stroke();
+  // fuselaje visto de frente (óvalo central)
+  tctx.beginPath(); tctx.ellipse(0,0, sz*0.34, sz*0.52, 0,0,7); tctx.fill(); tctx.stroke();
+  if(!rear){
+    // cabina/morro: reflejo claro al frente
+    tctx.fillStyle=sel?'#cfe0f5':'rgba(185,210,238,.85)';
+    tctx.beginPath(); tctx.ellipse(0,-sz*0.14, sz*0.17, sz*0.22, 0,0,7); tctx.fill();
+  }else{
+    // de cola: toberas/escape oscuras
+    tctx.fillStyle='rgba(40,46,56,.75)';
+    tctx.beginPath(); tctx.ellipse(0, sz*0.05, sz*0.2, sz*0.26, 0,0,7); tctx.fill();
+  }
   tctx.restore();
 }
 
