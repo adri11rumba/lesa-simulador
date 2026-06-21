@@ -717,6 +717,8 @@ function setExitPoint(id,pt){
 }
 // Pista activa 03/21 (eje 028° MAG). THR 03 al SW, THR 21 al NE del ARP
 const RWY={hdg:28, len:2513, w:45};
+// METAR de la sesión (mostrado en la torre y en el radar de profesor y alumno)
+const METAR_TXT='LESA 20005KT 5000 32/07 Q1019';
 // Disposición lateral (metros desde el EJE de pista): calle de rodaje paralela y borde
 // próximo de cada plataforma. Más separación = se distingue mejor si el avión está en
 // pista, en la calle de rodaje o en plataforma. (Antes: paralela 120; plataformas 340/360.)
@@ -1421,15 +1423,17 @@ function setSavedSchedules(list){
       {time:480, cs:'IBE05LT', type:'A321', op:'ARR', orig:'LEBL', dest:'LESA', route:'TLD BBI',   lvl:'090'},
     ]},
   ];
+  // Se siembran UNA sola vez (marca en localStorage). Así, si el usuario borra un
+  // programa predefinido, NO reaparece al reabrir la aplicación. Si ya había programas
+  // guardados de un uso anterior, sólo marcamos como sembrado y respetamos lo que haya.
+  const SEED_FLAG='lesa_builtins_seeded_v1';
+  try{ if(localStorage.getItem(SEED_FLAG)) return; }catch(e){}
   const saved = getSavedSchedules();
-  let changed = false;
-  BUILTINS.forEach(b => {
-    if(!saved.find(s => s.name === b.name)){
-      saved.push({name:b.name, flights:b.flights, savedAt:0});
-      changed = true;
-    }
-  });
-  if(changed) setSavedSchedules(saved);
+  if(saved.length===0){
+    BUILTINS.forEach(b => saved.push({name:b.name, flights:b.flights, savedAt:0}));
+    setSavedSchedules(saved);
+  }
+  try{ localStorage.setItem(SEED_FLAG,'1'); }catch(e){}
 })();
 
 function saveScheduleAs(){
@@ -2914,6 +2918,12 @@ function drawRadar(canvas, ctx){
   ctx.moveTo(bx0+barPx,by0-5);ctx.lineTo(bx0+barPx,by0+5);ctx.stroke();
   ctx.fillStyle='rgba(220,235,225,.8)';ctx.font='10px JetBrains Mono';
   ctx.fillText(barNM.toFixed(2)+' NM',bx0,by0-8);
+
+  // ---------- METAR (esquina superior izquierda, profesor y alumno) ----------
+  ctx.textAlign='left'; ctx.textBaseline='alphabetic';
+  ctx.font='11px JetBrains Mono';
+  ctx.fillStyle='rgba(255,209,76,.95)';
+  ctx.fillText('METAR '+METAR_TXT, 14, 20);
 }
 
 // Plataforma vista desde arriba: contorno, calles internas numeradas y rótulo
@@ -3105,7 +3115,7 @@ function drawTower(){
 
   tctx.textAlign='left';
   tctx.fillStyle='rgba(255,255,255,.9)';tctx.font='13px JetBrains Mono';
-  tctx.fillText('TWR SALAMANCA 118.105 · RWY 03/21 · METAR 20005KT 5000 32/07 Q1019',16,28);
+  tctx.fillText('TWR SALAMANCA 118.105 · RWY 03/21 · METAR '+METAR_TXT,16,28);
 }
 
 function drawCloud(x,y,s){
