@@ -164,7 +164,7 @@
   .progRow .tag{flex:0 0 auto}
   .progRow .rte{flex:1 1 30px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .progRow .acts{flex:0 0 auto;display:flex;align-items:center;gap:5px;margin-left:auto}
-  .progRow .ttEdit{flex:0 0 auto;width:40px;background:var(--panel2);border:1px solid var(--line);border-radius:4px;
+  .progRow .ttEdit{flex:0 0 auto;width:62px;background:var(--panel2);border:1px solid var(--line);border-radius:4px;
     color:var(--amber);font-weight:700;font-family:'JetBrains Mono';font-size:11px;padding:1px 2px;text-align:center}
   .progRow .ttEdit:focus{outline:none;border-color:var(--amber);background:var(--panel)}
   .progRow .save2{flex:0 0 auto;font-size:11px;cursor:pointer;padding:2px 6px;border-radius:4px;background:var(--panel2);border:1px solid var(--line);transition:.12s}
@@ -300,7 +300,9 @@
   .formGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
   .formGrid .f label{font-size:10px;letter-spacing:1px;color:var(--ink-dim);text-transform:uppercase;display:block;margin-bottom:4px}
   .schedList{display:flex;flex-direction:column;gap:7px;max-height:230px;overflow-y:auto}
-  .schedRow{display:grid;grid-template-columns:60px 90px 70px 1fr 70px 30px 30px;gap:10px;align-items:center;background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:7px 10px;font-family:'JetBrains Mono';font-size:12px}
+  .schedRow{display:grid;grid-template-columns:72px 78px 50px 1fr 50px 22px 22px 22px;gap:7px;align-items:center;background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:7px 10px;font-family:'JetBrains Mono';font-size:12px}
+  .schedRow .edit2{cursor:pointer;text-align:center;color:var(--blue);font-size:13px;border-radius:4px;transition:.12s}
+  .schedRow .edit2:hover{background:var(--blue);color:#06121f}
   .schedRow .tt{color:var(--amber);font-weight:700}
   .schedRow .ttEdit{width:100%;background:var(--panel);border:1px solid var(--line);border-radius:4px;color:var(--amber);font-weight:700;font-family:'JetBrains Mono';font-size:12px;padding:2px 4px;text-align:center}
   .schedRow .ttEdit:focus{outline:none;border-color:var(--amber)}
@@ -513,10 +515,10 @@
     </header>
     <div class="schedBody">
       <div class="formGrid">
-        <div class="f"><label>Hora (mm:ss)</label><input id="f_time" class="mono" placeholder="00:30" value="00:30"></div>
+        <div class="f"><label>Hora (hh:mm:ss)</label><input id="f_time" class="mono" placeholder="00:00:30" value="00:00:30"></div>
         <div class="f"><label>Indicativo</label><input id="f_cs" class="mono" placeholder="BUH006" value="BUH006"></div>
         <div class="f"><label>Tipo aeronave</label><input id="f_type" class="mono" placeholder="C295" value="C295"></div>
-        <div class="f"><label>Categoría</label>
+        <div class="f" id="catField"><label>Categoría (llegada)</label>
           <select id="f_cat">
             <option value="CIV">Civil → plataforma civil</option>
             <option value="MIL">Militar → plataforma militar</option>
@@ -529,27 +531,34 @@
           </select>
         </div>
         <div class="f"><label>Operación</label>
-          <select id="f_op"><option value="DEP">Salida (DEP)</option><option value="ARR">Llegada (ARR)</option></select>
+          <select id="f_op" onchange="updatePointOptions()"><option value="DEP">Salida (DEP)</option><option value="ARR">Llegada (ARR)</option></select>
         </div>
-        <div class="f"><label>Punto</label>
-          <select id="f_point"><!-- se rellena según la regla (ver updatePointOptions) --></select>
+        <div class="f"><label id="lblPoint">Punto</label>
+          <select id="f_point"><!-- llegadas: punto de entrada · salidas: plataforma (ver updatePointOptions) --></select>
         </div>
         <div class="f"><label>Origen</label><input id="f_orig" class="mono" placeholder="LESA" value="LESA"></div>
         <div class="f"><label>Destino</label><input id="f_dest" class="mono" placeholder="LETO" value="LETO"></div>
         <div class="f"><label>Nivel / Rumbo</label><input id="f_lvl" class="mono" placeholder="035" value="035"></div>
       </div>
       <div style="display:flex;gap:10px;align-items:center">
-        <button class="btn go" onclick="addFlight()">+ Añadir al programa</button>
+        <button class="btn go" id="addFlightBtn" onclick="addFlight()">+ Añadir al programa</button>
+        <button class="btn" id="cancelEditBtn" onclick="cancelEditFlight()" style="display:none">✕ Cancelar edición</button>
         <button class="btn" onclick="loadDemo()">📅 Cargar programa de entrenamiento (10 vuelos)</button>
         <button class="btn" onclick="generateRandomSchedule()">🎲 Generar programa aleatorio</button>
-        <span class="hint" style="margin-left:auto">Elige regla (visual/instrumental) y punto. Las llegadas aparecen ~10 NM en alejamiento del punto, volando hacia él.</span>
+        <span class="hint" style="margin-left:auto">Elige regla, punto y categoría. Para editar un vuelo, pulsa ✎ en la lista.</span>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <span class="hint">⏱ Hora de inicio del reloj (UTC):</span>
+        <input id="f_clockStart" class="mono" style="width:80px;text-align:center" placeholder="00:00" value="00:00" onchange="setClockStart(this.value)">
+        <span class="hint">El reloj arranca a esta hora; los vuelos se programan en hh:mm:ss desde el inicio.</span>
       </div>
       <div>
-        <div class="secTitle" style="margin-bottom:8px;color:var(--green)">Vuelos programados</div>
+        <div class="secTitle" style="margin-bottom:8px;color:var(--green)">Vuelos programados <span class="hint" style="text-transform:none;letter-spacing:0">— ✎ editar · 💾 guardar hora · ✕ borrar</span></div>
+        <p class="hint" id="activeProgLbl" style="margin:-4px 0 6px;color:var(--amber)">Programa nuevo (sin guardar)</p>
         <div class="schedList" id="schedList"><div class="empty2">Aún no hay vuelos programados.</div></div>
       </div>
       <div>
-        <div class="secTitle" style="margin-bottom:8px;color:var(--green)">Programas guardados</div>
+        <div class="secTitle" style="margin-bottom:8px;color:var(--green)">Programas guardados <span class="hint" style="text-transform:none;letter-spacing:0">— 📂 cargar · ✎ renombrar · ✕ borrar</span></div>
         <div style="display:flex;gap:10px;align-items:center;margin-bottom:10px">
           <input id="sched_saveName" class="mono" placeholder="Nombre del programa, p. ej. «Sesión básica»" style="flex:1" onkeydown="if(event.key==='Enter')saveScheduleAs()">
           <button class="btn go" onclick="saveScheduleAs()">💾 Guardar para reutilizar</button>
@@ -934,7 +943,7 @@ async function registerAsHost(code){
 }
 function broadcastState(){
   if(!CONNS.size) return;
-  const msg={type:'state', running:simRunning, time:simTime, speed:simSpeed, schedule, aircraft, studentAcLabels, activeRwy};
+  const msg={type:'state', running:simRunning, time:simTime, speed:simSpeed, schedule, aircraft, studentAcLabels, activeRwy, clockStart};
   CONNS.forEach(c=>{ if(c.open) c.send(msg); });
 }
 // Sólo el profesor ANFITRIÓN (autoridad) retransmite el estado.
@@ -975,11 +984,13 @@ const RC={
   cancelsched:(i)=>cancelScheduledFlight(i),
   delac:(id)=>removeAircraft(id),
   addflight:(f)=>addFlightObj(f),
+  editflight:(i,f)=>editFlightObj(i,f),
   delflight:(i)=>delFlight(i),
   savetime:(i,val)=>saveScheduledTime(i,val),
+  clockstart:(s)=>applyClockStart(s),
   loaddemo:()=>loadDemo(),
   gensched:()=>generateRandomSchedule(),
-  loadschedule:(flights)=>applyLoadedSchedule(flights,'Programa cargado por el otro profesor'),
+  loadschedule:(flights,cs)=>applyLoadedSchedule(flights,'Programa cargado por el otro profesor',cs),
   simtoggle:()=>toggleSim(),
   simspeed:()=>setSpeed(),
   simreset:()=>resetSim()
@@ -1026,7 +1037,7 @@ function studentTick(){
       ac.y+=-Math.cos(ac.hdg*Math.PI/180)*v;
     }
   });
-  const clk=document.getElementById('clock'); if(clk)clk.textContent=fmtT(simTime);
+  const clk=document.getElementById('clock'); if(clk)clk.textContent=clockText();
   render();
 }
 
@@ -1112,12 +1123,13 @@ function onHostState(m){
   simRunning=m.running; simTime=m.time; simSpeed=m.speed;
   schedule=m.schedule||[]; aircraft=m.aircraft||[];
   if(m.studentAcLabels!==undefined) studentAcLabels=!!m.studentAcLabels;
+  if(m.clockStart!==undefined) clockStart=m.clockStart;   // hora de inicio del reloj (compartida)
   if(m.activeRwy) applyActiveRwy(m.activeRwy);   // pista activa compartida (2º profesor)
   // si el 2º profesor está arrastrando un avión en el radar, conservamos su posición
   // local sobre el estado entrante para que el arrastre no "salte" hasta soltarlo
   if(dragAc){ const na=aircraft.find(a=>a.id===dragAc.id); if(na){ na.x=dragAc.x; na.y=dragAc.y; dragAc=na; } }
   selected = selectedId!=null ? aircraft.find(a=>a.id===selectedId)||null : null;
-  const clk=document.getElementById('clock'); if(clk)clk.textContent=fmtT(simTime);
+  const clk=document.getElementById('clock'); if(clk)clk.textContent=clockText();
   const sp=document.getElementById('spdLbl'); if(sp)sp.textContent='x'+simSpeed;
   // el 2º profesor refleja el reloj y los ajustes del anfitrión en sus controles
   if(role==='instructor'){
@@ -1222,42 +1234,93 @@ function backToRole(){
 /* ===========================================================
    SCHEDULER
    =========================================================== */
-function openSched(){document.getElementById('sched').style.display='flex';updatePointOptions();renderSchedList();renderSavedSchedList();}
+function openSched(){
+  document.getElementById('sched').style.display='flex';
+  updatePointOptions(); renderSchedList(); renderSavedSchedList(); updateActiveProgramLabel();
+  const cs=document.getElementById('f_clockStart'); if(cs) cs.value=fmtT(clockStart).slice(0,5);  // hora de inicio actual (hh:mm)
+}
 // Rellena el desplegable de "Punto" según la regla elegida: visuales (N, E, S, W, N-1,
 // E-1) o instrumentales (puntos de aproximación de APP_REF: DSK, VETAN, ZMR, ADORO, ...).
+// «4NM» (aproximación directa alineada con la pista, a 4 NM) está disponible en ambos.
 function updatePointOptions(){
-  const ruleEl=document.getElementById('f_rule'), sel=document.getElementById('f_point');
-  if(!ruleEl||!sel) return;
-  const opts = ruleEl.value==='IFR' ? Object.keys(APP_REF) : ['N','N-1','E','E-1','S','W'];
+  const ruleEl=document.getElementById('f_rule'), sel=document.getElementById('f_point'), opEl=document.getElementById('f_op');
+  if(!sel) return;
+  const isDep = opEl && opEl.value==='DEP';
+  const catField=document.getElementById('catField'); if(catField) catField.style.display=isDep?'none':'';   // la categoría solo aplica a llegadas
+  const lblP=document.getElementById('lblPoint');
+  let opts;   // pares [valor, etiqueta]
+  if(isDep){
+    // SALIDA: el "Punto" elige la plataforma de aparición (civil/militar)
+    if(lblP) lblP.textContent='Plataforma (salida)';
+    opts=[['CIV','Plataforma civil'],['MIL','Plataforma militar']];
+  }else{
+    // LLEGADA: punto de entrada (visual o instrumental) + aproximación directa 4NM
+    if(lblP) lblP.textContent='Punto (entrada)';
+    const pts=((ruleEl&&ruleEl.value==='IFR') ? Object.keys(APP_REF) : ['N','N-1','E','E-1','S','W']).concat(['4NM']);
+    opts=pts.map(p=>[p, p==='4NM'?'4NM · aproximación directa':p]);
+  }
   const cur=sel.value;
-  sel.innerHTML=opts.map(p=>`<option value="${p}">${p}</option>`).join('');
-  if(opts.includes(cur)) sel.value=cur;
+  sel.innerHTML=opts.map(([v,l])=>`<option value="${v}">${l}</option>`).join('');
+  if(opts.some(([v])=>v===cur)) sel.value=cur;
 }
 function closeSched(){document.getElementById('sched').style.display='none';}
-function parseT(s){const m=String(s).trim().match(/^(\d{1,2}):(\d{2})$/);if(!m)return null;return (+m[1])*60+(+m[2]);}
+// Hora de un vuelo en formato hh:mm:ss (también se acepta mm:ss por compatibilidad).
+function parseT(s){
+  s=String(s).trim();
+  let m=s.match(/^(\d{1,2}):(\d{2}):(\d{2})$/);
+  if(m){ if(+m[2]>59||+m[3]>59) return null; return (+m[1])*3600+(+m[2])*60+(+m[3]); }
+  m=s.match(/^(\d{1,2}):(\d{2})$/);   // mm:ss (compatibilidad con programas antiguos)
+  if(m){ if(+m[2]>59) return null; return (+m[1])*60+(+m[2]); }
+  return null;
+}
 function fmtT(sec){const h=Math.floor(sec/3600),m=Math.floor(sec%3600/60),s=Math.floor(sec%60);
   return String(h).padStart(2,'0')+':'+String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');}
-function fmtMS(sec){const m=Math.floor(sec/60),s=Math.floor(sec%60);return String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');}
+// Horas de los vuelos y marcas de tiempo en formato hh:mm:ss.
+function fmtMS(sec){const h=Math.floor(sec/3600),m=Math.floor(sec%3600/60),s=Math.floor(sec%60);
+  return String(h).padStart(2,'0')+':'+String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');}
+// Hora de inicio del reloj (UTC) elegida para el programa: el reloj de cabecera muestra
+// clockStart + tiempo transcurrido (en vez de empezar siempre en 00:00). Los vuelos se
+// siguen programando en mm:ss desde el inicio de la sesión.
+let clockStart=0;   // segundos (0 = 00:00:00)
+function parseHM(s){const m=String(s).trim().match(/^(\d{1,2}):(\d{2})$/);if(!m)return null;const hh=+m[1],mm=+m[2];if(hh>23||mm>59)return null;return hh*3600+mm*60;}
+function clockText(){ return fmtT((clockStart+simTime)%86400); }
+function applyClockStart(sec){ clockStart=((sec%86400)+86400)%86400; const c=document.getElementById('clock'); if(c)c.textContent=clockText(); persistCurrentProgram(); }
+function setClockStart(v){ const s=parseHM(v); if(s===null){ alert('Hora inválida. Usa hh:mm, p.ej. 14:30'); return; } if(relayRC('clockstart',[s])) { applyClockStart(s); return; } applyClockStart(s); }
 
 function addFlight(){
   const t=parseT(document.getElementById('f_time').value);
   const cs=document.getElementById('f_cs').value.trim().toUpperCase();
-  if(t===null){alert('Hora inválida. Usa mm:ss, p.ej. 01:30');return;}
+  if(t===null){alert('Hora inválida. Usa hh:mm:ss, p.ej. 00:01:30');return;}
   if(!cs){alert('Indicativo obligatorio');return;}
+  const op=document.getElementById('f_op').value;
+  const ptVal=document.getElementById('f_point')?document.getElementById('f_point').value:'';
+  // SALIDA: el "Punto" es la plataforma de aparición (CIV/MIL) → define la categoría, sin
+  // punto de entrada. LLEGADA: el "Punto" es el punto de entrada y la categoría va aparte.
+  const cat = op==='DEP' ? (ptVal==='MIL'?'MIL':'CIV') : (document.getElementById('f_cat')?document.getElementById('f_cat').value:'CIV');
+  const point = op==='DEP' ? '' : ptVal;
   const f={
     time:t, cs,
     type:document.getElementById('f_type').value.trim().toUpperCase()||'C295',
-    op:document.getElementById('f_op').value,
+    op,
     orig:document.getElementById('f_orig').value.trim().toUpperCase()||'LESA',
     dest:document.getElementById('f_dest').value.trim().toUpperCase()||'----',
     route:'', // se elimina el campo de ruta del formulario: el punto de salida real
               // se planifica/edita desde la propia ficha de vuelo (ver exitPtPicker)
     lvl:document.getElementById('f_lvl').value.trim().toUpperCase()||'035',
     rule:document.getElementById('f_rule')?document.getElementById('f_rule').value:'VFR',   // VFR (visual) / IFR (instrumental)
-    cat:document.getElementById('f_cat')?document.getElementById('f_cat').value:'CIV',      // MIL → plataforma militar / CIV → plataforma civil
-    point:document.getElementById('f_point')?document.getElementById('f_point').value:'',   // punto elegido (entrada para llegadas / salida para salidas)
+    cat,    // MIL → plataforma militar / CIV → plataforma civil
+    point,  // punto de entrada (sólo llegadas)
     spawned:false
   };
+  // si estamos EDITANDO un vuelo, actualizamos ese vuelo en vez de añadir uno nuevo
+  if(editingIdx!=null){
+    const old=schedule[editingIdx]||{};
+    f.spawned=!!old.spawned; f.cancelled=!!old.cancelled;   // conservamos su estado
+    const idx=editingIdx; cancelEditFlight();
+    if(relayRC('editflight',[idx,f])) return;
+    editFlightObj(idx,f);
+    return;
+  }
   if(relayRC('addflight',[f])) return;
   addFlightObj(f);
 }
@@ -1266,9 +1329,39 @@ function addFlightObj(f){
   schedule.sort((a,b)=>a.time-b.time);
   renderSchedList();
 }
+// --- Edición de un vuelo ya programado ---------------------------------------
+let editingIdx=null;   // índice del vuelo que se está editando (o null)
+// Carga un vuelo del programa en el formulario para modificarlo (indicativo, operación,
+// origen/destino, regla, categoría, punto, hora…). Al pulsar «Guardar cambios» se
+// actualiza ese vuelo en vez de crear uno nuevo.
+function editFlight(i){
+  const f=schedule[i]; if(!f) return;
+  const set=(id,v)=>{ const el=document.getElementById(id); if(el) el.value=v; };
+  set('f_time', fmtMS(f.time)); set('f_cs', f.cs||''); set('f_type', f.type||'');
+  set('f_op', f.op||'DEP'); set('f_cat', f.cat||'CIV'); set('f_rule', f.rule||'VFR');
+  updatePointOptions();
+  // en salidas el "Punto" es la plataforma (f.cat); en llegadas, el punto de entrada
+  set('f_point', (f.op==='DEP') ? (f.cat||'CIV') : (f.point||''));
+  set('f_orig', f.orig||''); set('f_dest', f.dest||''); set('f_lvl', f.lvl||'035');
+  editingIdx=i;
+  const ab=document.getElementById('addFlightBtn'); if(ab) ab.textContent='💾 Guardar cambios';
+  const cb=document.getElementById('cancelEditBtn'); if(cb) cb.style.display='';
+}
+function cancelEditFlight(){
+  editingIdx=null;
+  const ab=document.getElementById('addFlightBtn'); if(ab) ab.textContent='+ Añadir al programa';
+  const cb=document.getElementById('cancelEditBtn'); if(cb) cb.style.display='none';
+}
+function editFlightObj(i,f){
+  if(i<0||i>=schedule.length) return;
+  schedule[i]=f;
+  schedule.sort((a,b)=>a.time-b.time);
+  renderSchedList();
+}
 function delFlight(i){ if(relayRC('delflight',[i])) return; schedule.splice(i,1); renderSchedList(); }
 function loadDemo(){
   if(relayRC('loaddemo')) return;
+  loadedProgramName=null; updateActiveProgramLabel();   // programa nuevo (sin nombre)
   // Reinicia el estado de la simulación para dejarla lista y poder pulsar
   // «Iniciar» de inmediato (si se cargaba el programa con la sim. en marcha,
   // el botón se quedaba en «Pausar/Reanudar» y parecía que no se podía iniciar).
@@ -1276,7 +1369,7 @@ function loadDemo(){
   const playBtn=document.getElementById('playBtn');
   if(playBtn){playBtn.textContent='▶ Iniciar'; playBtn.className='btn go';}
   const clockEl=document.getElementById('clock');
-  if(clockEl) clockEl.textContent=fmtT(0);
+  if(clockEl) clockEl.textContent=clockText();
   // Programa de entrenamiento: 10 vuelos mezclando salidas y llegadas,
   // tráfico militar (plataforma MIL, tipos C295/C101) y civil (plataforma CIV),
   // escalonados a lo largo de ~12 minutos de simulación para practicar
@@ -1314,6 +1407,7 @@ function shuffle(arr){
 function generateRandomSchedule(){
   if(schedule.length && !applyingRemote && !confirm('Esto reemplazará el programa de vuelos actual por uno aleatorio. ¿Continuar?')) return;
   if(relayRC('gensched')) return;
+  loadedProgramName=null; updateActiveProgramLabel();   // programa nuevo (sin nombre)
 
   const VFR_PT_LIST=['N-1','N','E-1','E','S','W'];
   const IFR_PT_LIST=Object.keys(APP_REF).filter(p=>p!=='BBI');
@@ -1393,6 +1487,50 @@ function getSavedSchedules(){
 function setSavedSchedules(list){
   try{ localStorage.setItem(SAVED_SCHED_KEY, JSON.stringify(list)); }catch(e){}
 }
+// Persistencia del PROGRAMA ACTUAL "en vivo" (la secuencia que estás creando/editando),
+// para que NO se pierda al cerrar y reabrir la aplicación — antes solo persistían los
+// "Programas guardados" con nombre. Se guarda el plan (vuelos sin estado de aparición) y
+// la hora de inicio del reloj. Sólo el profesor anfitrión lo guarda; al cargar se restaura.
+const CURRENT_PROG_KEY='lesa_currentProgram';
+// Nombre del programa guardado que está ACTIVO (cargado o recién guardado). Mientras lo
+// editas, los cambios se guardan también en ese programa (auto-guardado), no solo en la
+// sesión en vivo. Se pone a null al crear/generar uno nuevo sin nombre.
+let loadedProgramName=null;
+function flightsForSave(){
+  return schedule.map(({time,cs,type,op,orig,dest,route,lvl,rule,cat,point})=>({time,cs,type,op,orig,dest,route,lvl,rule,cat,point}));
+}
+function persistCurrentProgram(){
+  if(role && !(role==='instructor' && isHost)) return;   // el alumno / 2º profesor no guardan
+  try{ localStorage.setItem(CURRENT_PROG_KEY, JSON.stringify({clockStart, flights:flightsForSave(), name:loadedProgramName})); }catch(e){}
+  syncLoadedProgram();
+}
+// Vuelca los cambios actuales al programa guardado activo (si hay uno cargado), para que
+// editar un programa seleccionado quede guardado en ese programa.
+function syncLoadedProgram(){
+  if(!loadedProgramName) return;
+  if(role && !(role==='instructor' && isHost)) return;
+  const list=getSavedSchedules();
+  const i=list.findIndex(s=>s.name===loadedProgramName);
+  if(i<0){ loadedProgramName=null; return; }
+  list[i].flights=flightsForSave(); list[i].clockStart=clockStart; list[i].savedAt=Date.now();
+  setSavedSchedules(list);
+  renderSavedSchedList();
+  updateActiveProgramLabel();
+}
+function updateActiveProgramLabel(){
+  const el=document.getElementById('activeProgLbl'); if(!el) return;
+  el.textContent = loadedProgramName ? ('Programa activo: «'+loadedProgramName+'» — los cambios se guardan en él') : 'Programa nuevo (sin guardar) — usa «Guardar para reutilizar» para darle nombre';
+}
+(function restoreCurrentProgram(){
+  try{
+    const d=JSON.parse(localStorage.getItem(CURRENT_PROG_KEY));
+    if(d && Array.isArray(d.flights)){
+      schedule=d.flights.map(f=>({...f, spawned:false}));
+      if(typeof d.clockStart==='number') clockStart=d.clockStart;
+      if(d.name) loadedProgramName=d.name;
+    }
+  }catch(e){}
+})();
 
 /* ------------------------------------------------------------------
    Programas de entrenamiento predefinidos.
@@ -1448,32 +1586,38 @@ function saveScheduleAs(){
   const i=list.findIndex(s=>s.name===name);
   if(i>=0){
     if(!confirm(`Ya existe un programa llamado «${name}». ¿Sobrescribirlo?`)) return;
-    list[i]={name,flights,savedAt:Date.now()};
+    list[i]={name,flights,clockStart,savedAt:Date.now()};
   }else{
-    list.push({name,flights,savedAt:Date.now()});
+    list.push({name,flights,clockStart,savedAt:Date.now()});
   }
   setSavedSchedules(list);
   if(inp) inp.value='';
+  loadedProgramName=name;   // pasa a ser el programa activo: las ediciones se guardan en él
   renderSavedSchedList();
+  updateActiveProgramLabel();
   flash(`Programa «${name}» guardado (${flights.length} vuelo${flights.length===1?'':'s'})`);
 }
 function loadSavedSchedule(name){
   const entry=getSavedSchedules().find(s=>s.name===name);
   if(!entry) return;
   const flights=entry.flights.map(f=>({...f, spawned:false}));
+  const cs=entry.clockStart||0;
   // los programas guardados viven en el navegador de cada profesor, así que el 2º
-  // profesor envía los VUELOS (no el nombre) para que el anfitrión los cargue
-  if(relayRC('loadschedule',[flights])) return;
-  applyLoadedSchedule(flights, `Programa «${name}» cargado (${flights.length} vuelo${flights.length===1?'':'s'})`);
+  // profesor envía los VUELOS y la hora de inicio (no el nombre) para que el anfitrión los cargue
+  if(relayRC('loadschedule',[flights,cs])) return;
+  loadedProgramName=name;   // programa activo: editarlo guardará los cambios en él
+  applyLoadedSchedule(flights, `Programa «${name}» cargado (${flights.length} vuelo${flights.length===1?'':'s'})`, cs);
+  updateActiveProgramLabel();
 }
 // Carga un conjunto de vuelos como programa activo, con el mismo reinicio que el
 // «programa de entrenamiento» (para poder pulsar «Iniciar» de inmediato).
-function applyLoadedSchedule(flights, msg){
+function applyLoadedSchedule(flights, msg, cs){
   simRunning=false; simTime=0; lastTs=null; stopSimClock(); aircraft=[]; selected=null; selectedId=null;
+  if(cs!==undefined){ clockStart=((cs%86400)+86400)%86400; const inp=document.getElementById('f_clockStart'); if(inp) inp.value=fmtT(clockStart).slice(0,5); }
   const playBtn=document.getElementById('playBtn');
   if(playBtn){playBtn.textContent='▶ Iniciar'; playBtn.className='btn go';}
   const clockEl=document.getElementById('clock');
-  if(clockEl) clockEl.textContent=fmtT(0);
+  if(clockEl) clockEl.textContent=clockText();
   schedule=(flights||[]).map(f=>({...f, spawned:false}));
   schedule.sort((a,b)=>a.time-b.time);
   renderSchedList();
@@ -1484,7 +1628,20 @@ function applyLoadedSchedule(flights, msg){
 function deleteSavedSchedule(name){
   if(!confirm(`¿Eliminar el programa guardado «${name}»? Esta acción no se puede deshacer.`)) return;
   setSavedSchedules(getSavedSchedules().filter(s=>s.name!==name));
+  if(loadedProgramName===name){ loadedProgramName=null; updateActiveProgramLabel(); }
   renderSavedSchedList();
+}
+// Cambia el nombre de un programa guardado (renombrar).
+function renameSavedSchedule(name){
+  const nn=(prompt('Nuevo nombre para el programa «'+name+'»:', name)||'').trim();
+  if(!nn || nn===name) return;
+  const list=getSavedSchedules();
+  if(list.find(s=>s.name===nn)){ alert('Ya existe un programa con ese nombre.'); return; }
+  const it=list.find(s=>s.name===name); if(!it) return;
+  it.name=nn;
+  setSavedSchedules(list);
+  if(loadedProgramName===name) loadedProgramName=nn;
+  renderSavedSchedList(); updateActiveProgramLabel();
 }
 function renderSavedSchedList(){
   const el=document.getElementById('savedSchedList');
@@ -1492,10 +1649,11 @@ function renderSavedSchedList(){
   const list=getSavedSchedules();
   if(!list.length){ el.innerHTML='<div class="empty2">No hay programas guardados todavía.</div>'; return; }
   el.innerHTML=list.slice().sort((a,b)=>a.name.localeCompare(b.name,'es')).map(s=>`
-    <div class="schedRow" style="grid-template-columns:1fr 78px 84px 30px">
-      <span class="cs" title="${s.name}" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${s.name}</span>
+    <div class="schedRow" style="grid-template-columns:1fr 70px 78px 26px 26px">
+      <span class="cs" title="${s.name}" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${s.name}${s.name===loadedProgramName?' ◀':''}</span>
       <span style="color:#667">${s.flights.length} vuelo${s.flights.length===1?'':'s'}</span>
       <span class="loadBtn" data-loadsavedsched="${s.name}">📂 Cargar</span>
+      <span class="edit2" data-renamesavedsched="${s.name}" title="Renombrar este programa">✎</span>
       <span class="del" data-delsavedsched="${s.name}" title="Eliminar este programa guardado">✕</span>
     </div>`).join('');
 }
@@ -1508,6 +1666,8 @@ function renderSavedSchedList(){
   savedListEl.addEventListener('click',function(e){
     const load=e.target.closest('[data-loadsavedsched]');
     if(load){ loadSavedSchedule(load.getAttribute('data-loadsavedsched')); return; }
+    const ren=e.target.closest('[data-renamesavedsched]');
+    if(ren){ renameSavedSchedule(ren.getAttribute('data-renamesavedsched')); return; }
     const del=e.target.closest('[data-delsavedsched]');
     if(del){ deleteSavedSchedule(del.getAttribute('data-delsavedsched')); return; }
   });
@@ -1519,18 +1679,20 @@ function renderSchedList(){
     if(!schedule.length){el.innerHTML='<div class="empty2">Aún no hay vuelos programados.</div>';}
     else el.innerHTML=schedule.map((f,i)=>`
       <div class="schedRow">
-        <input class="ttEdit" type="text" inputmode="numeric" maxlength="5" value="${fmtMS(f.time)}"
+        <input class="ttEdit" type="text" inputmode="numeric" maxlength="8" value="${fmtMS(f.time)}"
           onkeydown="if(event.key==='Enter'){event.preventDefault();saveScheduledTime(${i},this.value);}"
-          title="Hora (mm:ss). Edítala y pulsa 💾 o Intro para guardar.">
+          title="Hora (hh:mm:ss). Edítala y pulsa 💾 o Intro para guardar.">
         <span class="cs">${f.cs}</span>
         <span>${f.type}</span>
         <span>${f.orig}→${f.dest}</span>
         <span class="tag ${f.op}">${f.op}</span>
+        <span class="edit2" title="Editar este vuelo" onclick="editFlight(${i})">✎</span>
         <span class="save2" title="Guardar nueva hora" onclick="saveScheduledTime(${i},this.closest('.schedRow').querySelector('.ttEdit').value)">💾</span>
         <span class="del" onclick="delFlight(${i})">✕</span>
       </div>`).join('');
   }
   renderProgList();
+  persistCurrentProgram();   // guarda el programa actual para que sobreviva al cierre de la app
 }
 
 /* ---------- Programa de vuelos · panel del profesor ----------
@@ -1575,8 +1737,8 @@ function renderProgList(){
       action = `<span class="go2" data-startnow="${i}">▶ Iniciar ahora</span>`;
       // la "✕" marca el vuelo como CANCELADO (gris): no aparecerá a su hora
       delBtn=`<span class="del2" data-cancelsched="${i}" title="Marcar como cancelado (queda en gris)">✕</span>`;
-      // hora editable: clic, escribe mm:ss y pulsa 💾 (o Intro) para guardar
-      timeField=`<input class="ttEdit" type="text" inputmode="numeric" maxlength="5" data-idx="${i}" value="${fmtMS(f.time)}" title="Hora de aparición (mm:ss). Edítala y pulsa 💾 o Intro para guardar.">`;
+      // hora editable: clic, escribe hh:mm:ss y pulsa 💾 (o Intro) para guardar
+      timeField=`<input class="ttEdit" type="text" inputmode="numeric" maxlength="8" data-idx="${i}" value="${fmtMS(f.time)}" title="Hora de aparición (hh:mm:ss). Edítala y pulsa 💾 o Intro para guardar.">`;
       saveBtn=`<span class="save2" data-savetime="${i}" title="Guardar nueva hora">💾</span>`;
     }
     // si el vuelo ya está en curso (ha aparecido), seleccionar su ficha también selecciona
@@ -1646,7 +1808,7 @@ function saveScheduledTime(i, val){
   const f=schedule[i];
   if(!f || f.spawned) return;
   const t=parseT(val);
-  if(t===null){ alert('Hora inválida. Usa mm:ss, p.ej. 01:30'); renderSchedList(); return; }
+  if(t===null){ alert('Hora inválida. Usa hh:mm:ss, p.ej. 00:01:30'); renderSchedList(); return; }
   if(relayRC('savetime',[i,val])) return;
   f.time=t;
   schedule.sort((a,b)=>a.time-b.time);
@@ -1736,7 +1898,7 @@ function resetSim(){
   const playBtn=document.getElementById('playBtn');
   if(playBtn){playBtn.textContent='▶ Iniciar'; playBtn.className='btn go';}
   const spdLbl=document.getElementById('spdLbl'); if(spdLbl) spdLbl.textContent='x1';
-  const clockEl=document.getElementById('clock'); if(clockEl) clockEl.textContent=fmtT(0);
+  const clockEl=document.getElementById('clock'); if(clockEl) clockEl.textContent=clockText();
   const logEl=document.getElementById('cmdLog'); if(logEl) logEl.innerHTML='';
   syncUI(); render();
   log('Simulación reiniciada — lista para comenzar de cero');
@@ -1755,7 +1917,7 @@ function simTick(){
   const dt=(now-lastTs)/1000*simSpeed; lastTs=now;
   simTime+=dt;
   step(dt);
-  const clockEl=document.getElementById('clock'); if(clockEl) clockEl.textContent=fmtT(simTime);
+  const clockEl=document.getElementById('clock'); if(clockEl) clockEl.textContent=clockText();
   updateProgBlink();
 }
 
@@ -1806,7 +1968,7 @@ function spawn(f){
     // o instrumental (DSK, VETAN, ZMR, ...). Sin punto definido, entra en final directo a
     // la pista activa (respaldo).
     const entry = f.point || arrivalEntryOf(f);
-    const p = REF[entry] || APP_REF[entry];
+    const p = (entry==='4NM'||entry==='FINAL21') ? null : (REF[entry] || APP_REF[entry]);
     ac.platform=(f.cat==='MIL')?'MIL':'CIV'; ac.spd=120; ac.state=STATES.AIRE;  // a qué plataforma irá tras aterrizar
     if(p){
       const d=Math.hypot(p.x,p.y)||1, ux=p.x/d, uy=p.y/d;
@@ -1819,12 +1981,14 @@ function spawn(f){
       // instrucción (ambos reemplazan ac.route).
       if(APP_REF[entry] && entry!=='BBI') ac.route=[{pt:'BBI'}];
     }else{
-      // respaldo: final directo a la cabecera activa, 15 NM
+      // APROXIMACIÓN DIRECTA alineada con la pista activa: '4NM' a 4 NM (final corto) o
+      // por defecto 15 NM (final largo). Aparece ya alineado, volando hacia la cabecera.
+      const nm = (entry==='4NM') ? 4 : 15;
       const e=rwyEnds(); const dir=RWY.hdg*Math.PI/180; const ax=Math.sin(dir), ay=-Math.cos(dir);
       const land21 = activeRwy!=='03';
       const thr = land21 ? e.thr21 : e.thr03; const sgn = land21 ? +1 : -1;
-      ac.x=thr.x+ax*15*NM*sgn; ac.y=thr.y+ay*15*NM*sgn;
-      ac.alt=2595+4500; ac.hdg=land21?208:28;
+      ac.x=thr.x+ax*nm*NM*sgn; ac.y=thr.y+ay*nm*NM*sgn;
+      ac.alt=2595+Math.round(nm*320); ac.hdg=land21?208:28;   // ~3° de senda (4 NM≈1280 ft)
       ac.target={mode:'xy', x:thr.x, y:thr.y};
     }
   }
