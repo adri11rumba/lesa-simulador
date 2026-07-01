@@ -247,6 +247,7 @@
   .strip .typ{font-size:11px;color:#555;margin-left:auto}
   .strip .row2{display:flex;gap:10px;padding:0 8px;font-size:11px;color:#333}
   .strip .rtpts{color:#1d6fb8;font-weight:700;letter-spacing:.3px}
+  .strip .ttnp{color:#c07d1a;font-weight:700;font-size:10.5px}
   .strip .row3{display:flex;gap:8px;padding:3px 8px 6px;font-size:11px;color:#444;border-top:1px solid #ddd5c2;margin-top:3px;align-items:center}
   .strip .state{margin-left:auto;font-weight:700;font-size:11px;padding:1px 7px;border-radius:3px;letter-spacing:.5px}
   .st-PROG{background:#e0e0e0;color:#555}
@@ -364,6 +365,8 @@
     border-radius:6px;padding:5px 4px;font-family:'Oswald';font-size:12px;transition:.12s}
   #commsPanel .commsBtnRow button:hover{border-color:var(--green)}
   #commsPanel .callBtn.ptt{background:#7a1020;border-color:#ff5577;color:#fff;box-shadow:0 0 0 2px rgba(255,85,119,.55)}  /* línea caliente activa */
+  #commsPanel .callBtn.incall{border-color:#34c759;box-shadow:0 0 0 2px rgba(52,199,89,.55)}  /* en llamada */
+  #commsPanel #hangupBtn{background:#7a1020;border-color:#ff5577;color:#fff}
   /* Panel flotante del alumno: cabecera clicable para plegar/desplegar */
   #commsPanel.floating .commsHead{cursor:pointer;user-select:none;display:flex;justify-content:space-between;align-items:center}
   #commsPanel.floating.collapsed{width:auto}
@@ -564,6 +567,7 @@
     </div>
     <div id="incomingCall" style="display:none"></div>
     <div class="commsBtnRow">
+      <button id="hangupBtn" onclick="hangupCall()" style="display:none" title="Colgar la llamada">📞 Colgar</button>
       <button id="micBtn" onclick="toggleMic()">🎙️ Micrófono</button>
       <button id="recBtn" onclick="toggleRecording()" style="display:none">⏺ Grabar</button>
     </div>
@@ -689,21 +693,23 @@ const REF={
 // Distancias REALES desde BBI (carta Gestión de Tráfico): rumbo aprox / NM.
 const BBI_POS = brgRng(35, 4.4);   // VOR/DME BBI: ~4,4 NM al NE del campo (AIP/coords reales)
 function fromBBI(brgDeg,nm){const a=brgDeg*Math.PI/180,d=nm*NM;return{x:BBI_POS.x+Math.sin(a)*d, y:BBI_POS.y-Math.cos(a)*d};}
+// Radiales y distancias tomados de la carta «Distancias en min. IAS 240 kt / RADIALES de BBI»
+// (1 min = 4 NM a 240 kt). Radiales corregidos al valor de la carta.
 const APP_REF={
   'BBI'    :BBI_POS,
-  'VETAN'  :fromBBI(353, 18),   // al N, 18 NM
-  'ZANKO'  :fromBBI(54 , 35),   // NE, 35 NM
-  'DIPOL'  :fromBBI(136, 50),   // SE, 50 NM
-  'ZMR'    :fromBBI(5  , 32),   // N, 32 NM
-  'ADORO'  :fromBBI(318, 46),   // NW, 46 NM
-  'VLD/NUB':fromBBI(28 , 50),   // NE, 50 NM
-  'DSK'    :fromBBI(90 , 56),   // E, 56 NM
-  'RVO'    :fromBBI(235, 62),   // SW, 62 NM
-  'BARDI'  :fromBBI(210, 46),   // SSW, 46 NM
-  'NVS'    :fromBBI(118, 67),   // ESE, 67 NM
-  'MLN'    :fromBBI(170, 75),   // S, 75 NM
-  'TLD'    :fromBBI(130, 81),   // SE, 81 NM
-  'CCS'    :fromBBI(200,100)    // SSW, 100 NM
+  'VETAN'  :fromBBI(350, 16),   // 350° · 4′
+  'ZANKO'  :fromBBI(54 , 35),   // (añadido aparte, no está en la carta)
+  'DIPOL'  :fromBBI(136, 50),   // (añadido aparte, no está en la carta)
+  'ZMR'    :fromBBI(347, 32),   // 347° · 8′
+  'ADORO'  :fromBBI(309, 46),   // 309° · 11,5′
+  'VLD/NUB':fromBBI(35 , 50),   // 035° · 12,5′ (NUB en la carta)
+  'DSK'    :fromBBI(86 , 56),   // 086° · 14′
+  'RVO'    :fromBBI(250, 62),   // 250° · 15,5′
+  'BARDI'  :fromBBI(240, 46),   // 240° · 11,5′
+  'NVS'    :fromBBI(127, 67),   // 127° · 17′
+  'MLN'    :fromBBI(177, 75),   // 177° · 19′
+  'TLD'    :fromBBI(142, 81),   // 142° · 20′
+  'CCS'    :fromBBI(209,100)    // 209° · 25′
 };
 // BBI también disponible para uso general
 REF['BBI']=BBI_POS;
@@ -794,12 +800,14 @@ function genSquawk(taken){
 function routeLabel(a){
   const innerOf = p => (p==='N'||p==='W'||p==='N-1') ? 'N-1' : 'E-1';
   if(a.op==='DEP'){
-    const pair=exitPtPairFor(a);          // [interior, exterior] según pista/plataforma
-    const inner=pair[0];
-    const outer=a.plannedExitPt||pair[1];
-    if(a.plannedExitPt && APP_REF[a.plannedExitPt] && a.plannedExitPt!=='BBI')
-      return `${inner} → BBI → ${a.plannedExitPt}`;   // salida instrumental
-    return `${inner} → ${outer}`;          // salida visual: interior → exterior
+    // Salida INSTRUMENTAL (IFR): sale por un punto INSTRUMENTAL vía BBI — NUNCA por puntos visuales.
+    if(flightRule(a)==='IFR'){
+      const pt=a.plannedExitPt;
+      return (pt && APP_REF[pt] && pt!=='BBI') ? `BBI → ${pt}` : 'BBI → (instrumental)';
+    }
+    // Salida VISUAL (VFR): interior → exterior.
+    const pair=exitPtPairFor(a);
+    return `${pair[0]} → ${a.plannedExitPt||pair[1]}`;
   }
   const p=a.entryPt;
   if(!p) return '';
@@ -807,6 +815,31 @@ function routeLabel(a){
   if(APP_REF[p] && p!=='BBI') return `${p} → BBI`;     // llegada instrumental
   const inner=innerOf(p);
   return (p===inner) ? p : `${p} → ${inner}`;          // llegada visual: exterior → interior
+}
+// Formato mm:ss para tiempos cortos.
+function fmtMinSec(sec){ if(!isFinite(sec)||sec<0) return '--:--'; const m=Math.floor(sec/60), s=Math.floor(sec%60); return m+':'+String(s).padStart(2,'0'); }
+// Tiempo estimado (segundos) hasta el punto/destino al que se dirige ahora la aeronave,
+// según su distancia y velocidad actuales. null si no procede (parado, en hold, en tierra).
+function timeToNextPoint(a){
+  if(!a || !a.target) return null;
+  if(a.target.mode==='hold' || a.target.mode==='orbit') return null;
+  let dest=null;
+  if(a.target.mode==='point') dest=REF[a.target.pt]||APP_REF[a.target.pt];
+  else if(a.target.mode==='xy') dest={x:a.target.x, y:a.target.y};
+  if(!dest) return null;
+  const spd = a.spd>5 ? a.spd : 0;   // kt
+  if(spd<=0) return null;
+  const dist=Math.hypot(dest.x-a.x, dest.y-a.y);   // metros
+  return dist/(spd*KT);                            // segundos (KT = m/s por kt)
+}
+// Distancia (NM) al punto/destino al que se dirige ahora la aeronave. null si no procede.
+function distToNextPoint(a){
+  if(!a || !a.target || a.target.mode==='hold' || a.target.mode==='orbit') return null;
+  let dest=null;
+  if(a.target.mode==='point') dest=REF[a.target.pt]||APP_REF[a.target.pt];
+  else if(a.target.mode==='xy') dest={x:a.target.x, y:a.target.y};
+  if(!dest) return null;
+  return Math.hypot(dest.x-a.x, dest.y-a.y)/NM;
 }
 // Puntos que el controlador puede asignar de antemano como "punto de salida" de una
 // salida (antes de que despegue): los seis puntos VFR de la CTR más BBI, paso obligado
@@ -834,19 +867,10 @@ let exitPtDropdownFor=null;
 // disponibles para poder editar/elegir el punto de salida real.
 // Una vez en el aire (tTakeoff asignado) la ficha deja de mostrar el selector.
 function exitPtPicker(a){
-  if(a.op!=='DEP' || a.tTakeoff!=null) return '';
-  const pair=exitPtPairFor(a);
-  const chips=pair.map(p=>
-    `<span class="ptChip ${a.plannedExitPt===p?'on':''}" data-toggledd-id="${a.id}">${p}</span>`
-  ).join('');
-  let dd='';
-  if(exitPtDropdownFor===a.id){
-    const opts=EXIT_PT_OPTIONS.map(p=>
-      `<span class="ptChip ddOpt ${a.plannedExitPt===p?'on':''}" data-setpt-id="${a.id}" data-setpt-val="${p}">${p}</span>`
-    ).join('');
-    dd=`<div class="exitPtDropdown"><span class="lbl">Editar — puntos disponibles:</span>${opts}</div>`;
-  }
-  return `<div class="exitPtRow"><span class="lbl">Punto de salida:</span>${chips}</div>${dd}`;
+  // Selector de punto de salida ELIMINADO de la ficha: el punto se fija al crear el vuelo
+  // (en «Programas de vuelo») y la ruta ya se muestra en la línea «▷» de la ficha. Las
+  // salidas instrumentales usan sólo puntos instrumentales (vía BBI), no visuales.
+  return '';
 }
 // Abre/cierra el desplegable de puntos disponibles para editar el punto de salida
 // de una aeronave (al pulsar sobre uno de los 2 puntos propuestos en la ficha).
@@ -1167,7 +1191,7 @@ const RC={
   call:(from,to)=>{}   // las llamadas se gestionan aparte (handleCallMsg), no por aquí
 };
 function handleRemote(m, conn){
-  if(m && m.type==='call'){ onCallReceived(m); return; }   // llamadas (también del alumno)
+  if(m && (m.type==='call'||m.type==='answer'||m.type==='hangup')){ onCommsMsg(m); return; }   // llamadas (también del alumno)
   if(m && m.type==='pos'){ if(conn) peerPos[conn.peer]=m.pos; return; }   // posición de cada peer (para la línea caliente)
   if(!m || m.type!=='rc' || !isHost) return;   // sólo el anfitrión aplica acciones remotas
   const fn=RC[m.name]; if(!fn) return;
@@ -1215,24 +1239,61 @@ function toggleComms(){
   p.classList.toggle('collapsed');
   const c=document.getElementById('commsCaret'); if(c) c.textContent=p.classList.contains('collapsed')?'▸':'▾';
 }
-// Enviar una llamada a una posición (al pulsar uno de los 3 botones).
-function callPosition(pos){
-  if(pos===myPos){ flash('Esa es tu propia posición'); return; }
-  const msg={type:'call', from:myPos, to:pos, id:Date.now()};
+// Envía un mensaje de comunicaciones (llamada/contestar/colgar) a los conectados.
+function sendComms(msg){
   let sent=false;
   if(role==='instructor' && isHost){ CONNS.forEach(c=>{ if(c.open){ try{c.send(msg); sent=true;}catch(e){} } }); }
   else if(HOST_CONN && HOST_CONN.open){ try{ HOST_CONN.send(msg); sent=true; }catch(e){} }
-  if(!sent){ flash('No hay nadie conectado para llamar'); return; }
-  flash('Llamando a '+positionName(pos)+'…');
-  const b=document.querySelector('#commsPanel .callBtn[data-pos="'+pos+'"]');
-  if(b){ b.classList.add('ringing'); setTimeout(()=>b.classList.remove('ringing'),2500); }
+  return sent;
 }
-// Llega una llamada: el anfitrión la reparte al resto de conectados (los clientes sólo
-// hablan con él); si va dirigida a MI posición, parpadea mi botón y muestro quién llama.
-function onCallReceived(m){
+// Llamar a una posición (toque en su botón): en la pantalla del otro parpadea TU botón;
+// él contesta pulsando el botón que parpadea.
+function callPosition(pos){
+  if(pos===myPos){ flash('Esa es tu propia posición'); return; }
+  if(!sendComms({type:'call', from:myPos, to:pos, id:Date.now()})){ flash('No hay nadie conectado para llamar'); return; }
+  flash('Llamando a '+positionName(pos)+'… (espera a que descuelgue)');
+}
+// Llegada de un mensaje de comunicaciones. El anfitrión lo reparte al resto de conectados
+// (los clientes sólo hablan con él). Si va dirigido a MI posición, actúo.
+function onCommsMsg(m){
   if(!m || m.to==null) return;
   if(role==='instructor' && isHost){ CONNS.forEach(c=>{ if(c.open){ try{c.send(m);}catch(e){} } }); }
-  if(m.to===myPos) showIncomingCall(m.from);
+  if(m.to!==myPos) return;
+  if(m.type==='call')        showIncomingCall(m.from);   // parpadea el botón de quien llama
+  else if(m.type==='answer') startCall(m.from);          // el otro descolgó → abre voz
+  else if(m.type==='hangup') endCall();                  // el otro colgó
+}
+// Contestar (pulsar el botón que parpadea): abre la voz y avisa al que llama.
+function answerCall(pos){
+  clearIncomingCall();
+  sendComms({type:'answer', from:myPos, to:pos});
+  startCall(pos);
+}
+// Colgar (botón 📞): cierra la voz y avisa al otro.
+function hangupCall(){
+  if(activeCallPos) sendComms({type:'hangup', from:myPos, to:activeCallPos});
+  endCall();
+}
+// Abre la voz dirigida SÓLO a esa posición y muestra el botón de colgar.
+let activeCallPos=null, activeVoiceCalls=null;
+async function startCall(pos){
+  clearIncomingCall();
+  activeCallPos=pos;
+  const hb=document.getElementById('hangupBtn'); if(hb) hb.style.display='';
+  const b=document.querySelector('#commsPanel .callBtn[data-pos="'+pos+'"]'); if(b) b.classList.add('incall');
+  flash('📞 En llamada con '+positionName(pos));
+  try{ if(!micStream) micStream=await navigator.mediaDevices.getUserMedia({audio:true}); }
+  catch(e){ flash('Sin micrófono: oirás pero no te oirán'); return; }
+  micStream.getAudioTracks().forEach(t=>t.enabled=true);
+  const ids=pttTargetPeers(pos);
+  activeVoiceCalls=ids.map(id=>{ try{ const c=PEER.call(id,micStream); if(c) c.on('stream',rs=>playRemoteAudio(id,rs)); return c;}catch(e){return null;} }).filter(Boolean);
+}
+function endCall(){
+  if(activeVoiceCalls){ activeVoiceCalls.forEach(c=>{ try{c.close();}catch(e){} }); activeVoiceCalls=null; }
+  if(!voiceOn && micStream) micStream.getAudioTracks().forEach(t=>t.enabled=false);
+  activeCallPos=null;
+  const hb=document.getElementById('hangupBtn'); if(hb) hb.style.display='none';
+  document.querySelectorAll('#commsPanel .callBtn.incall').forEach(b=>b.classList.remove('incall'));
 }
 function showIncomingCall(fromPos){
   // Parpadea el botón del QUE LLAMA en tu pantalla (sin ventana de "llamada telefónica").
@@ -1241,7 +1302,7 @@ function showIncomingCall(fromPos){
   const caller=document.querySelector('#commsPanel .callBtn[data-pos="'+fromPos+'"]');
   if(caller) caller.classList.add('ringing');
   playRingtone();
-  clearTimeout(incomingTimer); incomingTimer=setTimeout(clearIncomingCall, 6000);
+  clearTimeout(incomingTimer); incomingTimer=setTimeout(clearIncomingCall, 25000);   // sigue sonando/parpadeando hasta contestar
 }
 function clearIncomingCall(){
   const box=document.getElementById('incomingCall'); if(box){ box.style.display='none'; box.classList.remove('ringing'); box.onclick=null; }
@@ -1286,7 +1347,12 @@ function pttStop(){
   function up(){
     if(!active) return;
     clearTimeout(holdTimer);
-    if(isHold) pttStop(); else if(holdPos) callPosition(holdPos);
+    if(isHold){ pttStop(); }
+    else if(holdPos){
+      const btn=document.querySelector('#commsPanel .callBtn[data-pos="'+holdPos+'"]');
+      if(btn && btn.classList.contains('ringing')) answerCall(holdPos);   // contestar la llamada que parpadea
+      else callPosition(holdPos);                                          // o llamar a esa posición
+    }
     holdPos=null; isHold=false; active=false;
   }
   document.addEventListener('mousedown', e=>{ const b=e.target.closest('#commsPanel .callBtn'); if(b){ e.preventDefault(); down(b); } });
@@ -1557,28 +1623,32 @@ function joinAsCoInstructor(){
 // ('state') o lista de programas de vuelo compartidos ('progs').
 function onHostMessage(m){
   if(!m) return;
-  if(m.type==='progs'){ mergeSharedPrograms(m.list); return; }
-  if(m.type==='call'){ onCallReceived(m); return; }
+  if(m.type==='progs'){ mergeSharedPrograms(m.list, true); return; }   // recibidos por red: solo lectura (para el alumno)
+  if(m.type==='call'||m.type==='answer'||m.type==='hangup'){ onCommsMsg(m); return; }
   onHostState(m);
 }
 // Fusiona en el navegador propio los programas de vuelo recibidos del anfitrión (o
 // importados de un archivo): añade los que no se tengan y actualiza los del mismo nombre.
 // Así el alumno/2º profesor acaba teniendo tus programas y puede usarlos (p.ej. luego en
 // modo local como anfitrión).
-function mergeSharedPrograms(list){
+// readOnly=true (por defecto): marca los programas como SOLO LECTURA (shared) — así llegan
+// del profesor por la red y el ALUMNO no puede editarlos (sólo copiarlos). readOnly=false:
+// se fusionan como propios y EDITABLES (p.ej. al IMPORTAR un archivo: son tuyos, los editas).
+function mergeSharedPrograms(list, readOnly){
+  if(readOnly===undefined) readOnly=true;
   if(!Array.isArray(list)) return 0;
   const mine=getSavedSchedules(); let n=0;
   list.forEach(p=>{ if(!p||!p.name||!Array.isArray(p.flights)) return;
-    // Los programas que llegan del profesor (o de un archivo importado) se marcan como
-    // SOLO LECTURA (shared): el alumno puede verlos y usarlos, pero no editarlos, renombrarlos
-    // ni borrarlos. Para cambiarlos, debe hacer una copia editable («⧉ Copiar»).
-    const incoming={...p, shared:true};
+    const incoming={...p}; if(readOnly) incoming.shared=true; else delete incoming.shared;
     const i=mine.findIndex(s=>s.name===p.name);
     if(i>=0) mine[i]=incoming; else mine.push(incoming); n++; });
   setSavedSchedules(mine);   // no re-difunde: el guard de setSavedSchedules sólo difunde si eres anfitrión
   renderSavedSchedList();
   return n;
 }
+// ¿Este programa es de SOLO LECTURA para MÍ? Sólo el ALUMNO tiene el candado; cualquier
+// profesor (anfitrión o 2º) puede editar/borrar/renombrar TODOS sus programas.
+function isReadOnlyProg(s){ return !!(s && s.shared) && role==='student'; }
 function onHostState(m){
   if(!m||m.type!=='state') return;
   lastNetUpdate=performance.now(); lastExtrapTs=lastNetUpdate;
@@ -2005,7 +2075,7 @@ function syncLoadedProgram(){
   const list=getSavedSchedules();
   const i=list.findIndex(s=>s.name===loadedProgramName);
   if(i<0){ loadedProgramName=null; return; }
-  if(list[i].shared){ loadedProgramName=null; return; }   // no se auto-guarda sobre un programa del profesor
+  delete list[i].shared;   // al editarlo como profesor, el programa pasa a ser TUYO (editable)
   list[i].flights=flightsForSave(); list[i].clockStart=clockStart; list[i].savedAt=Date.now();
   setSavedSchedules(list);
   renderSavedSchedList();
@@ -2117,8 +2187,8 @@ function importProgramsFile(input){
       const d=JSON.parse(r.result);
       const list=Array.isArray(d)?d:(d.lesaPrograms||d.list||d.programs);
       if(!Array.isArray(list)){ alert('El archivo no contiene programas válidos.'); return; }
-      const n=mergeSharedPrograms(list);
-      flash(`Importados ${n} programa${n===1?'':'s'}.`);
+      const n=mergeSharedPrograms(list, false);   // importados = TUYOS y editables (no solo lectura)
+      flash(`Importados ${n} programa${n===1?'':'s'} (editables).`);
     }catch(e){ alert('No se pudo leer el archivo (¿está dañado?).'); }
     input.value='';
   };
@@ -2134,7 +2204,7 @@ function loadSavedSchedule(name){
   if(relayRC('loadschedule',[flights,cs])) return;
   // Si el programa es del profesor (solo lectura) NO lo marcamos como activo para edición:
   // así, cualquier cambio que hagas no se guarda en el original. Para editar, usa «⧉ Copiar».
-  loadedProgramName = entry.shared ? null : name;
+  loadedProgramName = isReadOnlyProg(entry) ? null : name;   // el alumno no auto-guarda sobre uno de solo lectura; el profesor sí edita
   applyLoadedSchedule(flights, `Programa «${name}» cargado (${flights.length} vuelo${flights.length===1?'':'s'})`, cs);
   updateActiveProgramLabel();
 }
@@ -2156,7 +2226,7 @@ function applyLoadedSchedule(flights, msg, cs){
 }
 function deleteSavedSchedule(name){
   const it0=getSavedSchedules().find(s=>s.name===name);
-  if(it0&&it0.shared){ alert('Este programa es del profesor (solo lectura). Haz una copia («⧉ Copiar») si quieres una versión que puedas borrar o editar.'); return; }
+  if(isReadOnlyProg(it0)){ alert('Este programa es del profesor (solo lectura). Haz una copia («⧉ Copiar») si quieres una versión que puedas borrar o editar.'); return; }
   if(!confirm(`¿Eliminar el programa guardado «${name}»? Esta acción no se puede deshacer.`)) return;
   setSavedSchedules(getSavedSchedules().filter(s=>s.name!==name));
   if(loadedProgramName===name){ loadedProgramName=null; updateActiveProgramLabel(); }
@@ -2165,7 +2235,7 @@ function deleteSavedSchedule(name){
 // Cambia el nombre de un programa guardado (renombrar).
 function renameSavedSchedule(name){
   const it0=getSavedSchedules().find(s=>s.name===name);
-  if(it0&&it0.shared){ alert('Este programa es del profesor (solo lectura). Haz una copia («⧉ Copiar») para poder renombrarlo.'); return; }
+  if(isReadOnlyProg(it0)){ alert('Este programa es del profesor (solo lectura). Haz una copia («⧉ Copiar») para poder renombrarlo.'); return; }
   const nn=(prompt('Nuevo nombre para el programa «'+name+'»:', name)||'').trim();
   if(!nn || nn===name) return;
   const list=getSavedSchedules();
@@ -2181,7 +2251,7 @@ function renderSavedSchedList(){
   if(!el) return;
   const list=getSavedSchedules();
   if(!list.length){ el.innerHTML='<div class="empty2">No hay programas guardados todavía.</div>'; return; }
-  el.innerHTML=list.slice().sort((a,b)=>a.name.localeCompare(b.name,'es')).map(s=> s.shared ? `
+  el.innerHTML=list.slice().sort((a,b)=>a.name.localeCompare(b.name,'es')).map(s=> isReadOnlyProg(s) ? `
     <div class="schedRow" style="grid-template-columns:1fr 70px 78px 52px" title="Programa del profesor (solo lectura). Haz una copia para editarlo.">
       <span class="cs" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">🔒 ${s.name}${s.name===loadedProgramName?' ◀':''}</span>
       <span style="color:#667">${s.flights.length} vuelo${s.flights.length===1?'':'s'}</span>
@@ -2583,7 +2653,7 @@ function spawn(f){
     const entry = f.point || arrivalEntryOf(f);
     ac.entryPt = entry;   // punto de entrada (para mostrar la ruta en la ficha de progreso)
     const p = (entry==='5NM'||entry==='4NM'||entry==='FINAL21') ? null : (REF[entry] || APP_REF[entry]);   // '4NM' se acepta por compatibilidad con programas antiguos
-    ac.platform=(f.cat==='MIL')?'MIL':'CIV'; ac.spd=120; ac.state=STATES.AIRE;  // a qué plataforma irá tras aterrizar
+    ac.platform=(f.cat==='MIL')?'MIL':'CIV'; ac.spd=ac.cruise||120; ac.state=STATES.AIRE;  // aparece YA a su velocidad de crucero (no acelera poco a poco)
     if(p){
       const d=Math.hypot(p.x,p.y)||1, ux=p.x/d, uy=p.y/d;
       // los VISUALES aparecen muy cerca de su punto (2 NM en alejamiento); los
@@ -3186,10 +3256,8 @@ function renderStrips(){
         <span>FL${a.lvl}</span>
         ${a.sq?`<span title="Squawk (código transpondedor)">SQ <b>${a.sq}</b></span>`:''}
       </div>
-      ${routeLabel(a)?`<div class="row2"><span class="rtpts" title="Puntos de la ruta">▷ ${routeLabel(a)}</span></div>`:''}
+      ${routeLabel(a)?`${(function(){const t=timeToNextPoint(a),d=distToNextPoint(a);return t!=null?`<div class="row2"><span class="ttnp" title="Tiempo y distancia al siguiente punto">⏱ ${fmtMinSec(t)} · ${d.toFixed(1)} NM al siguiente punto</span></div>`:'';})()}<div class="row2"><span class="rtpts" title="Puntos de la ruta">▷ ${routeLabel(a)}</span></div>`:''}
       <div class="row3">
-        <span>HC: ${a.tContact!=null?fmtMS(a.tContact):'--:--'}</span>
-        <span>DEP: ${a.tTakeoff!=null?fmtMS(a.tTakeoff):'--:--'}</span>
         <span class="state st-${a.state}">${a.state}</span>
       </div>
       ${exitPtPicker(a)}
@@ -3204,6 +3272,10 @@ function renderStrips(){
 (function(){
   const stripListEl=document.getElementById('stripList');
   if(!stripListEl) return;
+  // Doble clic detectado A MANO por marca de tiempo: la lista se repinta ~10 veces/seg, así
+  // que el evento nativo "dblclick" se pierde (el nodo pulsado ya no es el mismo). Un 2º clic
+  // sobre la MISMA ficha en <400 ms = doble clic → centra el radar en ese avión.
+  let lastId=null, lastT=0;
   stripListEl.addEventListener('mousedown',function(e){
     const delBtn=e.target.closest('[data-del-id]');
     if(delBtn){ e.stopPropagation(); removeAircraft(+delBtn.getAttribute('data-del-id')); return; }
@@ -3212,9 +3284,23 @@ function renderStrips(){
     const ddToggle=e.target.closest('[data-toggledd-id]');
     if(ddToggle){ e.stopPropagation(); toggleExitPtDropdown(+ddToggle.getAttribute('data-toggledd-id')); return; }
     const row=e.target.closest('.strip');
-    if(row && row.dataset.acId!==undefined) selectAc(+row.dataset.acId);
+    if(row && row.dataset.acId!==undefined){
+      const id=+row.dataset.acId, now=Date.now();
+      if(lastId===id && now-lastT<400){ focusOnAircraft(id); lastId=null; lastT=0; }
+      else { selectAc(id); lastId=id; lastT=now; }
+    }
   });
 })();
+// Centra la vista de radar en una aeronave, con un zoom «normal» (ni muy cerca ni muy lejos).
+function focusOnAircraft(id){
+  const a=aircraft.find(x=>x.id===id); if(!a) return;
+  selectAc(id);
+  radarZoom = 2.2;   // ≈12 NM de radio visible: se ve el avión y su entorno cercano
+  const {scale}=radarProjParams(radar.width, radar.height);
+  radarPan.x = -a.x*scale;   // deja el avión en el centro exacto de la pantalla
+  radarPan.y = -a.y*scale;
+  render();
+}
 // Elimina una aeronave activa de la simulación (p.ej. si se programó por error)
 function removeAircraft(id){
   const idx=aircraft.findIndex(a=>a.id===id);
