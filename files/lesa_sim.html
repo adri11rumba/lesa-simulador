@@ -93,17 +93,18 @@
   /* ---------- App layout ---------- */
   #app{display:none;height:100vh;flex-direction:column}
   header{
-    height:48px;flex:0 0 48px;background:var(--panel2);border-bottom:1px solid var(--line);
-    display:flex;align-items:center;padding:0 16px;gap:20px;
+    min-height:48px;flex:0 0 auto;background:var(--panel2);border-bottom:1px solid var(--line);
+    display:flex;align-items:center;padding:4px 12px;gap:9px;flex-wrap:wrap;
   }
-  header .logo{color:var(--green);font-weight:700;letter-spacing:3px;font-size:18px}
+  header .logo{color:var(--green);font-weight:700;letter-spacing:2px;font-size:16px}
   header .role-badge{
-    font-size:12px;letter-spacing:2px;padding:3px 10px;border-radius:4px;
+    font-size:11px;letter-spacing:1px;padding:2px 8px;border-radius:4px;
     background:var(--green-dim);color:#dff7e9;text-transform:uppercase;font-weight:600;
   }
+  header .btn{padding:4px 9px;font-size:12px;letter-spacing:.5px}
   header .clock{
-    margin-left:auto;font-family:'JetBrains Mono';font-size:26px;font-weight:700;
-    color:var(--amber);letter-spacing:2px;
+    margin-left:auto;font-family:'JetBrains Mono';font-size:20px;font-weight:700;
+    color:var(--amber);letter-spacing:1px;
   }
   header .clock .lbl{font-size:10px;color:var(--ink-dim);letter-spacing:2px;display:block;text-align:right;font-family:'Oswald'}
   .btn{
@@ -164,7 +165,7 @@
   .progRow .tag{flex:0 0 auto}
   .progRow .rte{flex:1 1 30px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .progRow .acts{flex:0 0 auto;display:flex;align-items:center;gap:5px;margin-left:auto}
-  .progRow .ttEdit{flex:0 0 auto;width:40px;background:var(--panel2);border:1px solid var(--line);border-radius:4px;
+  .progRow .ttEdit{flex:0 0 auto;width:62px;background:var(--panel2);border:1px solid var(--line);border-radius:4px;
     color:var(--amber);font-weight:700;font-family:'JetBrains Mono';font-size:11px;padding:1px 2px;text-align:center}
   .progRow .ttEdit:focus{outline:none;border-color:var(--amber);background:var(--panel)}
   .progRow .save2{flex:0 0 auto;font-size:11px;cursor:pointer;padding:2px 6px;border-radius:4px;background:var(--panel2);border:1px solid var(--line);transition:.12s}
@@ -245,6 +246,8 @@
   .strip .cs{font-size:17px;font-weight:700;letter-spacing:1px}
   .strip .typ{font-size:11px;color:#555;margin-left:auto}
   .strip .row2{display:flex;gap:10px;padding:0 8px;font-size:11px;color:#333}
+  .strip .rtpts{color:#1d6fb8;font-weight:700;letter-spacing:.3px}
+  .strip .ttnp{color:#c07d1a;font-weight:700;font-size:10.5px}
   .strip .row3{display:flex;gap:8px;padding:3px 8px 6px;font-size:11px;color:#444;border-top:1px solid #ddd5c2;margin-top:3px;align-items:center}
   .strip .state{margin-left:auto;font-weight:700;font-size:11px;padding:1px 7px;border-radius:3px;letter-spacing:.5px}
   .st-PROG{background:#e0e0e0;color:#555}
@@ -300,7 +303,10 @@
   .formGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
   .formGrid .f label{font-size:10px;letter-spacing:1px;color:var(--ink-dim);text-transform:uppercase;display:block;margin-bottom:4px}
   .schedList{display:flex;flex-direction:column;gap:7px;max-height:230px;overflow-y:auto}
-  .schedRow{display:grid;grid-template-columns:60px 90px 70px 1fr 70px 30px 30px;gap:10px;align-items:center;background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:7px 10px;font-family:'JetBrains Mono';font-size:12px}
+  .schedRow{display:grid;grid-template-columns:72px 78px 48px 1fr 44px 46px 22px 22px 22px;gap:7px;align-items:center;background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:7px 10px;font-family:'JetBrains Mono';font-size:12px}
+  .schedRow .sq{color:#c89b3c;font-weight:700;text-align:center}
+  .schedRow .edit2{cursor:pointer;text-align:center;color:var(--blue);font-size:13px;border-radius:4px;transition:.12s}
+  .schedRow .edit2:hover{background:var(--blue);color:#06121f}
   .schedRow .tt{color:var(--amber);font-weight:700}
   .schedRow .ttEdit{width:100%;background:var(--panel);border:1px solid var(--line);border-radius:4px;color:var(--amber);font-weight:700;font-family:'JetBrains Mono';font-size:12px;padding:2px 4px;text-align:center}
   .schedRow .ttEdit:focus{outline:none;border-color:var(--amber)}
@@ -319,6 +325,59 @@
   ::-webkit-scrollbar{width:9px;height:9px}
   ::-webkit-scrollbar-thumb{background:var(--line);border-radius:5px}
   ::-webkit-scrollbar-track{background:transparent}
+  /* ----- Panel de comunicaciones (llamadas + micrófono + grabación) -----
+     Por defecto va INCRUSTADO en la columna de control del profesor (sustituye a
+     «Aproximación»); en la vista del alumno se coloca fijo abajo a la derecha. */
+  #commsPanel{background:var(--panel2);border:1px solid var(--line);border-radius:8px;
+    font-family:'Oswald';padding:8px 9px;display:flex;flex-direction:column;gap:7px;margin-top:6px}
+  #commsPanel.floating{position:fixed;right:14px;bottom:14px;z-index:60;width:208px;box-shadow:0 8px 26px rgba(0,0,0,.5)}
+  /* incrustado en la cabecera del profesor: una sola fila compacta */
+  #commsPanel.in-header{flex-direction:row;align-items:center;gap:6px;padding:0;margin:0;background:transparent;border:none}
+  #commsPanel.in-header .commsHead{display:none}
+  #commsPanel.in-header .commsRow{gap:4px}
+  #commsPanel.in-header .commsRow label{display:none}
+  #commsPanel.in-header select{font-size:11px;padding:2px 4px;max-width:160px}
+  #commsPanel.in-header .commsCallBtns{display:flex;gap:4px}
+  #commsPanel.in-header .callBtn{aspect-ratio:auto;width:34px;height:34px;padding:0;border-radius:5px}
+  #commsPanel.in-header .callBtn b{font-size:12px}
+  #commsPanel.in-header .callBtn small{display:none}
+  #commsPanel.in-header .commsBtnRow{gap:4px}
+  #commsPanel.in-header .commsBtnRow button{padding:4px 7px;font-size:11px}
+  #commsPanel.in-header #incomingCall{padding:3px 8px;font-size:11px;white-space:nowrap}
+  #commsPanel .commsHead{font-weight:600;letter-spacing:1px;color:var(--green);font-size:13px}
+  #commsPanel .commsRow{display:flex;align-items:center;gap:7px}
+  #commsPanel .commsRow label{font-size:11px;color:var(--ink-dim)}
+  #commsPanel select{flex:1;background:var(--panel);color:var(--ink);border:1px solid var(--line);
+    border-radius:5px;padding:3px 5px;font-family:'Oswald';font-size:12px}
+  /* 3 botones CUADRADOS y JUNTOS */
+  #commsPanel .commsCallBtns{display:grid;grid-template-columns:repeat(3,1fr);gap:5px}
+  #commsPanel .callBtn{aspect-ratio:1/1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:1px;cursor:pointer;background:var(--panel);border:1px solid var(--line);border-radius:6px;color:var(--ink);
+    font-family:'Oswald';transition:.12s;padding:2px}
+  #commsPanel .callBtn b{font-size:15px;letter-spacing:1px}
+  #commsPanel .callBtn small{color:var(--ink-dim);font-size:9px;letter-spacing:.3px}
+  #commsPanel .callBtn:hover{border-color:var(--green);background:var(--green-dim)}
+  #commsPanel .callBtn.mine{border-color:var(--amber);box-shadow:inset 0 0 0 1px var(--amber)}   /* tu posición */
+  #commsPanel .callBtn.ringing{animation:ringBlink .7s steps(1,end) infinite}
+  @keyframes ringBlink{0%{background:#7a1020;border-color:#ff5577;color:#fff}50%{background:var(--panel);border-color:var(--line);color:var(--ink)}}
+  #commsPanel .commsBtnRow{display:flex;gap:5px}
+  #commsPanel .commsBtnRow button{flex:1;cursor:pointer;background:var(--panel);color:var(--ink);border:1px solid var(--line);
+    border-radius:6px;padding:5px 4px;font-family:'Oswald';font-size:12px;transition:.12s}
+  #commsPanel .commsBtnRow button:hover{border-color:var(--green)}
+  #commsPanel .callBtn.ptt{background:#7a1020;border-color:#ff5577;color:#fff;box-shadow:0 0 0 2px rgba(255,85,119,.55)}  /* línea caliente activa */
+  #commsPanel .callBtn.incall{border-color:#34c759;box-shadow:0 0 0 2px rgba(52,199,89,.55)}  /* en llamada */
+  #commsPanel #hangupBtn{background:#7a1020;border-color:#ff5577;color:#fff}
+  /* Panel flotante del alumno: cabecera clicable para plegar/desplegar */
+  #commsPanel.floating .commsHead{cursor:pointer;user-select:none;display:flex;justify-content:space-between;align-items:center}
+  #commsPanel.floating.collapsed{width:auto}
+  #commsPanel.floating.collapsed > *:not(.commsHead){display:none}
+  #commsCaret{color:var(--ink-dim);font-size:12px}
+  #commsPanel.in-header #commsCaret{display:none}
+  #commsPanel #micBtn.on{background:#1f7a3a;border-color:#34c759;color:#eafff3}
+  #commsPanel #recBtn.on{background:#7a1020;border-color:#ff5577;color:#fff}
+  #commsPanel #incomingCall{font-size:12px;font-weight:600;color:#fff;background:#7a1020;border:1px solid #ff5577;
+    border-radius:6px;padding:6px 8px;text-align:center;cursor:pointer}
+  #commsPanel #incomingCall.ringing{animation:ringBlink .7s steps(1,end) infinite}
 </style>
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 </head>
@@ -382,12 +441,15 @@
   <header>
     <span class="logo">LESA</span>
     <span class="role-badge" id="roleBadge">—</span>
-    <button class="btn" id="roleBtnHeader" onclick="backToRole()">↩ Cambiar rol</button>
-    <button class="btn" id="viewModeBtn" onclick="toggleStudentViewMode()" style="display:none">📡 Modo radar</button>
-    <button class="btn" id="schedBtn" onclick="openSched()">📋 Crear vuelos</button>
+    <button class="btn" id="roleBtnHeader" onclick="backToRole()" title="Cambiar de rol">↩ Rol</button>
+    <button class="btn" id="viewModeBtn" onclick="toggleStudentViewMode()" style="display:none">📡 Radar</button>
+    <button class="btn" id="schedBtn" onclick="openSched()" title="Programas de vuelo">📋 Programas</button>
+    <button class="btn" id="metarBtn" onclick="genRandomMetar()" style="display:none" title="Genera un METAR aleatorio (solo el profesor)">🌦 METAR</button>
+    <span id="pinBadge" title="PIN de la sesión: compártelo para que se conecte otro alumno (vista de torre)" style="display:none;font-family:'JetBrains Mono';font-weight:700;letter-spacing:1px;color:var(--amber);background:rgba(0,0,0,.25);border:1px solid var(--line);border-radius:6px;padding:3px 8px;font-size:12px"></span>
     <button class="btn go" id="playBtn" onclick="toggleSim()">▶ Iniciar</button>
-    <button class="btn" id="resetBtn" onclick="resetSim()" style="display:none">⏮ Reiniciar</button>
+    <button class="btn" id="resetBtn" onclick="resetSim()" style="display:none">⏮</button>
     <button class="btn" id="speedBtn" onclick="setSpeed()">⏩ <span id="spdLbl">x1</span></button>
+    <span id="commsHeaderSlot" style="display:flex;align-items:center"></span>
     <div class="clock">
       <span class="lbl">SIM · UTC</span>
       <span id="clock">00:00:00</span>
@@ -426,8 +488,7 @@
       </div>
       <div id="colWSplitter" title="Arrastra para ajustar el ancho de la columna de vuelos"></div>
       <div class="col" id="colRadar">
-        <h3>Radar · <span id="radarMode">CTR / ATZ + plataforma · zoom con la rueda del ratón</span>
-        </h3>
+        <span id="radarMode" style="display:none"></span>
         <div id="radarHolder">
           <canvas id="radar"></canvas>
         </div>
@@ -475,48 +536,57 @@
             <div class="cmd" onclick="cmd('taxi_apron','MIL')">Plataforma militar<small>to mil apron</small></div>
             <div class="cmd" onclick="cmd('taxi_apron','CIV')">Plataforma civil<small>to civ apron</small></div>
           </div>
-          <div class="secTitle">Circuito</div>
-          <span class="hint" style="display:block;margin:-4px 0 2px">Tráficos de E-1 / E / S → viento en cola izquierdo; el resto, derecho</span>
-          <div class="cmdGrid">
-            <div class="cmd" onclick="cmd('downwind','R')">Viento en cola DER.<small>right downwind</small></div>
-            <div class="cmd" onclick="cmd('downwind','L')">Viento en cola IZQ.<small>left downwind</small></div>
-            <div class="cmd" onclick="cmd('base')">Base<small>base leg</small></div>
-            <div class="cmd" onclick="cmd('final')">Final<small>final</small></div>
-            <div class="cmd" onclick="cmd('orbit')">Orbitar<small>hold</small></div>
-          </div>
-          <div class="secTitle">Puntos de referencia CTR</div>
-          <div class="cmdGrid three">
-            <div class="cmd" onclick="cmd('rp','N-1')">N-1</div>
-            <div class="cmd" onclick="cmd('rp','N')">N</div>
-            <div class="cmd" onclick="cmd('rp','E')">E</div>
-            <div class="cmd" onclick="cmd('rp','E-1')">E-1</div>
-            <div class="cmd" onclick="cmd('rp','S')">S</div>
-            <div class="cmd" onclick="cmd('rp','W')">W</div>
-          </div>
-          <div class="secTitle">Aproximación</div>
-          <div class="cmdGrid">
-            <div class="cmd" onclick="cmd('toBBI')">Proceder a BBI<small>VOR/DME</small></div>
-            <div class="cmd" onclick="cmd('ils')">ILS <span class="rwyActiveLbl">RWY 21</span><small>establecer</small></div>
+          <div id="timelineBox" style="display:none">
+            <div class="secTitle">Línea de tiempo</div>
+            <div class="sliderBox">
+              <label>Retroceder la práctica <span class="val" id="tlVal">00:00:00</span></label>
+              <input type="range" id="timeline" min="0" max="0" step="1" value="0" oninput="onTimelineInput(this.value)">
+              <span class="hint" style="margin-top:2px">Arrastra para volver a un momento anterior; pulsa ▶ para continuar desde ahí.</span>
+            </div>
           </div>
         </div>
       </div>
     </div>
   </main>
+
+  <!-- ===== Panel de comunicaciones: posición ATC, llamadas, micrófono y grabación ===== -->
+  <div id="commsPanel" style="display:none">
+    <div class="commsHead" onclick="toggleComms()">📻 Comunicaciones <span id="commsCaret">▾</span></div>
+    <div class="commsRow">
+      <label>Posición</label>
+      <select id="myPosSel" onchange="setMyPosition(this.value)">
+        <option value="MC">Madrid Control</option>
+        <option value="APP">Salamanca Aproximación</option>
+        <option value="TWR">Salamanca Torre</option>
+      </select>
+    </div>
+    <div class="commsCallBtns" title="Toca = llamar (parpadea el botón al otro) · Mantén pulsado = línea caliente (hablas mientras lo sujetas)">
+      <button class="callBtn" data-pos="MC"  title="Madrid Control"><b>MC</b><small>Madrid</small></button>
+      <button class="callBtn" data-pos="APP" title="Salamanca Aproximación"><b>APP</b><small>Aproxim.</small></button>
+      <button class="callBtn" data-pos="TWR" title="Salamanca Torre"><b>TWR</b><small>Torre</small></button>
+    </div>
+    <div id="incomingCall" style="display:none"></div>
+    <div class="commsBtnRow">
+      <button id="hangupBtn" onclick="hangupCall()" style="display:none" title="Colgar la llamada">📞 Colgar</button>
+      <button id="micBtn" onclick="toggleMic()">🎙️ Micrófono</button>
+      <button id="recBtn" onclick="toggleRecording()" style="display:none">⏺ Grabar</button>
+    </div>
+  </div>
 </div>
 
 <!-- ============ SCHEDULER ============ -->
 <div id="sched">
   <div class="schedBox">
     <header>
-      <h2>Crear vuelos</h2>
-      <p>Define los vuelos de la «Secuencia de vuelos». El reloj arranca en 00:00; cada vuelo aparece a su hora prevista.</p>
+      <h2>Programas de vuelo</h2>
+      <p>1) Añade vuelos (cada uno con su hora). 2) Guárdalo con un nombre en «Programas guardados». Para retomar uno, pulsa «📂 Cargar»: tus cambios se guardan solos en él.</p>
     </header>
     <div class="schedBody">
       <div class="formGrid">
-        <div class="f"><label>Hora (mm:ss)</label><input id="f_time" class="mono" placeholder="00:30" value="00:30"></div>
+        <div class="f"><label>Hora (hh:mm:ss)</label><input id="f_time" class="mono" placeholder="00:00:30" value="00:00:30"></div>
         <div class="f"><label>Indicativo</label><input id="f_cs" class="mono" placeholder="BUH006" value="BUH006"></div>
         <div class="f"><label>Tipo aeronave</label><input id="f_type" class="mono" placeholder="C295" value="C295"></div>
-        <div class="f"><label>Categoría</label>
+        <div class="f" id="catField"><label>Categoría (plataforma)</label>
           <select id="f_cat">
             <option value="CIV">Civil → plataforma civil</option>
             <option value="MIL">Militar → plataforma militar</option>
@@ -529,33 +599,56 @@
           </select>
         </div>
         <div class="f"><label>Operación</label>
-          <select id="f_op"><option value="DEP">Salida (DEP)</option><option value="ARR">Llegada (ARR)</option></select>
+          <select id="f_op" onchange="updatePointOptions()"><option value="DEP">Salida (DEP)</option><option value="ARR">Llegada (ARR)</option></select>
         </div>
-        <div class="f"><label>Punto</label>
-          <select id="f_point"><!-- se rellena según la regla (ver updatePointOptions) --></select>
+        <div class="f"><label id="lblPoint">Punto</label>
+          <select id="f_point"><!-- llegadas: punto de entrada · salidas: plataforma (ver updatePointOptions) --></select>
         </div>
         <div class="f"><label>Origen</label><input id="f_orig" class="mono" placeholder="LESA" value="LESA"></div>
         <div class="f"><label>Destino</label><input id="f_dest" class="mono" placeholder="LETO" value="LETO"></div>
         <div class="f"><label>Nivel / Rumbo</label><input id="f_lvl" class="mono" placeholder="035" value="035"></div>
+        <div class="f"><label>Vel. crucero (kt)</label><input id="f_spd" class="mono" placeholder="120" value="120" inputmode="numeric"></div>
+        <div class="f"><label>Squawk</label><input id="f_sq" class="mono" placeholder="auto" maxlength="4" inputmode="numeric" title="Código transpondedor (4 dígitos 0-7). Déjalo vacío para asignarlo automáticamente."></div>
+        <div class="f"><label>Caza (formación)</label>
+          <select id="f_fighter" title="Si es un caza, aparece como pareja (2 aeronaves en formación) controladas como una sola">
+            <option value="">No</option>
+            <option value="1">Sí · pareja (2 aviones)</option>
+          </select>
+        </div>
       </div>
-      <div style="display:flex;gap:10px;align-items:center">
-        <button class="btn go" onclick="addFlight()">+ Añadir al programa</button>
-        <button class="btn" onclick="loadDemo()">📅 Cargar programa de entrenamiento (10 vuelos)</button>
-        <button class="btn" onclick="generateRandomSchedule()">🎲 Generar programa aleatorio</button>
-        <span class="hint" style="margin-left:auto">Elige regla (visual/instrumental) y punto. Las llegadas aparecen ~10 NM en alejamiento del punto, volando hacia él.</span>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <button class="btn go" id="addFlightBtn" onclick="addFlight()">+ Añadir vuelo</button>
+        <button class="btn" id="cancelEditBtn" onclick="cancelEditFlight()" style="display:none">✕ Cancelar edición</button>
+        <button class="btn" onclick="newProgram()">🆕 Programa nuevo (vaciar)</button>
+        <button class="btn" onclick="loadDemo()">📅 Programa de entrenamiento</button>
+        <button class="btn" onclick="generateRandomSchedule()">🎲 Aleatorio</button>
+        <span class="hint" style="margin-left:auto">Añade vuelos uno a uno; para editar uno, pulsa ✎ en la lista. Guárdalo abajo con un nombre.</span>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <span class="hint">⏱ Hora de inicio del reloj (UTC):</span>
+        <input id="f_clockStart" class="mono" style="width:80px;text-align:center" placeholder="00:00" value="00:00" onchange="setClockStart(this.value)">
+        <span class="hint">El reloj arranca a esta hora; los vuelos se programan en hh:mm:ss desde el inicio.</span>
       </div>
       <div>
-        <div class="secTitle" style="margin-bottom:8px;color:var(--green)">Vuelos programados</div>
+        <div class="secTitle" style="margin-bottom:8px;color:var(--green)">Vuelos programados <span class="hint" style="text-transform:none;letter-spacing:0">— ✎ editar · 💾 guardar hora · ✕ borrar</span></div>
+        <div style="display:flex;align-items:center;gap:8px;margin:-4px 0 6px;flex-wrap:wrap">
+          <span class="hint" id="activeProgLbl" style="margin:0;color:var(--amber)">Programa nuevo (sin guardar)</span>
+          <button class="btn" id="renameProgBtn" onclick="renameActiveProgram()" style="display:none;padding:2px 8px;font-size:11px">✎ Renombrar</button>
+        </div>
         <div class="schedList" id="schedList"><div class="empty2">Aún no hay vuelos programados.</div></div>
       </div>
       <div>
-        <div class="secTitle" style="margin-bottom:8px;color:var(--green)">Programas guardados</div>
+        <div class="secTitle" style="margin-bottom:8px;color:var(--green)">Programas guardados <span class="hint" style="text-transform:none;letter-spacing:0">— 📂 cargar · ✎ renombrar · ✕ borrar</span></div>
         <div style="display:flex;gap:10px;align-items:center;margin-bottom:10px">
-          <input id="sched_saveName" class="mono" placeholder="Nombre del programa, p. ej. «Sesión básica»" style="flex:1" onkeydown="if(event.key==='Enter')saveScheduleAs()">
-          <button class="btn go" onclick="saveScheduleAs()">💾 Guardar para reutilizar</button>
+          <input id="sched_saveName" class="mono" placeholder="Nombre del programa, p. ej. «Examen torre»" style="flex:1" onkeydown="if(event.key==='Enter')saveScheduleAs()">
+          <button class="btn go" onclick="saveScheduleAs()">💾 Guardar programa</button>
         </div>
         <div class="schedList" id="savedSchedList"><div class="empty2">No hay programas guardados todavía.</div></div>
-        <p class="hint" style="margin-top:6px">Guarda el programa con un nombre para poder cargarlo en otra sesión; se guarda en este navegador.</p>
+        <div style="display:flex;gap:10px;align-items:center;margin-top:8px;flex-wrap:wrap">
+          <button class="btn" onclick="exportPrograms()">⤓ Exportar programas (archivo)</button>
+          <label class="btn" style="cursor:pointer;margin:0">⤒ Importar programas<input type="file" accept=".json,application/json" onchange="importProgramsFile(this)" style="display:none"></label>
+          <span class="hint" style="margin-left:auto">Compártelos con otro ordenador: aquí «Exportar» → se lo pasas → él «Importar». Si os conectáis, también se le comparten automáticamente.</span>
+        </div>
       </div>
     </div>
     <div class="schedFoot">
@@ -598,21 +691,25 @@ const REF={
 // Puntos de la fase de APROXIMACIÓN.
 // En el ejercicio, BBI es la referencia central, situada casi sobre el campo.
 // Distancias REALES desde BBI (carta Gestión de Tráfico): rumbo aprox / NM.
-const BBI_POS = brgRng(35, 0.8);   // BBI casi encima de la pista (ligeramente al NE)
+const BBI_POS = brgRng(35, 4.4);   // VOR/DME BBI: ~4,4 NM al NE del campo (AIP/coords reales)
 function fromBBI(brgDeg,nm){const a=brgDeg*Math.PI/180,d=nm*NM;return{x:BBI_POS.x+Math.sin(a)*d, y:BBI_POS.y-Math.cos(a)*d};}
+// Radiales y distancias tomados de la carta «Distancias en min. IAS 240 kt / RADIALES de BBI»
+// (1 min = 4 NM a 240 kt). Radiales corregidos al valor de la carta.
 const APP_REF={
   'BBI'    :BBI_POS,
-  'VETAN'  :fromBBI(353, 18),   // al N, 18 NM
-  'ZMR'    :fromBBI(5  , 32),   // N, 32 NM
-  'ADORO'  :fromBBI(318, 46),   // NW, 46 NM
-  'VLD/NUB':fromBBI(28 , 50),   // NE, 50 NM
-  'DSK'    :fromBBI(90 , 56),   // E, 56 NM
-  'RVO'    :fromBBI(235, 62),   // SW, 62 NM
-  'BARDI'  :fromBBI(210, 46),   // SSW, 46 NM
-  'NVS'    :fromBBI(118, 67),   // ESE, 67 NM
-  'MLN'    :fromBBI(170, 75),   // S, 75 NM
-  'TLD'    :fromBBI(130, 81),   // SE, 81 NM
-  'CCS'    :fromBBI(200,100)    // SSW, 100 NM
+  'VETAN'  :fromBBI(350, 16),   // 350° · 4′
+  'ZANKO'  :fromBBI(54 , 35),   // (añadido aparte, no está en la carta)
+  'DIPOL'  :fromBBI(136, 50),   // (añadido aparte, no está en la carta)
+  'ZMR'    :fromBBI(347, 32),   // 347° · 8′
+  'ADORO'  :fromBBI(309, 46),   // 309° · 11,5′
+  'VLD/NUB':fromBBI(35 , 50),   // 035° · 12,5′ (NUB en la carta)
+  'DSK'    :fromBBI(86 , 56),   // 086° · 14′
+  'RVO'    :fromBBI(250, 62),   // 250° · 15,5′
+  'BARDI'  :fromBBI(240, 46),   // 240° · 11,5′
+  'NVS'    :fromBBI(127, 67),   // 127° · 17′
+  'MLN'    :fromBBI(177, 75),   // 177° · 19′
+  'TLD'    :fromBBI(142, 81),   // 142° · 20′
+  'CCS'    :fromBBI(209,100)    // 209° · 25′
 };
 // BBI también disponible para uso general
 REF['BBI']=BBI_POS;
@@ -621,12 +718,37 @@ REF['BBI']=BBI_POS;
 // los que pasan por puntos de aproximación instrumental (BBI, VETAN, ZMR, ADORO…)
 // son vuelos INSTRUMENTALES (IFR). Se usa para etiquetar cada ficha de progreso.
 const VFR_PTS=new Set(['N','N-1','E','E-1','S','W']);
+// Tipos de CAZA de combate: aparecen como PAREJA en formación (líder + numeral, uno
+// justo detrás del otro), pero se controlan como UNA sola aeronave: el numeral sigue al
+// líder automáticamente y no se selecciona ni aparece como ficha aparte.
+const FIGHTER_TYPES=new Set(['EF2000','EUFI','TYPH','EF18','F18','FA18','F18H','F16','F16C','F15','F5','F5M','M2000','MIR2','MIRA','RFAL','AV8B','HARR','A4','C101','HAWK','T38','L39','GR4','TORN','HUNT','C18','F1','MIR','EFA']);
+function isFighter(type){ return FIGHTER_TYPES.has(String(type||'').toUpperCase()); }
 // Indicativos COMERCIALES (vuelos instrumentales / IFR). El resto se consideran
 // militares/visuales (VFR) — los militares suelen usar nombres de animal (BUH=búho,
 // ORCA, FOCA=foca, GAF, etc.). Se usa para decidir, cuando no hay otra pista, si una
 // llegada es visual (aparece por un punto VFR) o instrumental (final ILS), y para la
 // etiqueta VFR/IFR de la ficha.
 const AIRLINE_PREFIXES=new Set(['IBE','RYR','VLG','EIN','QTR','AFR','DLH','TAP','RAM','VOE','EXS','LOT','BAW','UAE','KLM','AEA','ANE','EZY','WZZ','UAL','AAL','DAL','SWR','AUA','TVF','NOZ','JKK']);
+// Color de marca aproximado de cada aerolínea (para los comerciales/instrumentales en el radar).
+const AIRLINE_COLORS={
+  IBE:'#d4202a', RYR:'#2a4fd6', VLG:'#f2c200', EIN:'#11a36b', QTR:'#7a1f3d', AFR:'#1b3a8f',
+  DLH:'#ffcf3a', TAP:'#c8102e', RAM:'#b01e2e', VOE:'#c44fb0', EXS:'#e23036', LOT:'#1f5fc2',
+  BAW:'#3a6bd6', UAE:'#e0303a', KLM:'#16a6e0', AEA:'#1846c8', ANE:'#2b86d8', EZY:'#ff7a1a',
+  WZZ:'#d6188f', UAL:'#2a5cff', AAL:'#c33b46', DAL:'#b23048', SWR:'#e0202a', AUA:'#e23a3a',
+  TVF:'#19d6a8', NOZ:'#e03a3a', JKK:'#7a52d6'
+};
+// Color de cada aeronave en el radar según su CATEGORÍA:
+//   · Militar  → tonos azul-verdosos
+//   · Comercial / instrumental → color de su aerolínea (azul comercial por defecto)
+//   · Civil visual → blanco
+function aircraftColor(a){
+  if(a.platform==='MIL') return '#56c596';                       // militar: verde azulado
+  const m=String(a.cs||'').toUpperCase().match(/^[A-Z]+/);
+  const code=m?m[0]:'';
+  if(AIRLINE_PREFIXES.has(code)) return AIRLINE_COLORS[code]||'#5da9ff';   // aerolínea conocida
+  if(flightRule(a)==='IFR') return '#5da9ff';                    // instrumental sin aerolínea: azul comercial
+  return '#eef4f0';                                              // civil visual: blanco
+}
 function isVisualCallsign(cs){
   if(!cs) return true;
   const m=String(cs).toUpperCase().match(/^[A-Z]+/);
@@ -657,6 +779,68 @@ function flightRule(ac){
   // sin puntos con nombre (p.ej. llegada IFR en final): por indicativo
   return isVisualCallsign(ac.cs) ? 'VFR' : 'IFR';
 }
+// Genera un código transpondedor (squawk) válido: 4 dígitos octales (0-7), evitando los
+// códigos especiales/de emergencia (7500 secuestro, 7600 fallo de radio, 7700 emergencia)
+// y, si se pasa el conjunto, los ya usados por otros vuelos del programa.
+function genSquawk(taken){
+  taken = taken || new Set();
+  const bad = new Set(['7500','7600','7700','0000','7777']);
+  let code='', tries=0;
+  do{
+    code='';
+    for(let i=0;i<4;i++) code += Math.floor(Math.random()*8);
+    tries++;
+  } while((bad.has(code)||taken.has(code)) && tries<60);
+  return code;
+}
+// Resume, para la ficha de progreso, los puntos por los que va el vuelo:
+//   · Salida visual:      interior → exterior  (p.ej. E-1 → E)
+//   · Llegada visual:     exterior → interior  (p.ej. E → E-1)
+//   · Instrumental:       el punto instrumental (vía BBI)
+function routeLabel(a){
+  const innerOf = p => (p==='N'||p==='W'||p==='N-1') ? 'N-1' : 'E-1';
+  if(a.op==='DEP'){
+    // Salida INSTRUMENTAL (IFR): sale por un punto INSTRUMENTAL vía BBI — NUNCA por puntos visuales.
+    if(flightRule(a)==='IFR'){
+      const pt=a.plannedExitPt;
+      return (pt && APP_REF[pt] && pt!=='BBI') ? `BBI → ${pt}` : 'BBI → (instrumental)';
+    }
+    // Salida VISUAL (VFR): interior → exterior.
+    const pair=exitPtPairFor(a);
+    return `${pair[0]} → ${a.plannedExitPt||pair[1]}`;
+  }
+  const p=a.entryPt;
+  if(!p) return '';
+  if(p==='5NM'||p==='4NM'||p==='FINAL21') return 'final directo';
+  if(APP_REF[p] && p!=='BBI') return `${p} → BBI`;     // llegada instrumental
+  const inner=innerOf(p);
+  return (p===inner) ? p : `${p} → ${inner}`;          // llegada visual: exterior → interior
+}
+// Formato mm:ss para tiempos cortos.
+function fmtMinSec(sec){ if(!isFinite(sec)||sec<0) return '--:--'; const m=Math.floor(sec/60), s=Math.floor(sec%60); return m+':'+String(s).padStart(2,'0'); }
+// Tiempo estimado (segundos) hasta el punto/destino al que se dirige ahora la aeronave,
+// según su distancia y velocidad actuales. null si no procede (parado, en hold, en tierra).
+function timeToNextPoint(a){
+  if(!a || !a.target) return null;
+  if(a.target.mode==='hold' || a.target.mode==='orbit') return null;
+  let dest=null;
+  if(a.target.mode==='point') dest=REF[a.target.pt]||APP_REF[a.target.pt];
+  else if(a.target.mode==='xy') dest={x:a.target.x, y:a.target.y};
+  if(!dest) return null;
+  const spd = a.spd>5 ? a.spd : 0;   // kt
+  if(spd<=0) return null;
+  const dist=Math.hypot(dest.x-a.x, dest.y-a.y);   // metros
+  return dist/(spd*KT);                            // segundos (KT = m/s por kt)
+}
+// Distancia (NM) al punto/destino al que se dirige ahora la aeronave. null si no procede.
+function distToNextPoint(a){
+  if(!a || !a.target || a.target.mode==='hold' || a.target.mode==='orbit') return null;
+  let dest=null;
+  if(a.target.mode==='point') dest=REF[a.target.pt]||APP_REF[a.target.pt];
+  else if(a.target.mode==='xy') dest={x:a.target.x, y:a.target.y};
+  if(!dest) return null;
+  return Math.hypot(dest.x-a.x, dest.y-a.y)/NM;
+}
 // Puntos que el controlador puede asignar de antemano como "punto de salida" de una
 // salida (antes de que despegue): los seis puntos VFR de la CTR más BBI, paso obligado
 // para encaminarse hacia cualquier punto de aproximación instrumental (ruta IFR).
@@ -683,19 +867,10 @@ let exitPtDropdownFor=null;
 // disponibles para poder editar/elegir el punto de salida real.
 // Una vez en el aire (tTakeoff asignado) la ficha deja de mostrar el selector.
 function exitPtPicker(a){
-  if(a.op!=='DEP' || a.tTakeoff!=null) return '';
-  const pair=exitPtPairFor(a);
-  const chips=pair.map(p=>
-    `<span class="ptChip ${a.plannedExitPt===p?'on':''}" data-toggledd-id="${a.id}">${p}</span>`
-  ).join('');
-  let dd='';
-  if(exitPtDropdownFor===a.id){
-    const opts=EXIT_PT_OPTIONS.map(p=>
-      `<span class="ptChip ddOpt ${a.plannedExitPt===p?'on':''}" data-setpt-id="${a.id}" data-setpt-val="${p}">${p}</span>`
-    ).join('');
-    dd=`<div class="exitPtDropdown"><span class="lbl">Editar — puntos disponibles:</span>${opts}</div>`;
-  }
-  return `<div class="exitPtRow"><span class="lbl">Punto de salida:</span>${chips}</div>${dd}`;
+  // Selector de punto de salida ELIMINADO de la ficha: el punto se fija al crear el vuelo
+  // (en «Programas de vuelo») y la ruta ya se muestra en la línea «▷» de la ficha. Las
+  // salidas instrumentales usan sólo puntos instrumentales (vía BBI), no visuales.
+  return '';
 }
 // Abre/cierra el desplegable de puntos disponibles para editar el punto de salida
 // de una aeronave (al pulsar sobre uno de los 2 puntos propuestos en la ficha).
@@ -718,12 +893,32 @@ function setExitPoint(id,pt){
 // Pista activa 03/21 (eje 028° MAG). THR 03 al SW, THR 21 al NE del ARP
 const RWY={hdg:28, len:2513, w:45};
 // METAR de la sesión (mostrado en la torre y en el radar de profesor y alumno)
-const METAR_TXT='LESA 20005KT 5000 32/07 Q1019';
+let METAR_TXT='LESA 20005KT 5000 32/07 Q1019';
+// Genera un METAR ALEATORIO variando los datos del actual (viento, visibilidad, temperatura,
+// punto de rocío y QNH). Sólo lo usa el profesor anfitrión; se difunde a los alumnos con el
+// estado para que todos vean el mismo parte.
+function genRandomMetar(){
+  if(!(role==='instructor')) return;            // sólo el profesor toca el METAR
+  if(relayRC('metar')) return;                  // 2º profesor: lo aplica el anfitrión
+  const dir=Math.round((Math.floor(Math.random()*36)+1)*10);   // 010-360
+  const spd=Math.floor(Math.random()*18)+2;                    // 02-19 kt
+  const gust=Math.random()<0.25 ? 'G'+(spd+Math.floor(Math.random()*12)+5) : '';
+  const visOpts=[9999,8000,6000,5000,4000,3000,2000];
+  const vis=visOpts[Math.floor(Math.random()*visOpts.length)];
+  const temp=Math.floor(Math.random()*30)+2;                   // 02-31 ºC
+  const dew=Math.max(-2, temp-(Math.floor(Math.random()*9)+1));
+  const q=Math.floor(Math.random()*26)+1004;                   // Q1004-1029
+  const fmt2=n=>String(Math.abs(n)).padStart(2,'0');
+  const tt=(temp<0?'M':'')+fmt2(temp), dd=(dew<0?'M':'')+fmt2(dew);
+  METAR_TXT=`LESA ${String(dir).padStart(3,'0')}${String(spd).padStart(2,'0')}${gust}KT ${vis>=9999?'9999':String(vis).padStart(4,'0')} ${tt}/${dd} Q${q}`;
+  flash('METAR actualizado: '+METAR_TXT);
+  render();
+}
 // Disposición lateral (metros desde el EJE de pista): calle de rodaje paralela y borde
 // próximo de cada plataforma. Más separación = se distingue mejor si el avión está en
 // pista, en la calle de rodaje o en plataforma. (Antes: paralela 120; plataformas 340/360.)
-const TWY_OFF=210;                       // calle de rodaje paralela
-const APRON_EDGE={CIV:470, MIL:500};     // borde próximo de plataforma civil / militar
+const TWY_OFF=300;                       // calle de rodaje paralela (más separada de la pista)
+const APRON_EDGE={CIV:620, MIL:660};     // borde próximo de plataforma civil / militar (más separadas de la calle de rodaje)
 // Centro de cada plataforma (donde estacionan los aviones), coherente con el dibujo de
 // la plataforma (borde próximo + media profundidad) y con el desplazamiento a lo largo.
 function apronCenter(platform){
@@ -864,8 +1059,12 @@ const STUCK_MSG = 'No se ha podido completar la conexión directa tras unos segu
 // startHosting (sesión nueva) y becomeHost (relevo del anfitrión).
 function wireIncoming(conn){
   CONNS.add(conn);
-  conn.on('open', ()=>{ netBadge(true); enterApp(); });
-  conn.on('data', m=>handleRemote(m));   // sólo el 2º profesor envía datos; el alumno no
+  conn.on('open', ()=>{ netBadge(true); enterApp(); updatePinBadge();
+    // comparte tus programas de vuelo con quien se conecta
+    try{ conn.send({type:'progs', list:getSavedSchedules()}); }catch(e){}
+    if(voiceOn && conn.peer) callPeerVoice(conn.peer);   // si tu micro está activo, le llamas por voz
+  });
+  conn.on('data', m=>handleRemote(m, conn));   // el alumno también envía llamadas/posición
   conn.on('close', ()=>{ CONNS.delete(conn); if(!CONNS.size) netBadge(false); });
   conn.on('error', ()=>{ CONNS.delete(conn); if(!CONNS.size) netBadge(false); });
 }
@@ -879,6 +1078,7 @@ async function startHosting(){
   const code=genCode();
   const ice=await getIceConfig();
   PEER=new Peer(code, { config: ice, debug: 1 });
+  setupVoice(PEER);
   PEER.on('open', id=>{
     sessionCode=id;   // código de la sesión (para el relevo de anfitrión)
     codeEl.textContent=id;
@@ -917,7 +1117,8 @@ async function becomeHost(){
 async function registerAsHost(code){
   const ice=await getIceConfig();
   PEER=new Peer(code, { config: ice, debug: 1 });
-  PEER.on('open', ()=>{ sessionCode=code; netBadge(true); });
+  setupVoice(PEER);
+  PEER.on('open', ()=>{ sessionCode=code; netBadge(true); updatePinBadge(); });
   PEER.on('connection', conn=>{ wireIncoming(conn); });
   PEER.on('error', err=>{
     if(leftSession) return;
@@ -934,7 +1135,7 @@ async function registerAsHost(code){
 }
 function broadcastState(){
   if(!CONNS.size) return;
-  const msg={type:'state', running:simRunning, time:simTime, speed:simSpeed, schedule, aircraft, studentAcLabels, activeRwy};
+  const msg={type:'state', running:simRunning, time:simTime, speed:simSpeed, schedule, aircraft, studentAcLabels, activeRwy, clockStart, metar:METAR_TXT};
   CONNS.forEach(c=>{ if(c.open) c.send(msg); });
 }
 // Sólo el profesor ANFITRIÓN (autoridad) retransmite el estado.
@@ -975,16 +1176,23 @@ const RC={
   cancelsched:(i)=>cancelScheduledFlight(i),
   delac:(id)=>removeAircraft(id),
   addflight:(f)=>addFlightObj(f),
+  editflight:(i,f)=>editFlightObj(i,f),
+  newprog:()=>newProgram(),
   delflight:(i)=>delFlight(i),
   savetime:(i,val)=>saveScheduledTime(i,val),
+  clockstart:(s)=>applyClockStart(s),
   loaddemo:()=>loadDemo(),
   gensched:()=>generateRandomSchedule(),
-  loadschedule:(flights)=>applyLoadedSchedule(flights,'Programa cargado por el otro profesor'),
+  loadschedule:(flights,cs)=>applyLoadedSchedule(flights,'Programa cargado por el otro profesor',cs),
   simtoggle:()=>toggleSim(),
   simspeed:()=>setSpeed(),
-  simreset:()=>resetSim()
+  simreset:()=>resetSim(),
+  metar:()=>genRandomMetar(),
+  call:(from,to)=>{}   // las llamadas se gestionan aparte (handleCallMsg), no por aquí
 };
-function handleRemote(m){
+function handleRemote(m, conn){
+  if(m && (m.type==='call'||m.type==='answer'||m.type==='hangup')){ onCommsMsg(m); return; }   // llamadas (también del alumno)
+  if(m && m.type==='pos'){ if(conn) peerPos[conn.peer]=m.pos; return; }   // posición de cada peer (para la línea caliente)
   if(!m || m.type!=='rc' || !isHost) return;   // sólo el anfitrión aplica acciones remotas
   const fn=RC[m.name]; if(!fn) return;
   const prevId=selectedId;
@@ -1000,6 +1208,308 @@ function handleRemote(m){
     selected = prevId!=null ? (aircraft.find(a=>a.id===prevId)||null) : null;
   }
   syncUI();
+}
+
+/* ===========================================================
+   COMUNICACIONES: posición ATC, llamadas (parpadeo) y voz (micrófono)
+   - Cada participante elige su posición (Madrid Control / Salamanca Aproximación
+     / Salamanca Torre). Para llamar, pulsa el botón de la posición a la que quiere
+     llamar; en la pantalla del que recibe parpadea su botón y aparece quién llama.
+   - La voz va por WebRTC (PeerJS media calls) sobre la misma conexión P2P.
+   =========================================================== */
+let myPos = 'APP';                 // posición ATC propia (MC / APP / TWR)
+let peerPos = {};                  // posición conocida de cada peer conectado (peerId → pos)
+let incomingTimer=null;
+function positionName(p){ return {MC:'Madrid Control', APP:'Salamanca Aproximación', TWR:'Salamanca Torre'}[p]||p; }
+function setMyPosition(pos){
+  myPos=pos;
+  const sel=document.getElementById('myPosSel'); if(sel) sel.value=pos;
+  document.querySelectorAll('#commsPanel .callBtn.mine').forEach(b=>b.classList.remove('mine'));   // NO se marca la propia posición
+  clearIncomingCall();
+  announcePosition();   // avisa a los demás de tu posición (para la línea caliente)
+}
+// Comunica tu posición a los conectados (para saber a qué peer va dirigida la voz).
+function announcePosition(){
+  const msg={type:'pos', pos:myPos};
+  if(role==='instructor' && isHost){ CONNS.forEach(c=>{ if(c.open){ try{c.send(msg);}catch(e){} } }); }
+  else if(HOST_CONN && HOST_CONN.open){ try{ HOST_CONN.send(msg); }catch(e){} }
+}
+function toggleComms(){
+  const p=document.getElementById('commsPanel'); if(!p||p.classList.contains('in-header')) return;   // sólo el panel flotante (alumno) se pliega
+  p.classList.toggle('collapsed');
+  const c=document.getElementById('commsCaret'); if(c) c.textContent=p.classList.contains('collapsed')?'▸':'▾';
+}
+// Envía un mensaje de comunicaciones (llamada/contestar/colgar) a los conectados.
+function sendComms(msg){
+  let sent=false;
+  if(role==='instructor' && isHost){ CONNS.forEach(c=>{ if(c.open){ try{c.send(msg); sent=true;}catch(e){} } }); }
+  else if(HOST_CONN && HOST_CONN.open){ try{ HOST_CONN.send(msg); sent=true; }catch(e){} }
+  return sent;
+}
+// Llamar a una posición (toque en su botón): en la pantalla del otro parpadea TU botón;
+// él contesta pulsando el botón que parpadea.
+function callPosition(pos){
+  if(pos===myPos){ flash('Esa es tu propia posición'); return; }
+  if(!sendComms({type:'call', from:myPos, to:pos, id:Date.now()})){ flash('No hay nadie conectado para llamar'); return; }
+  flash('Llamando a '+positionName(pos)+'… (espera a que descuelgue)');
+}
+// Llegada de un mensaje de comunicaciones. El anfitrión lo reparte al resto de conectados
+// (los clientes sólo hablan con él). Si va dirigido a MI posición, actúo.
+function onCommsMsg(m){
+  if(!m || m.to==null) return;
+  if(role==='instructor' && isHost){ CONNS.forEach(c=>{ if(c.open){ try{c.send(m);}catch(e){} } }); }
+  if(m.to!==myPos) return;
+  if(m.type==='call')        showIncomingCall(m.from);   // parpadea el botón de quien llama
+  else if(m.type==='answer') startCall(m.from);          // el otro descolgó → abre voz
+  else if(m.type==='hangup') endCall();                  // el otro colgó
+}
+// Contestar (pulsar el botón que parpadea): abre la voz y avisa al que llama.
+function answerCall(pos){
+  clearIncomingCall();
+  sendComms({type:'answer', from:myPos, to:pos});
+  startCall(pos);
+}
+// Colgar (botón 📞): cierra la voz y avisa al otro.
+function hangupCall(){
+  if(activeCallPos) sendComms({type:'hangup', from:myPos, to:activeCallPos});
+  endCall();
+}
+// Abre la voz dirigida SÓLO a esa posición y muestra el botón de colgar.
+let activeCallPos=null, activeVoiceCalls=null;
+async function startCall(pos){
+  clearIncomingCall();
+  activeCallPos=pos;
+  const hb=document.getElementById('hangupBtn'); if(hb) hb.style.display='';
+  const b=document.querySelector('#commsPanel .callBtn[data-pos="'+pos+'"]'); if(b) b.classList.add('incall');
+  flash('📞 En llamada con '+positionName(pos));
+  try{ if(!micStream) micStream=await navigator.mediaDevices.getUserMedia({audio:true}); }
+  catch(e){ flash('Sin micrófono: oirás pero no te oirán'); return; }
+  micStream.getAudioTracks().forEach(t=>t.enabled=true);
+  const ids=pttTargetPeers(pos);
+  activeVoiceCalls=ids.map(id=>{ try{ const c=PEER.call(id,micStream); if(c) c.on('stream',rs=>playRemoteAudio(id,rs)); return c;}catch(e){return null;} }).filter(Boolean);
+}
+function endCall(){
+  if(activeVoiceCalls){ activeVoiceCalls.forEach(c=>{ try{c.close();}catch(e){} }); activeVoiceCalls=null; }
+  if(!voiceOn && micStream) micStream.getAudioTracks().forEach(t=>t.enabled=false);
+  activeCallPos=null;
+  const hb=document.getElementById('hangupBtn'); if(hb) hb.style.display='none';
+  document.querySelectorAll('#commsPanel .callBtn.incall').forEach(b=>b.classList.remove('incall'));
+}
+function showIncomingCall(fromPos){
+  // Parpadea el botón del QUE LLAMA en tu pantalla (sin ventana de "llamada telefónica").
+  const p=document.getElementById('commsPanel'); if(p&&p.classList.contains('collapsed')) toggleComms();   // despliega para que se vea
+  document.querySelectorAll('#commsPanel .callBtn.ringing').forEach(b=>b.classList.remove('ringing'));
+  const caller=document.querySelector('#commsPanel .callBtn[data-pos="'+fromPos+'"]');
+  if(caller) caller.classList.add('ringing');
+  playRingtone();
+  clearTimeout(incomingTimer); incomingTimer=setTimeout(clearIncomingCall, 25000);   // sigue sonando/parpadeando hasta contestar
+}
+function clearIncomingCall(){
+  const box=document.getElementById('incomingCall'); if(box){ box.style.display='none'; box.classList.remove('ringing'); box.onclick=null; }
+  document.querySelectorAll('#commsPanel .callBtn.ringing').forEach(b=>b.classList.remove('ringing'));
+  clearTimeout(incomingTimer);
+}
+/* ----- LÍNEA CALIENTE (push-to-talk): mantén pulsado un botón >0,2 s para abrir voz sólo
+   con esa posición; en cuanto sueltas, se corta. Un toque corto = llamada (parpadeo). ----- */
+let pttCalls=null, pttHeld=false;
+function pttTargetPeers(pos){
+  if(role==='instructor' && isHost){
+    return [...CONNS].filter(c=>c.open && peerPos[c.peer]===pos).map(c=>c.peer);
+  }
+  return sessionCode ? [sessionCode] : [];   // cliente: sólo alcanza al anfitrión
+}
+async function pttStart(pos){
+  pttHeld=true;
+  try{ if(!micStream) micStream=await navigator.mediaDevices.getUserMedia({audio:true}); }
+  catch(e){ flash('Sin acceso al micrófono ('+(e&&e.name||e)+')'); pttHeld=false; return; }
+  if(!pttHeld) return;                       // se soltó mientras se pedía permiso
+  micStream.getAudioTracks().forEach(t=>t.enabled=true);
+  const ids=pttTargetPeers(pos);
+  if(!ids.length) flash('No hay nadie en '+positionName(pos));
+  pttCalls=ids.map(id=>{ try{ const c=PEER.call(id, micStream); if(c) c.on('stream',rs=>playRemoteAudio(id,rs)); return c; }catch(e){ return null; } }).filter(Boolean);
+  const b=document.querySelector('#commsPanel .callBtn[data-pos="'+pos+'"]'); if(b) b.classList.add('ptt');
+  flash('🔴 Línea caliente con '+positionName(pos)+' — suelta para cortar');
+}
+function pttStop(){
+  pttHeld=false;
+  if(pttCalls){ pttCalls.forEach(c=>{ try{c.close();}catch(e){} }); pttCalls=null; }
+  if(!voiceOn && micStream) micStream.getAudioTracks().forEach(t=>t.enabled=false);   // vuelve a silenciar (si el micro fijo no está activo)
+  document.querySelectorAll('#commsPanel .callBtn.ptt').forEach(b=>b.classList.remove('ptt'));
+}
+// Detección toque/mantener sobre los 3 botones: <0,2 s = llamada (parpadeo); ≥0,2 s = línea caliente.
+(function(){
+  let holdTimer=null, holdPos=null, isHold=false, active=false;
+  function down(btn){
+    if(active) return;
+    holdPos=btn.getAttribute('data-pos'); isHold=false; active=true;
+    holdTimer=setTimeout(()=>{ isHold=true; pttStart(holdPos); }, 200);
+  }
+  function up(){
+    if(!active) return;
+    clearTimeout(holdTimer);
+    if(isHold){ pttStop(); }
+    else if(holdPos){
+      const btn=document.querySelector('#commsPanel .callBtn[data-pos="'+holdPos+'"]');
+      if(btn && btn.classList.contains('ringing')) answerCall(holdPos);   // contestar la llamada que parpadea
+      else callPosition(holdPos);                                          // o llamar a esa posición
+    }
+    holdPos=null; isHold=false; active=false;
+  }
+  document.addEventListener('mousedown', e=>{ const b=e.target.closest('#commsPanel .callBtn'); if(b){ e.preventDefault(); down(b); } });
+  window.addEventListener('mouseup', ()=>{ if(active) up(); });
+  document.addEventListener('touchstart', e=>{ const b=e.target.closest('#commsPanel .callBtn'); if(b){ down(b); } }, {passive:true});
+  window.addEventListener('touchend', ()=>{ if(active) up(); });
+})();
+let _audioCtx=null;
+// Tono de llamada SUAVE: tres "ring" delicados (doble tono tipo timbre de teléfono), a
+// volumen bajo, para avisar sin molestar.
+function playRingtone(){
+  try{
+    _audioCtx=_audioCtx||new (window.AudioContext||window.webkitAudioContext)();
+    if(_audioCtx.state==='suspended') _audioCtx.resume();
+    const t0=_audioCtx.currentTime;
+    for(let i=0;i<3;i++) ringChirp(t0+i*0.9, 0.32);   // 3 timbres separados ~0,9 s
+  }catch(e){}
+}
+function ringChirp(start, dur){
+  [523,659].forEach((f,k)=>{                         // dos notas suaves solapadas (do-mi)
+    const o=_audioCtx.createOscillator(), g=_audioCtx.createGain();
+    o.type='sine'; o.frequency.value=f; o.connect(g); g.connect(_audioCtx.destination);
+    g.gain.setValueAtTime(0.0001,start);
+    g.gain.exponentialRampToValueAtTime(0.045,start+0.04);   // volumen bajo
+    g.gain.exponentialRampToValueAtTime(0.0001,start+dur);
+    o.start(start); o.stop(start+dur+0.03);
+  });
+}
+// PIN de la sesión en la cabecera (para que se conecte otro alumno con vista de torre).
+function updatePinBadge(){
+  const el=document.getElementById('pinBadge'); if(!el) return;
+  if(sessionCode && !leftSession){ el.style.display='inline-block'; el.textContent='PIN '+sessionCode; }
+  else el.style.display='none';
+}
+/* ----- VOZ por micrófono (WebRTC sobre PeerJS) ----- */
+let micStream=null, voiceOn=false, remoteAudios={};
+const voiceReady=new WeakSet();
+function setupVoice(peer){
+  if(!peer || voiceReady.has(peer)) return;
+  voiceReady.add(peer);
+  peer.on('call', call=>{                       // alguien nos llama por voz: respondemos y oímos
+    try{ call.answer(micStream||undefined); }catch(e){}
+    call.on('stream', rs=>playRemoteAudio(call.peer, rs));
+    call.on('close', ()=>removeRemoteAudio(call.peer));
+    call.on('error', ()=>removeRemoteAudio(call.peer));
+  });
+}
+function playRemoteAudio(id, stream){
+  let a=remoteAudios[id];
+  if(!a){ a=document.createElement('audio'); a.autoplay=true; a.style.display='none'; document.body.appendChild(a); remoteAudios[id]=a; }
+  a.srcObject=stream; if(a.play) a.play().catch(()=>{});
+}
+function removeRemoteAudio(id){ const a=remoteAudios[id]; if(a){ try{a.srcObject=null;}catch(e){} a.remove(); delete remoteAudios[id]; } }
+function voicePeerIds(){
+  const ids=[];
+  if(role==='instructor' && isHost){ CONNS.forEach(c=>{ if(c.peer) ids.push(c.peer); }); }
+  else if(sessionCode){ ids.push(sessionCode); }
+  return ids;
+}
+function callPeerVoice(id){
+  if(!PEER || !micStream || !id) return;
+  try{ const call=PEER.call(id, micStream);
+    if(call){ call.on('stream', rs=>playRemoteAudio(id, rs)); call.on('close',()=>removeRemoteAudio(id)); }
+  }catch(e){}
+}
+async function toggleMic(){
+  const btn=document.getElementById('micBtn');
+  if(!voiceOn){
+    try{ if(!micStream) micStream=await navigator.mediaDevices.getUserMedia({audio:true}); }
+    catch(e){ flash('No se pudo acceder al micrófono ('+(e&&e.name||e)+')'); return; }
+    micStream.getAudioTracks().forEach(t=>t.enabled=true);
+    voiceOn=true;
+    if(btn){ btn.classList.add('on'); btn.textContent='🔴 Micrófono activo (silenciar)'; }
+    voicePeerIds().forEach(callPeerVoice);
+    flash('Micrófono activado');
+  }else{
+    voiceOn=false;
+    if(micStream) micStream.getAudioTracks().forEach(t=>t.enabled=false);   // se silencia, pero sigues oyendo
+    if(btn){ btn.classList.remove('on'); btn.textContent='🎙️ Activar micrófono'; }
+    flash('Micrófono silenciado');
+  }
+}
+/* ----- GRABACIÓN de la práctica en vídeo (radar + vista de torre del alumno + audio) ----- */
+let mediaRecorder=null, recChunks=[], recRAF=null, recCanvas=null, recStream=null, recAudioCtx=null, recMime='';
+function toggleRecording(){ if(mediaRecorder) stopRecording(); else startRecording(); }
+function startRecording(){
+  if(typeof MediaRecorder==='undefined'){ flash('Tu navegador no permite grabar vídeo'); return; }
+  // lienzo compuesto: radar arriba, vista de torre (la del alumno) abajo
+  recCanvas=document.createElement('canvas'); recCanvas.width=960; recCanvas.height=1080;
+  const rc=recCanvas.getContext('2d');
+  if(tower && (!tower.width||!tower.height)){ tower.width=960; tower.height=540; }   // por si está oculto en el profesor
+  const draw=()=>{
+    rc.fillStyle='#05140d'; rc.fillRect(0,0,960,1080);
+    try{ if(radar.width) rc.drawImage(radar,0,0,960,540); }catch(e){}
+    try{ drawTower(); if(tower.width) rc.drawImage(tower,0,540,960,540); }catch(e){}
+    rc.fillStyle='rgba(255,255,255,.55)'; rc.fillRect(0,538,960,4);
+    rc.fillStyle='#9fe6c0'; rc.font='bold 15px sans-serif';
+    rc.fillText('RADAR',10,22); rc.fillText('TORRE',10,560);
+    recRAF=requestAnimationFrame(draw);
+  };
+  draw();
+  recStream=recCanvas.captureStream(25);
+  // audio: mezcla del micrófono propio + audios remotos recibidos
+  try{
+    recAudioCtx=new (window.AudioContext||window.webkitAudioContext)();
+    const dest=recAudioCtx.createMediaStreamDestination();
+    if(micStream){ try{ recAudioCtx.createMediaStreamSource(micStream).connect(dest); }catch(e){} }
+    Object.values(remoteAudios).forEach(a=>{ if(a&&a.srcObject){ try{ recAudioCtx.createMediaStreamSource(a.srcObject).connect(dest); }catch(e){} } });
+    dest.stream.getAudioTracks().forEach(t=>recStream.addTrack(t));
+  }catch(e){}
+  // Preferimos MP4 (H.264/AAC): es el que abre Windows sin instalar nada. Si el navegador
+  // no lo soporta, caemos a WebM (habrá que abrirlo con Chrome o VLC).
+  const cands=['video/mp4;codecs=avc1.42E01E,mp4a.40.2','video/mp4','video/webm;codecs=vp9,opus','video/webm;codecs=vp8,opus','video/webm'];
+  recMime=''; for(const m of cands){ try{ if(MediaRecorder.isTypeSupported(m)){ recMime=m; break; } }catch(e){} }
+  try{ mediaRecorder = recMime ? new MediaRecorder(recStream,{mimeType:recMime}) : new MediaRecorder(recStream); }
+  catch(e){ flash('No se pudo iniciar la grabación'); cleanupRec(); return; }
+  if(!recMime) recMime = mediaRecorder.mimeType || 'video/webm';
+  recChunks=[];
+  mediaRecorder.ondataavailable=e=>{ if(e.data&&e.data.size) recChunks.push(e.data); };
+  mediaRecorder.onstop=saveRecording;
+  mediaRecorder.onerror=()=>{ flash('Error de grabación'); };
+  mediaRecorder.start(1000);   // vuelca datos cada segundo → archivo más robusto
+  const b=document.getElementById('recBtn'); if(b){ b.classList.add('on'); b.textContent='⏹ Detener'; }
+  flash('Grabando práctica (radar + torre + audio)…');
+}
+function stopRecording(){ try{ mediaRecorder.stop(); }catch(e){ cleanupRec(); } }
+function saveRecording(){
+  if(recRAF){ cancelAnimationFrame(recRAF); recRAF=null; }
+  const isMp4 = /mp4/i.test(recMime||'');
+  const ext = isMp4 ? 'mp4' : 'webm';
+  const blob=new Blob(recChunks,{type: isMp4 ? 'video/mp4' : 'video/webm'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a'); a.href=url; a.download='practica-lesa-'+Date.now()+'.'+ext;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),4000);
+  cleanupRec();
+  const b=document.getElementById('recBtn'); if(b){ b.classList.remove('on'); b.textContent='⏺ Grabar'; }
+  flash('Grabación descargada (.'+ext+')');
+}
+function cleanupRec(){
+  if(recRAF){ cancelAnimationFrame(recRAF); recRAF=null; }
+  mediaRecorder=null; recChunks=[]; recStream=null; recCanvas=null;
+  if(recAudioCtx){ try{recAudioCtx.close();}catch(e){} recAudioCtx=null; }
+}
+// Muestra el panel de comunicaciones: incrustado en la columna de control del profesor
+// (donde estaba «Aproximación») o flotante abajo a la derecha en la vista del alumno.
+function showCommsPanel(){
+  const p=document.getElementById('commsPanel'); if(!p) return;
+  p.style.display='flex';
+  const hslot=document.getElementById('commsHeaderSlot');
+  if(role==='instructor' && hslot){ hslot.appendChild(p); p.classList.add('in-header'); p.classList.remove('floating'); }
+  else { document.body.appendChild(p); p.classList.add('floating'); p.classList.remove('in-header'); }
+  setMyPosition(myPos= role==='student' ? 'TWR' : 'APP');
+  // la grabación de la práctica (radar + torre + audio) es cosa del profesor
+  const rb=document.getElementById('recBtn'); if(rb) rb.style.display = role==='instructor' ? 'block':'none';
+  updatePinBadge();
+  const mb=document.getElementById('metarBtn'); if(mb) mb.style.display = role==='instructor' ? 'inline-block':'none';
 }
 
 // ---- Alumno: extrapolación local entre estados recibidos ----
@@ -1026,7 +1536,7 @@ function studentTick(){
       ac.y+=-Math.cos(ac.hdg*Math.PI/180)*v;
     }
   });
-  const clk=document.getElementById('clock'); if(clk)clk.textContent=fmtT(simTime);
+  const clk=document.getElementById('clock'); if(clk)clk.textContent=clockText();
   render();
 }
 
@@ -1040,15 +1550,18 @@ async function connectToHost(code, statusEl){
   clearTimeout(connectTimer);
   const ice=await getIceConfig();
   PEER=new Peer({ config: ice, debug: 1 });
+  setupVoice(PEER);
   PEER.on('open', ()=>{
     HOST_CONN=PEER.connect(code, {reliable:true});
     HOST_CONN.on('open', ()=>{
       clearTimeout(connectTimer);
       NET=true; netBadge(true);
       statusEl.className='connectStatus ok'; statusEl.textContent='✓ Conectado';
-      enterApp();
+      enterApp(); updatePinBadge();
+      announcePosition();                        // informa al anfitrión de tu posición (línea caliente)
+      if(voiceOn) callPeerVoice(sessionCode);   // si ya tenías el micro activo, retoma la voz
     });
-    HOST_CONN.on('data', onHostState);
+    HOST_CONN.on('data', onHostMessage);
     HOST_CONN.on('close', ()=>{ NET=false; netBadge(false); onHostLost(statusEl); });
     HOST_CONN.on('error', ()=>{ NET=false; netBadge(false);
       statusEl.className='connectStatus err'; statusEl.textContent='No se pudo conectar. Comprueba el código.'; });
@@ -1106,18 +1619,50 @@ function joinAsCoInstructor(){
   // dejamos de intentar ser anfitrión (enter('instructor') había abierto una sesión propia)
   connectToHost(code, statusEl);
 }
+// Reparte los mensajes que llegan del anfitrión según su tipo: estado de la simulación
+// ('state') o lista de programas de vuelo compartidos ('progs').
+function onHostMessage(m){
+  if(!m) return;
+  if(m.type==='progs'){ mergeSharedPrograms(m.list, true); return; }   // recibidos por red: solo lectura (para el alumno)
+  if(m.type==='call'||m.type==='answer'||m.type==='hangup'){ onCommsMsg(m); return; }
+  onHostState(m);
+}
+// Fusiona en el navegador propio los programas de vuelo recibidos del anfitrión (o
+// importados de un archivo): añade los que no se tengan y actualiza los del mismo nombre.
+// Así el alumno/2º profesor acaba teniendo tus programas y puede usarlos (p.ej. luego en
+// modo local como anfitrión).
+// readOnly=true (por defecto): marca los programas como SOLO LECTURA (shared) — así llegan
+// del profesor por la red y el ALUMNO no puede editarlos (sólo copiarlos). readOnly=false:
+// se fusionan como propios y EDITABLES (p.ej. al IMPORTAR un archivo: son tuyos, los editas).
+function mergeSharedPrograms(list, readOnly){
+  if(readOnly===undefined) readOnly=true;
+  if(!Array.isArray(list)) return 0;
+  const mine=getSavedSchedules(); let n=0;
+  list.forEach(p=>{ if(!p||!p.name||!Array.isArray(p.flights)) return;
+    const incoming={...p}; if(readOnly) incoming.shared=true; else delete incoming.shared;
+    const i=mine.findIndex(s=>s.name===p.name);
+    if(i>=0) mine[i]=incoming; else mine.push(incoming); n++; });
+  setSavedSchedules(mine);   // no re-difunde: el guard de setSavedSchedules sólo difunde si eres anfitrión
+  renderSavedSchedList();
+  return n;
+}
+// ¿Este programa es de SOLO LECTURA para MÍ? Sólo el ALUMNO tiene el candado; cualquier
+// profesor (anfitrión o 2º) puede editar/borrar/renombrar TODOS sus programas.
+function isReadOnlyProg(s){ return !!(s && s.shared) && role==='student'; }
 function onHostState(m){
   if(!m||m.type!=='state') return;
   lastNetUpdate=performance.now(); lastExtrapTs=lastNetUpdate;
   simRunning=m.running; simTime=m.time; simSpeed=m.speed;
   schedule=m.schedule||[]; aircraft=m.aircraft||[];
   if(m.studentAcLabels!==undefined) studentAcLabels=!!m.studentAcLabels;
+  if(m.metar!==undefined) METAR_TXT=m.metar;   // parte meteorológico compartido por el profesor
+  if(m.clockStart!==undefined) clockStart=m.clockStart;   // hora de inicio del reloj (compartida)
   if(m.activeRwy) applyActiveRwy(m.activeRwy);   // pista activa compartida (2º profesor)
   // si el 2º profesor está arrastrando un avión en el radar, conservamos su posición
   // local sobre el estado entrante para que el arrastre no "salte" hasta soltarlo
   if(dragAc){ const na=aircraft.find(a=>a.id===dragAc.id); if(na){ na.x=dragAc.x; na.y=dragAc.y; dragAc=na; } }
   selected = selectedId!=null ? aircraft.find(a=>a.id===selectedId)||null : null;
-  const clk=document.getElementById('clock'); if(clk)clk.textContent=fmtT(simTime);
+  const clk=document.getElementById('clock'); if(clk)clk.textContent=clockText();
   const sp=document.getElementById('spdLbl'); if(sp)sp.textContent='x'+simSpeed;
   // el 2º profesor refleja el reloj y los ajustes del anfitrión en sus controles
   if(role==='instructor'){
@@ -1180,6 +1725,7 @@ function enterApp(){
   const resetBtn=document.getElementById('resetBtn'); if(resetBtn) resetBtn.style.display = role==='instructor'?'inline-block':'none';
   const roleBtnHeader=document.getElementById('roleBtnHeader'); if(roleBtnHeader) roleBtnHeader.style.display = role==='instructor'?'inline-block':'none';
   const sStripBar=document.getElementById('sStripBar'); if(sStripBar) sStripBar.style.display = role==='instructor'?'flex':'none';
+  showCommsPanel();   // panel de comunicaciones (posición, llamadas, micrófono) + PIN + botón METAR
   resizeAll();
 }
 /* ---------- modo de vista del alumno: torre (predeterminado) o radar ----------
@@ -1214,6 +1760,13 @@ function backToRole(){
   if(PEER){ try{PEER.destroy();}catch(e){} PEER=null; }
   CONNS=new Set(); HOST_CONN=null; NET=false;
   const badge=document.getElementById('netBadge'); if(badge) badge.remove();
+  // cierra voz/llamadas y oculta el panel de comunicaciones
+  if(voiceOn){ voiceOn=false; const mb=document.getElementById('micBtn'); if(mb){mb.classList.remove('on');mb.textContent='🎙️ Activar micrófono';} }
+  if(micStream){ try{ micStream.getTracks().forEach(t=>t.stop()); }catch(e){} micStream=null; }
+  Object.keys(remoteAudios).forEach(removeRemoteAudio);
+  clearIncomingCall();
+  const cp=document.getElementById('commsPanel'); if(cp) cp.style.display='none';
+  updatePinBadge();
   document.getElementById('app').style.display='none';
   document.getElementById('connectScreen').style.display='none';
   document.getElementById('roleScreen').style.display='flex';
@@ -1222,42 +1775,96 @@ function backToRole(){
 /* ===========================================================
    SCHEDULER
    =========================================================== */
-function openSched(){document.getElementById('sched').style.display='flex';updatePointOptions();renderSchedList();renderSavedSchedList();}
+function openSched(){
+  document.getElementById('sched').style.display='flex';
+  updatePointOptions(); renderSchedList(); renderSavedSchedList(); updateActiveProgramLabel();
+  const cs=document.getElementById('f_clockStart'); if(cs) cs.value=fmtT(clockStart).slice(0,5);  // hora de inicio actual (hh:mm)
+}
 // Rellena el desplegable de "Punto" según la regla elegida: visuales (N, E, S, W, N-1,
 // E-1) o instrumentales (puntos de aproximación de APP_REF: DSK, VETAN, ZMR, ADORO, ...).
+// «4NM» (aproximación directa alineada con la pista, a 4 NM) está disponible en ambos.
 function updatePointOptions(){
-  const ruleEl=document.getElementById('f_rule'), sel=document.getElementById('f_point');
-  if(!ruleEl||!sel) return;
-  const opts = ruleEl.value==='IFR' ? Object.keys(APP_REF) : ['N','N-1','E','E-1','S','W'];
+  const ruleEl=document.getElementById('f_rule'), sel=document.getElementById('f_point'), opEl=document.getElementById('f_op');
+  if(!sel) return;
+  const isDep = opEl && opEl.value==='DEP';
+  const catField=document.getElementById('catField'); if(catField) catField.style.display='';   // la plataforma (categoría) se elige siempre
+  const lblP=document.getElementById('lblPoint'); if(lblP) lblP.textContent = isDep ? 'Punto de salida' : 'Punto de entrada';
+  // Puntos según la regla: visuales (N, E, S, W, N-1, E-1) o instrumentales (APP_REF).
+  // «5NM» (final directo) solo tiene sentido en llegadas.
+  let pts=(ruleEl&&ruleEl.value==='IFR') ? Object.keys(APP_REF) : ['N','N-1','E','E-1','S','W'];
+  if(!isDep) pts=pts.concat(['5NM']);
+  const opts=pts.map(p=>[p, p==='5NM'?'5NM · aproximación directa':p]);
   const cur=sel.value;
-  sel.innerHTML=opts.map(p=>`<option value="${p}">${p}</option>`).join('');
-  if(opts.includes(cur)) sel.value=cur;
+  sel.innerHTML=opts.map(([v,l])=>`<option value="${v}">${l}</option>`).join('');
+  if(opts.some(([v])=>v===cur)) sel.value=cur;
 }
 function closeSched(){document.getElementById('sched').style.display='none';}
-function parseT(s){const m=String(s).trim().match(/^(\d{1,2}):(\d{2})$/);if(!m)return null;return (+m[1])*60+(+m[2]);}
+// Hora de un vuelo en formato hh:mm:ss (también se acepta mm:ss por compatibilidad).
+function parseT(s){
+  s=String(s).trim();
+  let m=s.match(/^(\d{1,2}):(\d{2}):(\d{2})$/);
+  if(m){ if(+m[2]>59||+m[3]>59) return null; return (+m[1])*3600+(+m[2])*60+(+m[3]); }
+  m=s.match(/^(\d{1,2}):(\d{2})$/);   // mm:ss (compatibilidad con programas antiguos)
+  if(m){ if(+m[2]>59) return null; return (+m[1])*60+(+m[2]); }
+  return null;
+}
 function fmtT(sec){const h=Math.floor(sec/3600),m=Math.floor(sec%3600/60),s=Math.floor(sec%60);
   return String(h).padStart(2,'0')+':'+String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');}
-function fmtMS(sec){const m=Math.floor(sec/60),s=Math.floor(sec%60);return String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');}
+// Horas de los vuelos y marcas de tiempo en formato hh:mm:ss.
+function fmtMS(sec){const h=Math.floor(sec/3600),m=Math.floor(sec%3600/60),s=Math.floor(sec%60);
+  return String(h).padStart(2,'0')+':'+String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');}
+// Hora de inicio del reloj (UTC) elegida para el programa: el reloj de cabecera muestra
+// clockStart + tiempo transcurrido (en vez de empezar siempre en 00:00). Los vuelos se
+// siguen programando en mm:ss desde el inicio de la sesión.
+let clockStart=0;   // segundos (0 = 00:00:00)
+function parseHM(s){const m=String(s).trim().match(/^(\d{1,2}):(\d{2})$/);if(!m)return null;const hh=+m[1],mm=+m[2];if(hh>23||mm>59)return null;return hh*3600+mm*60;}
+function clockText(){ return fmtT((clockStart+simTime)%86400); }
+function applyClockStart(sec){ clockStart=((sec%86400)+86400)%86400; const c=document.getElementById('clock'); if(c)c.textContent=clockText(); persistCurrentProgram(); }
+function setClockStart(v){ const s=parseHM(v); if(s===null){ alert('Hora inválida. Usa hh:mm, p.ej. 14:30'); return; } if(relayRC('clockstart',[s])) { applyClockStart(s); return; } applyClockStart(s); }
 
 function addFlight(){
   const t=parseT(document.getElementById('f_time').value);
   const cs=document.getElementById('f_cs').value.trim().toUpperCase();
-  if(t===null){alert('Hora inválida. Usa mm:ss, p.ej. 01:30');return;}
+  if(t===null){alert('Hora inválida. Usa hh:mm:ss, p.ej. 00:01:30');return;}
   if(!cs){alert('Indicativo obligatorio');return;}
+  const op=document.getElementById('f_op').value;
+  // categoría = plataforma (civil/militar), siempre desde su selector; punto = punto de
+  // salida (salidas) o de entrada (llegadas), siempre desde su selector.
+  const cat = document.getElementById('f_cat')?document.getElementById('f_cat').value:'CIV';
+  const point = document.getElementById('f_point')?document.getElementById('f_point').value:'';
+  // squawk: lo que escriba el usuario (4 dígitos 0-7) o, si lo deja vacío/!válido, uno
+  // automático único dentro del programa.
+  let sq=(document.getElementById('f_sq')?document.getElementById('f_sq').value:'').trim();
+  if(!/^[0-7]{4}$/.test(sq)){
+    const taken=new Set(schedule.filter((s,ix)=>ix!==editingIdx).map(s=>s.sq).filter(Boolean));
+    sq=genSquawk(taken);
+  }
   const f={
     time:t, cs,
     type:document.getElementById('f_type').value.trim().toUpperCase()||'C295',
-    op:document.getElementById('f_op').value,
+    op,
     orig:document.getElementById('f_orig').value.trim().toUpperCase()||'LESA',
     dest:document.getElementById('f_dest').value.trim().toUpperCase()||'----',
     route:'', // se elimina el campo de ruta del formulario: el punto de salida real
               // se planifica/edita desde la propia ficha de vuelo (ver exitPtPicker)
     lvl:document.getElementById('f_lvl').value.trim().toUpperCase()||'035',
     rule:document.getElementById('f_rule')?document.getElementById('f_rule').value:'VFR',   // VFR (visual) / IFR (instrumental)
-    cat:document.getElementById('f_cat')?document.getElementById('f_cat').value:'CIV',      // MIL → plataforma militar / CIV → plataforma civil
-    point:document.getElementById('f_point')?document.getElementById('f_point').value:'',   // punto elegido (entrada para llegadas / salida para salidas)
+    cat,    // MIL → plataforma militar / CIV → plataforma civil
+    point,  // punto de entrada (sólo llegadas)
+    sq,     // código transpondedor (squawk)
+    fighter: (document.getElementById('f_fighter')&&document.getElementById('f_fighter').value==='1'),   // caza → pareja en formación
+    cruise:Math.max(40,Math.min(400, parseInt(document.getElementById('f_spd')&&document.getElementById('f_spd').value,10)||120)),  // velocidad de crucero por defecto del vuelo
     spawned:false
   };
+  // si estamos EDITANDO un vuelo, actualizamos ese vuelo en vez de añadir uno nuevo
+  if(editingIdx!=null){
+    const old=schedule[editingIdx]||{};
+    f.spawned=!!old.spawned; f.cancelled=!!old.cancelled;   // conservamos su estado
+    const idx=editingIdx; cancelEditFlight();
+    if(relayRC('editflight',[idx,f])) return;
+    editFlightObj(idx,f);
+    return;
+  }
   if(relayRC('addflight',[f])) return;
   addFlightObj(f);
 }
@@ -1266,17 +1873,58 @@ function addFlightObj(f){
   schedule.sort((a,b)=>a.time-b.time);
   renderSchedList();
 }
+// --- Edición de un vuelo ya programado ---------------------------------------
+let editingIdx=null;   // índice del vuelo que se está editando (o null)
+// Carga un vuelo del programa en el formulario para modificarlo (indicativo, operación,
+// origen/destino, regla, categoría, punto, hora…). Al pulsar «Guardar cambios» se
+// actualiza ese vuelo en vez de crear uno nuevo.
+function editFlight(i){
+  const f=schedule[i]; if(!f) return;
+  const set=(id,v)=>{ const el=document.getElementById(id); if(el) el.value=v; };
+  set('f_time', fmtMS(f.time)); set('f_cs', f.cs||''); set('f_type', f.type||'');
+  set('f_op', f.op||'DEP'); set('f_cat', f.cat||'CIV'); set('f_rule', f.rule||'VFR');
+  updatePointOptions();
+  set('f_point', f.point||'');
+  set('f_orig', f.orig||''); set('f_dest', f.dest||''); set('f_lvl', f.lvl||'035');
+  set('f_spd', f.cruise||120);
+  set('f_sq', f.sq||'');
+  set('f_fighter', f.fighter?'1':'');
+  editingIdx=i;
+  const ab=document.getElementById('addFlightBtn'); if(ab) ab.textContent='💾 Guardar cambios';
+  const cb=document.getElementById('cancelEditBtn'); if(cb) cb.style.display='';
+}
+function cancelEditFlight(){
+  editingIdx=null;
+  const ab=document.getElementById('addFlightBtn'); if(ab) ab.textContent='+ Añadir vuelo';
+  const cb=document.getElementById('cancelEditBtn'); if(cb) cb.style.display='none';
+}
+function editFlightObj(i,f){
+  if(i<0||i>=schedule.length) return;
+  schedule[i]=f;
+  schedule.sort((a,b)=>a.time-b.time);
+  renderSchedList();
+}
 function delFlight(i){ if(relayRC('delflight',[i])) return; schedule.splice(i,1); renderSchedList(); }
+// Empieza un programa NUEVO y vacío (no borra los programas guardados).
+function newProgram(){
+  if(schedule.length && !applyingRemote && !confirm('¿Vaciar el programa actual y empezar uno nuevo? (los programas guardados no se borran)')) return;
+  if(relayRC('newprog')) { loadedProgramName=null; cancelEditFlight(); applyLoadedSchedule([], null, 0); updateActiveProgramLabel(); return; }
+  loadedProgramName=null; cancelEditFlight();
+  applyLoadedSchedule([], 'Programa nuevo vacío', 0);
+  const inp=document.getElementById('sched_saveName'); if(inp) inp.value='';
+  updateActiveProgramLabel();
+}
 function loadDemo(){
   if(relayRC('loaddemo')) return;
+  loadedProgramName=null; updateActiveProgramLabel();   // programa nuevo (sin nombre)
   // Reinicia el estado de la simulación para dejarla lista y poder pulsar
   // «Iniciar» de inmediato (si se cargaba el programa con la sim. en marcha,
   // el botón se quedaba en «Pausar/Reanudar» y parecía que no se podía iniciar).
-  simRunning=false; simTime=0; lastTs=null; stopSimClock(); aircraft=[]; selected=null; selectedId=null;
+  simRunning=false; simTime=0; lastTs=null; stopSimClock(); history=[]; aircraft=[]; selected=null; selectedId=null;
   const playBtn=document.getElementById('playBtn');
   if(playBtn){playBtn.textContent='▶ Iniciar'; playBtn.className='btn go';}
   const clockEl=document.getElementById('clock');
-  if(clockEl) clockEl.textContent=fmtT(0);
+  if(clockEl) clockEl.textContent=clockText();
   // Programa de entrenamiento: 10 vuelos mezclando salidas y llegadas,
   // tráfico militar (plataforma MIL, tipos C295/C101) y civil (plataforma CIV),
   // escalonados a lo largo de ~12 minutos de simulación para practicar
@@ -1314,6 +1962,7 @@ function shuffle(arr){
 function generateRandomSchedule(){
   if(schedule.length && !applyingRemote && !confirm('Esto reemplazará el programa de vuelos actual por uno aleatorio. ¿Continuar?')) return;
   if(relayRC('gensched')) return;
+  loadedProgramName=null; updateActiveProgramLabel();   // programa nuevo (sin nombre)
 
   const VFR_PT_LIST=['N-1','N','E-1','E','S','W'];
   const IFR_PT_LIST=Object.keys(APP_REF).filter(p=>p!=='BBI');
@@ -1392,7 +2041,65 @@ function getSavedSchedules(){
 }
 function setSavedSchedules(list){
   try{ localStorage.setItem(SAVED_SCHED_KEY, JSON.stringify(list)); }catch(e){}
+  broadcastPrograms();   // si eres anfitrión y hay alguien conectado, comparte tus programas
 }
+// El anfitrión envía su lista de programas guardados a los clientes conectados (alumno /
+// 2º profesor), que los fusionan en su navegador. Así "se les comparten los que vas creando".
+function broadcastPrograms(){
+  if(!(role==='instructor' && isHost) || !CONNS.size) return;
+  let msg; try{ msg={type:'progs', list:getSavedSchedules()}; }catch(e){ return; }
+  CONNS.forEach(c=>{ if(c.open) c.send(msg); });
+}
+// Persistencia del PROGRAMA ACTUAL "en vivo" (la secuencia que estás creando/editando),
+// para que NO se pierda al cerrar y reabrir la aplicación — antes solo persistían los
+// "Programas guardados" con nombre. Se guarda el plan (vuelos sin estado de aparición) y
+// la hora de inicio del reloj. Sólo el profesor anfitrión lo guarda; al cargar se restaura.
+const CURRENT_PROG_KEY='lesa_currentProgram';
+// Nombre del programa guardado que está ACTIVO (cargado o recién guardado). Mientras lo
+// editas, los cambios se guardan también en ese programa (auto-guardado), no solo en la
+// sesión en vivo. Se pone a null al crear/generar uno nuevo sin nombre.
+let loadedProgramName=null;
+function flightsForSave(){
+  return schedule.map(({time,cs,type,op,orig,dest,route,lvl,rule,cat,point,cruise,sq,fighter})=>({time,cs,type,op,orig,dest,route,lvl,rule,cat,point,cruise,sq,fighter}));
+}
+function persistCurrentProgram(){
+  if(role && !(role==='instructor' && isHost)) return;   // el alumno / 2º profesor no guardan
+  try{ localStorage.setItem(CURRENT_PROG_KEY, JSON.stringify({clockStart, flights:flightsForSave(), name:loadedProgramName})); }catch(e){}
+  syncLoadedProgram();
+}
+// Vuelca los cambios actuales al programa guardado activo (si hay uno cargado), para que
+// editar un programa seleccionado quede guardado en ese programa.
+function syncLoadedProgram(){
+  if(!loadedProgramName) return;
+  if(role && !(role==='instructor' && isHost)) return;
+  const list=getSavedSchedules();
+  const i=list.findIndex(s=>s.name===loadedProgramName);
+  if(i<0){ loadedProgramName=null; return; }
+  delete list[i].shared;   // al editarlo como profesor, el programa pasa a ser TUYO (editable)
+  list[i].flights=flightsForSave(); list[i].clockStart=clockStart; list[i].savedAt=Date.now();
+  setSavedSchedules(list);
+  renderSavedSchedList();
+  updateActiveProgramLabel();
+}
+function updateActiveProgramLabel(){
+  const el=document.getElementById('activeProgLbl'); if(!el) return;
+  const btn=document.getElementById('renameProgBtn');
+  if(loadedProgramName){
+    el.innerHTML = '✏️ Editando «<b>'+loadedProgramName+'</b>» — los cambios se guardan solos en este programa';
+    if(btn) btn.style.display='inline-block';
+  }else{
+    el.textContent = 'Programa nuevo (sin nombre) — añade vuelos y pulsa «Guardar programa» para conservarlo';
+    if(btn) btn.style.display='none';
+  }
+}
+// Renombra el programa que estás editando ahora mismo (el activo).
+function renameActiveProgram(){
+  if(!loadedProgramName){ alert('Primero guarda el programa con un nombre («💾 Guardar programa», abajo).'); return; }
+  renameSavedSchedule(loadedProgramName);
+}
+// NOTA: el menú abre con el programa que estés editando en esta sesión (vacío al inicio).
+// Para trabajar un programa guardado, pulsa «📂 Cargar» en la lista; sus ediciones se
+// guardan automáticamente en él. (No se restaura nada al abrir la app: empieza vacío.)
 
 /* ------------------------------------------------------------------
    Programas de entrenamiento predefinidos.
@@ -1443,37 +2150,73 @@ function saveScheduleAs(){
   if(!schedule.length){ alert('No hay vuelos programados que guardar.'); return; }
   // guardamos solo los datos del vuelo (sin "spawned"): cada vez que se cargue
   // el programa, todos los vuelos empiezan como pendientes
-  const flights=schedule.map(({time,cs,type,op,orig,dest,route,lvl,rule,cat,point})=>({time,cs,type,op,orig,dest,route,lvl,rule,cat,point}));
+  const flights=flightsForSave();
   const list=getSavedSchedules();
   const i=list.findIndex(s=>s.name===name);
   if(i>=0){
     if(!confirm(`Ya existe un programa llamado «${name}». ¿Sobrescribirlo?`)) return;
-    list[i]={name,flights,savedAt:Date.now()};
+    list[i]={name,flights,clockStart,savedAt:Date.now()};
   }else{
-    list.push({name,flights,savedAt:Date.now()});
+    list.push({name,flights,clockStart,savedAt:Date.now()});
   }
   setSavedSchedules(list);
   if(inp) inp.value='';
+  loadedProgramName=name;   // pasa a ser el programa activo: las ediciones se guardan en él
   renderSavedSchedList();
+  updateActiveProgramLabel();
   flash(`Programa «${name}» guardado (${flights.length} vuelo${flights.length===1?'':'s'})`);
+}
+// Exporta TODOS los programas guardados a un archivo .json para pasárselo a otra persona
+// (que lo importa en su dispositivo y así tiene tus mismos programas, sin necesidad de
+// estar conectados).
+function exportPrograms(){
+  const list=getSavedSchedules();
+  if(!list.length){ alert('No hay programas guardados que exportar.'); return; }
+  const blob=new Blob([JSON.stringify({lesaPrograms:list}, null, 2)], {type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a'); a.href=url; a.download='programas-lesa.json';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url), 2000);
+}
+// Importa programas desde un archivo .json exportado (los fusiona con los que ya tengas).
+function importProgramsFile(input){
+  const file=input.files&&input.files[0]; if(!file){ return; }
+  const r=new FileReader();
+  r.onload=()=>{
+    try{
+      const d=JSON.parse(r.result);
+      const list=Array.isArray(d)?d:(d.lesaPrograms||d.list||d.programs);
+      if(!Array.isArray(list)){ alert('El archivo no contiene programas válidos.'); return; }
+      const n=mergeSharedPrograms(list, false);   // importados = TUYOS y editables (no solo lectura)
+      flash(`Importados ${n} programa${n===1?'':'s'} (editables).`);
+    }catch(e){ alert('No se pudo leer el archivo (¿está dañado?).'); }
+    input.value='';
+  };
+  r.readAsText(file);
 }
 function loadSavedSchedule(name){
   const entry=getSavedSchedules().find(s=>s.name===name);
   if(!entry) return;
   const flights=entry.flights.map(f=>({...f, spawned:false}));
+  const cs=entry.clockStart||0;
   // los programas guardados viven en el navegador de cada profesor, así que el 2º
-  // profesor envía los VUELOS (no el nombre) para que el anfitrión los cargue
-  if(relayRC('loadschedule',[flights])) return;
-  applyLoadedSchedule(flights, `Programa «${name}» cargado (${flights.length} vuelo${flights.length===1?'':'s'})`);
+  // profesor envía los VUELOS y la hora de inicio (no el nombre) para que el anfitrión los cargue
+  if(relayRC('loadschedule',[flights,cs])) return;
+  // Si el programa es del profesor (solo lectura) NO lo marcamos como activo para edición:
+  // así, cualquier cambio que hagas no se guarda en el original. Para editar, usa «⧉ Copiar».
+  loadedProgramName = isReadOnlyProg(entry) ? null : name;   // el alumno no auto-guarda sobre uno de solo lectura; el profesor sí edita
+  applyLoadedSchedule(flights, `Programa «${name}» cargado (${flights.length} vuelo${flights.length===1?'':'s'})`, cs);
+  updateActiveProgramLabel();
 }
 // Carga un conjunto de vuelos como programa activo, con el mismo reinicio que el
 // «programa de entrenamiento» (para poder pulsar «Iniciar» de inmediato).
-function applyLoadedSchedule(flights, msg){
-  simRunning=false; simTime=0; lastTs=null; stopSimClock(); aircraft=[]; selected=null; selectedId=null;
+function applyLoadedSchedule(flights, msg, cs){
+  simRunning=false; simTime=0; lastTs=null; stopSimClock(); history=[]; aircraft=[]; selected=null; selectedId=null;
+  if(cs!==undefined){ clockStart=((cs%86400)+86400)%86400; const inp=document.getElementById('f_clockStart'); if(inp) inp.value=fmtT(clockStart).slice(0,5); }
   const playBtn=document.getElementById('playBtn');
   if(playBtn){playBtn.textContent='▶ Iniciar'; playBtn.className='btn go';}
   const clockEl=document.getElementById('clock');
-  if(clockEl) clockEl.textContent=fmtT(0);
+  if(clockEl) clockEl.textContent=clockText();
   schedule=(flights||[]).map(f=>({...f, spawned:false}));
   schedule.sort((a,b)=>a.time-b.time);
   renderSchedList();
@@ -1482,20 +2225,44 @@ function applyLoadedSchedule(flights, msg){
   if(msg) flash(msg);
 }
 function deleteSavedSchedule(name){
+  const it0=getSavedSchedules().find(s=>s.name===name);
+  if(isReadOnlyProg(it0)){ alert('Este programa es del profesor (solo lectura). Haz una copia («⧉ Copiar») si quieres una versión que puedas borrar o editar.'); return; }
   if(!confirm(`¿Eliminar el programa guardado «${name}»? Esta acción no se puede deshacer.`)) return;
   setSavedSchedules(getSavedSchedules().filter(s=>s.name!==name));
+  if(loadedProgramName===name){ loadedProgramName=null; updateActiveProgramLabel(); }
   renderSavedSchedList();
+}
+// Cambia el nombre de un programa guardado (renombrar).
+function renameSavedSchedule(name){
+  const it0=getSavedSchedules().find(s=>s.name===name);
+  if(isReadOnlyProg(it0)){ alert('Este programa es del profesor (solo lectura). Haz una copia («⧉ Copiar») para poder renombrarlo.'); return; }
+  const nn=(prompt('Nuevo nombre para el programa «'+name+'»:', name)||'').trim();
+  if(!nn || nn===name) return;
+  const list=getSavedSchedules();
+  if(list.find(s=>s.name===nn)){ alert('Ya existe un programa con ese nombre.'); return; }
+  const it=list.find(s=>s.name===name); if(!it) return;
+  it.name=nn;
+  setSavedSchedules(list);
+  if(loadedProgramName===name) loadedProgramName=nn;
+  renderSavedSchedList(); updateActiveProgramLabel();
 }
 function renderSavedSchedList(){
   const el=document.getElementById('savedSchedList');
   if(!el) return;
   const list=getSavedSchedules();
   if(!list.length){ el.innerHTML='<div class="empty2">No hay programas guardados todavía.</div>'; return; }
-  el.innerHTML=list.slice().sort((a,b)=>a.name.localeCompare(b.name,'es')).map(s=>`
-    <div class="schedRow" style="grid-template-columns:1fr 78px 84px 30px">
-      <span class="cs" title="${s.name}" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${s.name}</span>
+  el.innerHTML=list.slice().sort((a,b)=>a.name.localeCompare(b.name,'es')).map(s=> isReadOnlyProg(s) ? `
+    <div class="schedRow" style="grid-template-columns:1fr 70px 78px 52px" title="Programa del profesor (solo lectura). Haz una copia para editarlo.">
+      <span class="cs" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">🔒 ${s.name}${s.name===loadedProgramName?' ◀':''}</span>
       <span style="color:#667">${s.flights.length} vuelo${s.flights.length===1?'':'s'}</span>
       <span class="loadBtn" data-loadsavedsched="${s.name}">📂 Cargar</span>
+      <span class="loadBtn" data-copysavedsched="${s.name}" title="Crear una copia editable de este programa" style="text-align:center">⧉ Copiar</span>
+    </div>` : `
+    <div class="schedRow" style="grid-template-columns:1fr 70px 78px 26px 26px">
+      <span class="cs" title="${s.name}" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${s.name}${s.name===loadedProgramName?' ◀':''}</span>
+      <span style="color:#667">${s.flights.length} vuelo${s.flights.length===1?'':'s'}</span>
+      <span class="loadBtn" data-loadsavedsched="${s.name}">📂 Cargar</span>
+      <span class="edit2" data-renamesavedsched="${s.name}" title="Renombrar este programa">✎</span>
       <span class="del" data-delsavedsched="${s.name}" title="Eliminar este programa guardado">✕</span>
     </div>`).join('');
 }
@@ -1508,10 +2275,32 @@ function renderSavedSchedList(){
   savedListEl.addEventListener('click',function(e){
     const load=e.target.closest('[data-loadsavedsched]');
     if(load){ loadSavedSchedule(load.getAttribute('data-loadsavedsched')); return; }
+    const ren=e.target.closest('[data-renamesavedsched]');
+    if(ren){ renameSavedSchedule(ren.getAttribute('data-renamesavedsched')); return; }
     const del=e.target.closest('[data-delsavedsched]');
     if(del){ deleteSavedSchedule(del.getAttribute('data-delsavedsched')); return; }
+    const cpy=e.target.closest('[data-copysavedsched]');
+    if(cpy){ copyProgram(cpy.getAttribute('data-copysavedsched')); return; }
   });
 })();
+// Crea una copia EDITABLE (sin el candado «shared») de un programa, para que el alumno pueda
+// partir del programa del profesor y modificarlo a su gusto sin tocar el original.
+function copyProgram(name){
+  const list=getSavedSchedules();
+  const src=list.find(s=>s.name===name); if(!src) return;
+  let base=name+' (copia)', nn=base, k=2;
+  while(list.some(s=>s.name===nn)){ nn=base+' '+k; k++; }
+  const copy={name:nn, flights:src.flights.map(f=>({...f})), clockStart:src.clockStart||0, savedAt:Date.now()};
+  list.push(copy);
+  setSavedSchedules(list);
+  renderSavedSchedList();
+  // IMPORTANTE: cargamos la copia como programa ACTIVO. Antes la copia se creaba pero el
+  // programa activo seguía siendo el original, así que las ediciones se guardaban en el
+  // ORIGINAL y la copia quedaba intacta (parecía que "se perdían los cambios"). Ahora, al
+  // copiar, pasas a editar directamente la copia.
+  loadSavedSchedule(nn);
+  flash(`Copia editable «${nn}» creada y cargada: ya la estás editando.`);
+}
 
 function renderSchedList(){
   const el=document.getElementById('schedList');
@@ -1519,18 +2308,21 @@ function renderSchedList(){
     if(!schedule.length){el.innerHTML='<div class="empty2">Aún no hay vuelos programados.</div>';}
     else el.innerHTML=schedule.map((f,i)=>`
       <div class="schedRow">
-        <input class="ttEdit" type="text" inputmode="numeric" maxlength="5" value="${fmtMS(f.time)}"
+        <input class="ttEdit" type="text" inputmode="numeric" maxlength="8" value="${fmtMS(f.time)}"
           onkeydown="if(event.key==='Enter'){event.preventDefault();saveScheduledTime(${i},this.value);}"
-          title="Hora (mm:ss). Edítala y pulsa 💾 o Intro para guardar.">
+          title="Hora (hh:mm:ss). Edítala y pulsa 💾 o Intro para guardar.">
         <span class="cs">${f.cs}</span>
         <span>${f.type}</span>
         <span>${f.orig}→${f.dest}</span>
         <span class="tag ${f.op}">${f.op}</span>
+        <span class="sq" title="Squawk (código transpondedor)">${f.sq||'----'}</span>
+        <span class="edit2" title="Editar este vuelo" onclick="editFlight(${i})">✎</span>
         <span class="save2" title="Guardar nueva hora" onclick="saveScheduledTime(${i},this.closest('.schedRow').querySelector('.ttEdit').value)">💾</span>
         <span class="del" onclick="delFlight(${i})">✕</span>
       </div>`).join('');
   }
   renderProgList();
+  persistCurrentProgram();   // guarda el programa actual para que sobreviva al cierre de la app
 }
 
 /* ---------- Programa de vuelos · panel del profesor ----------
@@ -1575,8 +2367,8 @@ function renderProgList(){
       action = `<span class="go2" data-startnow="${i}">▶ Iniciar ahora</span>`;
       // la "✕" marca el vuelo como CANCELADO (gris): no aparecerá a su hora
       delBtn=`<span class="del2" data-cancelsched="${i}" title="Marcar como cancelado (queda en gris)">✕</span>`;
-      // hora editable: clic, escribe mm:ss y pulsa 💾 (o Intro) para guardar
-      timeField=`<input class="ttEdit" type="text" inputmode="numeric" maxlength="5" data-idx="${i}" value="${fmtMS(f.time)}" title="Hora de aparición (mm:ss). Edítala y pulsa 💾 o Intro para guardar.">`;
+      // hora editable: clic, escribe hh:mm:ss y pulsa 💾 (o Intro) para guardar
+      timeField=`<input class="ttEdit" type="text" inputmode="numeric" maxlength="8" data-idx="${i}" value="${fmtMS(f.time)}" title="Hora de aparición (hh:mm:ss). Edítala y pulsa 💾 o Intro para guardar.">`;
       saveBtn=`<span class="save2" data-savetime="${i}" title="Guardar nueva hora">💾</span>`;
     }
     // si el vuelo ya está en curso (ha aparecido), seleccionar su ficha también selecciona
@@ -1605,7 +2397,7 @@ function updateProgBlink(){
   if(!el) return;
   el.querySelectorAll('.progRow[data-spawnat]').forEach(row=>{
     const spawnAt=+row.getAttribute('data-spawnat');
-    const remaining=spawnAt-simTime;
+    const remaining=spawnAt-(clockStart+simTime);   // hora de reloj
     row.classList.toggle('soon', remaining>0 && remaining<=120);
   });
 }
@@ -1646,7 +2438,7 @@ function saveScheduledTime(i, val){
   const f=schedule[i];
   if(!f || f.spawned) return;
   const t=parseT(val);
-  if(t===null){ alert('Hora inválida. Usa mm:ss, p.ej. 01:30'); renderSchedList(); return; }
+  if(t===null){ alert('Hora inválida. Usa hh:mm:ss, p.ej. 00:01:30'); renderSchedList(); return; }
   if(relayRC('savetime',[i,val])) return;
   f.time=t;
   schedule.sort((a,b)=>a.time-b.time);
@@ -1700,6 +2492,16 @@ function cancelScheduledFlight(i){
 function toggleSim(){
   if(!simRunning && !schedule.length){alert('Programa al menos un vuelo antes de iniciar.');return;}
   if(relayRC('simtoggle')) return;   // 2º profesor: el reloj lo lleva el anfitrión
+  // Al ARRANCAR desde cero sin haber fijado hora de inicio: si el primer vuelo está
+  // programado a una hora de reloj (≥1 h), el reloj arranca a esa hora para que el
+  // vuelo aparezca al iniciar (en vez de tener que esperar horas o fijarla a mano).
+  if(!simRunning && simTime===0 && clockStart===0){
+    const times=schedule.filter(f=>!f.cancelled).map(f=>f.time);
+    if(times.length){ const earliest=Math.min.apply(null,times); if(earliest>=3600) applyClockStart(earliest); }
+  }
+  // si arrancamos tras RETROCEDER en la línea de tiempo, descartamos el "futuro" grabado
+  // (las instantáneas posteriores al punto actual) para que la nueva línea lo sustituya
+  if(!simRunning) history=history.filter(s=>s.t<=simTime+0.001);
   simRunning=!simRunning;
   syncPlayBtn();
   if(simRunning){
@@ -1730,13 +2532,13 @@ function resetSim(){
     if(!confirm('¿Reiniciar la simulación desde cero? Se perderá todo el progreso actual.')) return;
   }
   if(relayRC('simreset')) return;
-  simRunning=false; simTime=0; lastTs=null; simSpeed=1; stopSimClock();
+  simRunning=false; simTime=0; lastTs=null; simSpeed=1; stopSimClock(); history=[];
   aircraft=[]; selected=null; selectedId=null; plannedRoute=[]; dragAc=null; dragMoved=false;
   schedule.forEach(f=>{ f.spawned=false; });
   const playBtn=document.getElementById('playBtn');
   if(playBtn){playBtn.textContent='▶ Iniciar'; playBtn.className='btn go';}
   const spdLbl=document.getElementById('spdLbl'); if(spdLbl) spdLbl.textContent='x1';
-  const clockEl=document.getElementById('clock'); if(clockEl) clockEl.textContent=fmtT(0);
+  const clockEl=document.getElementById('clock'); if(clockEl) clockEl.textContent=clockText();
   const logEl=document.getElementById('cmdLog'); if(logEl) logEl.innerHTML='';
   syncUI(); render();
   log('Simulación reiniciada — lista para comenzar de cero');
@@ -1755,8 +2557,47 @@ function simTick(){
   const dt=(now-lastTs)/1000*simSpeed; lastTs=now;
   simTime+=dt;
   step(dt);
-  const clockEl=document.getElementById('clock'); if(clockEl) clockEl.textContent=fmtT(simTime);
+  recordHistory();
+  const clockEl=document.getElementById('clock'); if(clockEl) clockEl.textContent=clockText();
   updateProgBlink();
+}
+// LÍNEA DE TIEMPO: el anfitrión graba una instantánea del estado (~cada segundo) para
+// poder RETROCEDER la práctica. Sólo en el anfitrión; no se transmite por red.
+let history=[];
+function recordHistory(){
+  if(role==='instructor' && !isHost) return;
+  const last=history[history.length-1];
+  if(last && simTime-last.t < 1) return;
+  history.push({ t:simTime,
+    ac:JSON.parse(JSON.stringify(aircraft)),
+    sp:schedule.map(f=>!!f.spawned),
+    cn:schedule.map(f=>!!f.cancelled) });
+  if(history.length>5000) history.shift();
+}
+// Rebobina la práctica al instante t: pausa y restaura el estado grabado más cercano.
+function rewindTo(t){
+  if(!history.length) return;
+  let snap=history[0];
+  for(const s of history){ if(s.t<=t+0.001) snap=s; else break; }
+  simRunning=false; stopSimClock(); syncPlayBtn();
+  simTime=snap.t;
+  aircraft=JSON.parse(JSON.stringify(snap.ac));
+  if(snap.sp && snap.sp.length===schedule.length) schedule.forEach((f,i)=>{ f.spawned=snap.sp[i]; f.cancelled=snap.cn[i]; });
+  selected = selectedId!=null ? (aircraft.find(a=>a.id===selectedId)||null) : null;
+  const clockEl=document.getElementById('clock'); if(clockEl) clockEl.textContent=clockText();
+  syncUI(); render(); updateTimeline();
+}
+function onTimelineInput(v){ rewindTo(+v); }
+// Refresca el deslizable de línea de tiempo (sólo anfitrión, con grabación)
+function updateTimeline(){
+  const box=document.getElementById('timelineBox'); if(!box) return;
+  const show = (role==='instructor' && isHost && history.length>1);
+  box.style.display = show ? '' : 'none';
+  if(!show) return;
+  const sl=document.getElementById('timeline'), val=document.getElementById('tlVal');
+  const maxT=history[history.length-1].t;
+  if(document.activeElement!==sl){ sl.max=Math.floor(maxT); sl.value=Math.floor(simTime); }
+  if(val) val.textContent=fmtT((clockStart+simTime)%86400);
 }
 
 /* ===========================================================
@@ -1772,11 +2613,15 @@ function spawn(f){
     target:null, route:null, cmdHist:[], tContact:null, tTakeoff:null,
     manualSpd:null, manualAlt:null,
     rule:f.rule||null,  // regla del vuelo elegida al crearlo: 'VFR' (visual) / 'IFR' (instrumental)
+    cruise:f.cruise||120, // velocidad de crucero por defecto del vuelo (kt) — editable en vivo con el deslizador
     plannedExitPt:null, // punto de salida planificado por el controlador (sólo salidas, antes de despegar)
     circuitSide:null,   // lado de circuito (R/L) asignado al ordenar "viento en cola" — usado luego por "Base"
     landRoll:false,     // aterrizando: rodando por la pista tras tomar tierra (frenando)
     touchAndGo:false,   // maniobra de toma y despegue en curso
-    parkOnArrive:false  // al terminar el rodaje, estacionar en plataforma (en vez de quedar en espera)
+    parkOnArrive:false, // al terminar el rodaje, estacionar en plataforma (en vez de quedar en espera)
+    sq:f.sq||'',        // código transpondedor (squawk) del vuelo
+    entryPt:null,       // punto de entrada (llegadas) — para mostrar la ruta en la ficha
+    spawnSimTime:simTime // instante (simTime) en que apareció — para el destello de "nuevo" en el radar
   };
   if(f.op==='DEP'){
     // categoría elegida al crear el vuelo (MIL→plataforma militar / CIV→civil); si no se
@@ -1806,12 +2651,16 @@ function spawn(f){
     // o instrumental (DSK, VETAN, ZMR, ...). Sin punto definido, entra en final directo a
     // la pista activa (respaldo).
     const entry = f.point || arrivalEntryOf(f);
-    const p = REF[entry] || APP_REF[entry];
-    ac.platform=(f.cat==='MIL')?'MIL':'CIV'; ac.spd=120; ac.state=STATES.AIRE;  // a qué plataforma irá tras aterrizar
+    ac.entryPt = entry;   // punto de entrada (para mostrar la ruta en la ficha de progreso)
+    const p = (entry==='5NM'||entry==='4NM'||entry==='FINAL21') ? null : (REF[entry] || APP_REF[entry]);   // '4NM' se acepta por compatibilidad con programas antiguos
+    ac.platform=(f.cat==='MIL')?'MIL':'CIV'; ac.spd=ac.cruise||120; ac.state=STATES.AIRE;  // aparece YA a su velocidad de crucero (no acelera poco a poco)
     if(p){
       const d=Math.hypot(p.x,p.y)||1, ux=p.x/d, uy=p.y/d;
-      ac.x=p.x+ux*10*NM; ac.y=p.y+uy*10*NM;
-      ac.alt=2595+(VFR_PTS.has(entry)?2500:4500);   // los visuales más bajos que los instrumentales
+      // los VISUALES aparecen muy cerca de su punto (2 NM en alejamiento); los
+      // instrumentales algo más lejos (10 NM) para dar margen de vectores.
+      const beyond = VFR_PTS.has(entry) ? 2 : 10;
+      ac.x=p.x+ux*beyond*NM; ac.y=p.y+uy*beyond*NM;
+      ac.alt=2595+(VFR_PTS.has(entry)?1400:2400);   // los visuales más bajos que los instrumentales
       ac.hdg=(Math.atan2(p.x-ac.x, -(p.y-ac.y))*180/Math.PI+360)%360;  // rumbo hacia el punto
       ac.target={mode:'point', pt:entry};
       // Llegada INSTRUMENTAL: ruta automática punto → BBI (de ahí, vectores ILS). El
@@ -1819,28 +2668,45 @@ function spawn(f){
       // instrucción (ambos reemplazan ac.route).
       if(APP_REF[entry] && entry!=='BBI') ac.route=[{pt:'BBI'}];
     }else{
-      // respaldo: final directo a la cabecera activa, 15 NM
+      // APROXIMACIÓN DIRECTA alineada con la pista activa: '5NM' a 5 NM (final corto) o
+      // por defecto 15 NM (final largo). Aparece ya alineado, volando hacia la cabecera.
+      const nm = (entry==='5NM'||entry==='4NM') ? 5 : 15;   // '4NM' (programas antiguos) también a 5 NM
       const e=rwyEnds(); const dir=RWY.hdg*Math.PI/180; const ax=Math.sin(dir), ay=-Math.cos(dir);
       const land21 = activeRwy!=='03';
       const thr = land21 ? e.thr21 : e.thr03; const sgn = land21 ? +1 : -1;
-      ac.x=thr.x+ax*15*NM*sgn; ac.y=thr.y+ay*15*NM*sgn;
-      ac.alt=2595+4500; ac.hdg=land21?208:28;
+      ac.x=thr.x+ax*nm*NM*sgn; ac.y=thr.y+ay*nm*NM*sgn;
+      ac.alt=2595+Math.round(nm*220); ac.hdg=land21?208:28;   // senda suave (4 NM≈880 ft)
       ac.target={mode:'xy', x:thr.x, y:thr.y};
     }
   }
+  if(!ac.sq) ac.sq=genSquawk();   // si el vuelo no traía squawk (programas antiguos), se le asigna uno
   aircraft.push(ac);
+  // CAZA → aparece como PAREJA: se añade un numeral que vuela en formación detrás del líder
+  // (misma posición/squawk; comparte indicativo). No es seleccionable: lo gobierna el líder.
+  if((f.fighter || isFighter(ac.type)) && !ac.follows){
+    const D=300, r=ac.hdg*Math.PI/180;
+    const w={ id:uid++, cs:ac.cs, type:ac.type, op:ac.op, orig:ac.orig, dest:ac.dest,
+      x:ac.x-Math.sin(r)*D, y:ac.y+Math.cos(r)*D, hdg:ac.hdg, spd:ac.spd, alt:ac.alt,
+      state:ac.state, target:null, route:null, cmdHist:[], platform:ac.platform,
+      sq:ac.sq, cruise:ac.cruise, rule:ac.rule, follows:ac.id, spawnSimTime:simTime };
+    ac.wingman=w.id;
+    aircraft.push(w);
+  }
   log(`${ac.cs} aparece (${f.op})`);
 }
 
 function step(dt){
-  // spawn programados — las salidas aparecen en plataforma 3 minutos antes de su hora prevista
+  // spawn programados — la hora del vuelo es HORA DE RELOJ; se compara con el reloj actual
+  // (inicio + transcurrido). Las salidas aparecen en plataforma 3 minutos antes de su hora.
+  const nowClock=clockStart+simTime;
   schedule.forEach(f=>{
     const spawnAt = (f.op==='DEP') ? (f.time-180) : f.time;
-    if(!f.spawned && !f.cancelled && simTime>=spawnAt){f.spawned=true;spawn(f);}
+    if(!f.spawned && !f.cancelled && nowClock>=spawnAt){f.spawned=true;spawn(f);}
   });
 
   const ends=rwyEnds();
   aircraft.forEach(ac=>{
+    if(ac.follows!=null) return;   // los numerales de caza no llevan física propia: siguen al líder (ver más abajo)
     const tgtSpd = (ac.manualSpd!=null) ? ac.manualSpd : targetSpeed(ac);
     // aceleración: carrera de despegue ~18 kt/s, rodaje 6 kt/s, otros 3 kt/s; frenado 8 kt/s
     const pistaRoll = ac.state===STATES.PISTA && ac.op==='DEP';
@@ -1937,8 +2803,9 @@ function step(dt){
         const ahead=((ac.x*ax)+(ac.y*ay))*sgn;   // metros antes del CENTRO de la pista (>0 en aproximación)
         const gs=2595+Math.min(Math.max(0,ahead)*0.13, 8000);
         if(ac.alt>gs){
-          const err=ac.alt-gs;
-          const rate=Math.min(70, Math.max(25, err*0.45));  // descenso suave y progresivo (sin picado)
+          // ritmo de bajada SIEMPRE suave (tope bajo): aunque el avión esté alto y cerca,
+          // desciende despacio aunque eso lo haga tocar más allá del centro — nunca picado.
+          const rate=Math.min(28, Math.max(14, (ac.alt-gs)*0.25));
           ac.alt=Math.max(gs, ac.alt-rate*dt);
         }
       }
@@ -1956,7 +2823,7 @@ function step(dt){
     if(ac.state===STATES.FINAL && ac.alt<=2595+20) touchdown(ac);
     // despegue (salida) o ascenso tras toma y despegue: al superar la velocidad de
     // rotación, la aeronave deja la pista y sube
-    if(ac.state===STATES.PISTA && ac.spd>110 && (ac.op==='DEP'||ac.touchAndGo)){
+    if(ac.state===STATES.PISTA && ac.spd>110 && (ac.op==='DEP'||ac.touchAndGo) && !ac.landRoll){
       ac.state=STATES.AIRE; ac.tTakeoff=simTime; ac.touchAndGo=false;
     }
     // aterrizaje completo: el avión frena en pista (a ~35 kt) y rueda hasta alcanzar
@@ -1967,17 +2834,32 @@ function step(dt){
       const reached = (activeRwy==='03') ? (t>=ac.exitT) : (t<=ac.exitT);
       if(reached){
         ac.landRoll=false; ac.state=STATES.RODAJE;
-        const exit=parallelPt(ac.exitT);
-        ac.target={mode:'xy', x:exit.x, y:exit.y}; ac.route=null;
-        log(`${ac.cs}: pista libre, abandonando por la calle de rodaje`);
+        // se detiene JUSTO FUERA de la pista (a un lado, unos 70 m del eje: ya despejado del
+        // borde de pista ~22 m) SIN llegar a la calle de rodaje paralela (que está a 300 m).
+        const dir2=RWY.hdg*Math.PI/180, ppx=Math.cos(dir2), ppy=Math.sin(dir2);
+        const b=lerpPt(ends.thr03, ends.thr21, Math.max(0.04,Math.min(0.96,ac.exitT)));
+        const off=70;
+        ac.target={mode:'xy', x:b.x+ppx*off, y:b.y+ppy*off}; ac.route=null;
+        log(`${ac.cs}: pista libre, saliendo por el lateral`);
       }
     }
+  });
+  // CAZAS EN FORMACIÓN: cada numeral sigue a su líder, justo detrás (uno tras otro).
+  aircraft.forEach(w=>{
+    if(w.follows==null) return;
+    const L=aircraft.find(a=>a.id===w.follows);
+    if(!L) return;
+    const D=300, r=L.hdg*Math.PI/180;
+    w.hdg=L.hdg; w.spd=L.spd; w.alt=L.alt; w.state=L.state; w.op=L.op; w.platform=L.platform;
+    w.x=L.x-Math.sin(r)*D; w.y=L.y+Math.cos(r)*D;
   });
   // limpiar los que se van lejos tras despegar
   aircraft=aircraft.filter(ac=>{
     const r=Math.hypot(ac.x,ac.y)/NM;
     return !(r>9 && ac.state===STATES.AIRE && ac.op==='DEP');
   });
+  // elimina numerales cuyo líder ya no existe (p.ej. tras despegar y alejarse)
+  aircraft=aircraft.filter(w=> w.follows==null || aircraft.some(a=>a.id===w.follows));
   syncUI();
 }
 
@@ -1987,8 +2869,8 @@ function targetSpeed(ac){
     case STATES.PROG: return 0;
     case STATES.RODAJE: return 30;     // rodaje ~30 kt
     case STATES.ESPERA: return 0;
-    case STATES.PISTA: return (ac.op==='DEP'||ac.touchAndGo)?140:(ac.landRoll?50:8); // aterrizaje: frena a ~50 kt y rueda hasta la salida
-    case STATES.AIRE: return 120;      // velocidad de crucero / en ruta
+    case STATES.PISTA: return ac.landRoll?50:((ac.op==='DEP'||ac.touchAndGo)?140:8); // aterrizando (landRoll): frena a ~50 kt; despegando / toma y despegue: acelera a 140
+    case STATES.AIRE: return ac.cruise||120;   // velocidad de crucero del vuelo (por defecto 120)
     case STATES.APROX: return 120;
     case STATES.FINAL: return 110;     // velocidad de aproximación final realista
     default: return ac.spd;
@@ -1999,15 +2881,15 @@ function turnToward(cur,want,maxd){
   if(Math.abs(d)<=maxd)return want;
   return (cur+Math.sign(d)*maxd+360)%360;
 }
-// altitud objetivo: en ruta 3000 ft sobre el campo (visible en vuelo crucero),
-// haciendo tráficos / circuito (cerca del campo, viento en cola, base, ILS) 1000 ft
+// altitud objetivo (más baja que antes, los aviones volaban demasiado alto): en ruta
+// ~1800 ft sobre el campo, en circuito (viento en cola/base/ILS) ~700 ft.
 function targetAlt(ac){
   const base=2595;
   if(ac.state===STATES.PROG||ac.state===STATES.RODAJE||ac.state===STATES.ESPERA||ac.state===STATES.PISTA) return base; // en tierra: altitud de campo
   if(ac.state===STATES.FINAL) return base;
-  if(ac.state===STATES.APROX) return base+1000;
-  if(ac.state===STATES.AIRE && ac.target && (ac.target.mode==='xy'||ac.target.mode==='hold'||ac.target.mode==='orbit')) return base+1000; // tráficos (viento en cola/base/orbit/inmóvil)
-  return base+3000; // en ruta
+  if(ac.state===STATES.APROX) return base+700;
+  if(ac.state===STATES.AIRE && ac.target && (ac.target.mode==='xy'||ac.target.mode==='hold'||ac.target.mode==='orbit')) return base+700; // tráficos (viento en cola/base/orbit/inmóvil)
+  return base+1800; // en ruta
 }
 // tráficos haciendo circuito (viento en cola/base/orbit/inmóvil): se ven muy
 // pequeños y al controlador le cuesta distinguirlos, así que se agrandan
@@ -2043,6 +2925,14 @@ function arriveTarget(ac){
     ac.target={mode:'xy', x:far.x, y:far.y};
     return;
   }
+  // AUTO-AVANCE: una LLEGADA visual que alcanza su punto EXTERIOR (E, N, S, W) sin que el
+  // controlador le haya dado otra orden, continúa SOLA hacia el punto interior/base
+  // correspondiente (E→E-1, N→N-1, S→E-1, W→N-1), en vez de quedarse parada. Así, si no
+  // te da tiempo a atenderla, sigue su circuito hasta la base (allí ya espera instrucciones).
+  if(t.mode==='point' && ac.op==='ARR' && VFR_PTS.has(t.pt) && (!ac.route||!ac.route.length)){
+    const inner = (t.pt==='N'||t.pt==='W') ? 'N-1' : (t.pt==='E'||t.pt==='S') ? 'E-1' : null;
+    if(inner && t.pt!==inner){ ac.target={mode:'point',pt:inner}; ac.entryPt=t.pt; log(`${ac.cs}: ${t.pt} → procede a ${inner}`); return; }
+  }
   if(t.mode==='point'&&t.pt==='BBI'&&ac.op==='ARR'){
     ac.state=STATES.APROX; ac.target={mode:'point',pt:'E'}; log(`${ac.cs} sobre BBI, vectores ILS`);
   }else if(ac.state===STATES.RODAJE && ac.parkOnArrive){
@@ -2062,6 +2952,9 @@ function arriveTarget(ac){
   }else if(ac.state===STATES.AIRE||ac.state===STATES.APROX||ac.state===STATES.PROG){
     // llegó a un punto ordenado y no hay más instrucciones: se queda inmóvil en el sitio
     // (sin orbitar) — anulamos también la velocidad manual por el mismo motivo de arriba.
+    // Recordamos la velocidad que llevaba para RETOMARLA si el controlador le vuelve a dar
+    // ruta/destino (así no arranca de 0 y tiene que acelerar despacio).
+    ac.resumeSpd = ac.spd || ac.cruise || 120;
     ac.target={mode:'hold',x:ac.x,y:ac.y};
     ac.spd=0;
     ac.manualSpd=null;
@@ -2078,6 +2971,7 @@ function cmd(action,arg){
   if(!selected){flash('Selecciona una aeronave primero');return;}
   if(relayRC('cmd',[action,arg])) return;   // 2º profesor: la orden la aplica el anfitrión
   const ac=selected;
+  const wasHold = ac.target && ac.target.mode==='hold';   // ¿estaba parado en un punto?
   if(action!=='taxi_hold'){ ac.route=null; plannedRoute=[]; }
   // una nueva instrucción retoma el control automático de velocidad/altitud
   ac.manualSpd=null; ac.manualAlt=null;
@@ -2185,6 +3079,12 @@ function cmd(action,arg){
     case 'rp': ac.state=ac.state===STATES.PROG?STATES.AIRE:ac.state; ac.target={mode:'point',pt:arg}; log(`${ac.cs}: proceda a ${arg}`);break;
     case 'toBBI': ac.target={mode:'point',pt:'BBI'}; log(`${ac.cs}: proceda a BBI`);break;
     case 'ils': ac.state=STATES.APROX; ac.target={mode:'point',pt:'E'}; log(`${ac.cs}: establézcase ILS ${activeRwy}`);break;
+  }
+  // si venía PARADO en un punto y la nueva orden lo manda a volar a otro sitio, retoma su
+  // última velocidad en vez de arrancar de 0 (no aplica a maniobras en tierra).
+  if(wasHold && ac.target && ac.target.mode!=='hold'
+     && ac.state!==STATES.RODAJE && ac.state!==STATES.ESPERA && ac.state!==STATES.PISTA && ac.state!==STATES.PROG){
+    resumeHoldSpeed(ac);
   }
   ac.cmdHist.push(action+(arg?' '+arg:''));
   syncUI();
@@ -2322,13 +3222,14 @@ function syncUI(){
   const sel=document.getElementById('acSelect');
   if(sel){
     const cur=selected?selected.id:'';
-    sel.innerHTML='<option value="">— ninguna —</option>'+aircraft.map(a=>`<option value="${a.id}" ${a.id==cur?'selected':''}>${a.cs} · ${a.state}</option>`).join('');
+    sel.innerHTML='<option value="">— ninguna —</option>'+aircraft.filter(a=>a.follows==null).map(a=>`<option value="${a.id}" ${a.id==cur?'selected':''}>${a.cs} · ${a.state}</option>`).join('');
   }
   document.getElementById('selCs').textContent=selected?selected.cs:'—';
   syncSliders();
   renderStrips();
   renderStudentStrips();
   renderProgList();
+  updateTimeline();
 }
 
 /* ---------- Instructor strips ---------- */
@@ -2336,9 +3237,10 @@ function syncUI(){
 // identificando el nombre del punto de referencia más cercano cuando es posible.
 function renderStrips(){
   const el=document.getElementById('stripList');
-  document.getElementById('stripCount').textContent=aircraft.length;
-  if(!aircraft.length){el.innerHTML='<div class="empty2">No hay vuelos activos. Programa e inicia la simulación.</div>';return;}
-  el.innerHTML=aircraft.map(a=>{
+  const list=aircraft.filter(a=>a.follows==null);   // los numerales de caza no llevan ficha propia
+  document.getElementById('stripCount').textContent=list.length;
+  if(!list.length){el.innerHTML='<div class="empty2">No hay vuelos activos. Programa e inicia la simulación.</div>';return;}
+  el.innerHTML=list.map(a=>{
     const rule=flightRule(a);
     const ruleTag=rule?`<span class="ruleTag rule-${rule}">${rule}</span>`:'';
     return `
@@ -2352,10 +3254,10 @@ function renderStrips(){
       <div class="row2">
         <span>${a.orig}→${a.dest}</span>
         <span>FL${a.lvl}</span>
+        ${a.sq?`<span title="Squawk (código transpondedor)">SQ <b>${a.sq}</b></span>`:''}
       </div>
+      ${routeLabel(a)?`${(function(){const t=timeToNextPoint(a),d=distToNextPoint(a);return t!=null?`<div class="row2"><span class="ttnp" title="Tiempo y distancia al siguiente punto">⏱ ${fmtMinSec(t)} · ${d.toFixed(1)} NM al siguiente punto</span></div>`:'';})()}<div class="row2"><span class="rtpts" title="Puntos de la ruta">▷ ${routeLabel(a)}</span></div>`:''}
       <div class="row3">
-        <span>HC: ${a.tContact!=null?fmtMS(a.tContact):'--:--'}</span>
-        <span>DEP: ${a.tTakeoff!=null?fmtMS(a.tTakeoff):'--:--'}</span>
         <span class="state st-${a.state}">${a.state}</span>
       </div>
       ${exitPtPicker(a)}
@@ -2370,6 +3272,10 @@ function renderStrips(){
 (function(){
   const stripListEl=document.getElementById('stripList');
   if(!stripListEl) return;
+  // Doble clic detectado A MANO por marca de tiempo: la lista se repinta ~10 veces/seg, así
+  // que el evento nativo "dblclick" se pierde (el nodo pulsado ya no es el mismo). Un 2º clic
+  // sobre la MISMA ficha en <400 ms = doble clic → centra el radar en ese avión.
+  let lastId=null, lastT=0;
   stripListEl.addEventListener('mousedown',function(e){
     const delBtn=e.target.closest('[data-del-id]');
     if(delBtn){ e.stopPropagation(); removeAircraft(+delBtn.getAttribute('data-del-id')); return; }
@@ -2378,9 +3284,23 @@ function renderStrips(){
     const ddToggle=e.target.closest('[data-toggledd-id]');
     if(ddToggle){ e.stopPropagation(); toggleExitPtDropdown(+ddToggle.getAttribute('data-toggledd-id')); return; }
     const row=e.target.closest('.strip');
-    if(row && row.dataset.acId!==undefined) selectAc(+row.dataset.acId);
+    if(row && row.dataset.acId!==undefined){
+      const id=+row.dataset.acId, now=Date.now();
+      if(lastId===id && now-lastT<400){ focusOnAircraft(id); lastId=null; lastT=0; }
+      else { selectAc(id); lastId=id; lastT=now; }
+    }
   });
 })();
+// Centra la vista de radar en una aeronave, con un zoom «normal» (ni muy cerca ni muy lejos).
+function focusOnAircraft(id){
+  const a=aircraft.find(x=>x.id===id); if(!a) return;
+  selectAc(id);
+  radarZoom = 2.2;   // ≈12 NM de radio visible: se ve el avión y su entorno cercano
+  const {scale}=radarProjParams(radar.width, radar.height);
+  radarPan.x = -a.x*scale;   // deja el avión en el centro exacto de la pantalla
+  radarPan.y = -a.y*scale;
+  render();
+}
 // Elimina una aeronave activa de la simulación (p.ej. si se programó por error)
 function removeAircraft(id){
   const idx=aircraft.findIndex(a=>a.id===id);
@@ -2388,9 +3308,13 @@ function removeAircraft(id){
   const ac=aircraft[idx];
   if(!applyingRemote && !confirm(`¿Eliminar el vuelo ${ac.cs} de la simulación?`)) return;
   if(relayRC('delac',[id])) return;
-  aircraft.splice(idx,1);
+  // si es un caza, retira también su numeral en formación
+  aircraft=aircraft.filter(a=>a.id!==id && a.follows!==id);
+  // marca su vuelo en la SECUENCIA DE VUELOS como TERMINADO (queda en gris, como registro)
+  const sf=schedule.find(s=>s.cs===ac.cs && s.spawned && !s.cancelled);
+  if(sf) sf.cancelled=true;
   if(selected&&selected.id===id){ selected=null; selectedId=null; plannedRoute=[]; }
-  log(`${ac.cs}: vuelo retirado de la simulación por el controlador`);
+  log(`${ac.cs}: vuelo terminado y retirado de la simulación`);
   syncUI(); render();
 }
 // Igual que removeAircraft, pero localizando la aeronave por indicativo — lo usa el
@@ -2461,16 +3385,25 @@ function currentRouteOf(ac){
 }
 // Aplicaciones de bajo nivel (sin red) de las acciones de radar — las llaman tanto el
 // profesor local/anfitrión como el anfitrión al recibir la acción de un 2º profesor.
+// Si la aeronave estaba PARADA en un punto (hold, velocidad 0) y se le vuelve a dar ruta o
+// destino, recupera la velocidad que llevaba antes de detenerse en vez de arrancar de 0.
+function resumeHoldSpeed(ac){
+  if(ac.resumeSpd){ ac.spd=ac.resumeSpd; ac.resumeSpd=null; }
+}
 function applyDirectTo(ac,x,y){
+  const wasHold = ac.target && ac.target.mode==='hold';
   ac.route=null;
   ac.target={mode:'xy', x, y};
   if(ac.state===STATES.PROG||ac.state===STATES.ESPERA) ac.state=STATES.AIRE;
+  if(wasHold) resumeHoldSpeed(ac);
 }
 function applyRoute(ac,pts){
   if(!pts||!pts.length) return;
+  const wasHold = ac.target && ac.target.mode==='hold';
   ac.target={mode:'xy', x:pts[0].x, y:pts[0].y};
   ac.route=pts.slice(1);
   if(ac.state===STATES.PROG||ac.state===STATES.ESPERA) ac.state=STATES.AIRE;
+  if(wasHold) resumeHoldSpeed(ac);
 }
 function applyMove(ac,x,y){ ac.x=x; ac.y=y; }
 // Clic en el radar: si hay un avión cerca del clic, lo selecciona;
@@ -2509,7 +3442,7 @@ radar.addEventListener('click',function(e){
     const d=Math.hypot(px-mx,py-my);
     if(d<nearestD){nearestD=d;nearest=a;}
   });
-  if(nearest){ selectAc(nearest.id); return; }
+  if(nearest){ selectAc(nearest.follows!=null ? nearest.follows : nearest.id); return; }   // pinchar el numeral selecciona al líder
   if(selected){
     // El clic normal fija el PRIMER punto de la ruta (sustituye cualquier ruta anterior);
     // a partir de aquí, cada Ctrl+clic añade el siguiente punto en cadena (2º, 3º…).
@@ -2889,21 +3822,85 @@ function drawRadar(canvas, ctx){
     const isSel=selected&&selected.id===a.id;
     // silueta orientada según el rumbo, igual que en la vista de plataforma
     // en rodaje/espera se ven muy pequeños sobre la calle de rodaje: se agrandan
-    const taxiMult=(a.state===STATES.RODAJE||a.state===STATES.ESPERA)?1.6:1;
+    const taxiMult=(a.state===STATES.RODAJE||a.state===STATES.ESPERA)?1.4:1;
     const isCircuit=isCircuitTraffic(a);
-    const circuitMult=isCircuit?2:1;
+    const circuitMult=isCircuit?1.6:1;
     // en el aire (en ruta, ILS, etc., fuera del circuito) también se agrandan algo
-    const airMult=(!isCircuit&&(a.state===STATES.AIRE||a.state===STATES.APROX||a.state===STATES.FINAL))?1.3:1;
-    const sz=Math.max(6,scale*10)*taxiMult*circuitMult*airMult;
+    const airMult=(!isCircuit&&(a.state===STATES.AIRE||a.state===STATES.APROX||a.state===STATES.FINAL))?1.15:1;
+    // tamaño de la flecha: con el radar alejado (scale pequeña) NO debe quedarse grande,
+    // así que el suelo es bajo (4 px) y crece suave con el zoom.
+    const sz=Math.max(4,scale*8)*taxiMult*circuitMult*airMult;
+    // DESTELLO DE APARICIÓN: durante unos segundos tras aparecer, un anillo brillante
+    // pulsante (que se expande) marca el avión nuevo para que el controlador no se pierda
+    // su aparición, sobre todo con el radar muy alejado o muy acercado.
+    if(a.spawnSimTime!=null && a.follows==null){
+      const age=simTime-a.spawnSimTime, FLASH=7;
+      if(age>=0 && age<FLASH){
+        const fade=1-age/FLASH;                 // se desvanece con el tiempo
+        const grow=(age%1.2)/1.2;               // anillo que se expande cada ~1,2 s
+        ctx.save();
+        ctx.strokeStyle='rgba(255,210,60,'+(0.85*fade)+')';   // ámbar brillante
+        ctx.lineWidth=2;
+        ctx.beginPath();ctx.arc(px,py,sz*1.6+grow*sz*3.2,0,7);ctx.stroke();
+        const pulse=0.55+0.45*Math.sin(age*7);
+        ctx.strokeStyle='rgba(255,255,255,'+(pulse*fade)+')';
+        ctx.lineWidth=2.5;
+        ctx.beginPath();ctx.arc(px,py,sz*1.5,0,7);ctx.stroke();
+        ctx.restore();
+      }
+    }
     ctx.save();ctx.translate(px,py);ctx.rotate(a.hdg*Math.PI/180);
-    ctx.fillStyle = isSel?'#ffffff':(a.op==='DEP'?'#3ddc84':'#5da9ff');
+    ctx.fillStyle = aircraftColor(a);   // color por categoría (militar / aerolínea / civil)
     ctx.beginPath();ctx.moveTo(0,-sz*1.3);ctx.lineTo(sz*0.85,sz*1.0);ctx.lineTo(0,sz*0.55);ctx.lineTo(-sz*0.85,sz*1.0);ctx.closePath();ctx.fill();
-    if(isSel){ctx.strokeStyle='rgba(255,255,255,.7)';ctx.lineWidth=1.4;ctx.stroke();}
+    // borde oscuro fino para que los colores claros (civiles blancos) resalten sobre el radar
+    ctx.strokeStyle='rgba(0,0,0,.45)';ctx.lineWidth=1;ctx.stroke();
+    if(isSel){ctx.strokeStyle='#ffd23f';ctx.lineWidth=2.2;ctx.stroke();}   // selección: anillo ámbar
     ctx.restore();
-    ctx.fillStyle=isSel?'#ffffff':'#cfe3da';ctx.font='10px JetBrains Mono';
-    ctx.fillText(a.cs,px+sz+3,py-3);
-    ctx.fillStyle='#7f968d';ctx.font='9px JetBrains Mono';
-    ctx.fillText(Math.round(a.alt)+'ft '+Math.round(a.spd)+'kt · '+(a.platform||'')+' '+a.op,px+sz+3,py+8);
+    // etiquetas (indicativo + datos) sólo si el avión está dentro de la vista: si está
+    // fuera, no deben filtrarse trozos de texto por el borde (de eso avisa la flecha de borde).
+    if(px>=-2 && px<=w && py>=-2 && py<=h){
+      ctx.fillStyle=isSel?'#ffffff':'#cfe3da';ctx.font='10px JetBrains Mono';
+      ctx.fillText(a.cs,px+sz+3,py-3);
+      ctx.fillStyle='#7f968d';ctx.font='9px JetBrains Mono';
+      ctx.fillText(Math.round(a.alt)+'ft '+Math.round(a.spd)+'kt · '+(a.platform||'')+' '+a.op,px+sz+3,py+8);
+    }
+  });
+
+  // AVISO de aviones que aparecen FUERA de la vista actual (por el zoom o el desplazamiento):
+  // mientras dura su destello, una flecha ÁMBAR pulsante en el borde del radar apunta hacia
+  // ellos con su indicativo y distancia, para enterarse aunque el avión salga lejos del zoom.
+  ctx.font='bold 12px JetBrains Mono';
+  const newMargin=30;
+  aircraft.forEach(a=>{
+    if(a.spawnSimTime==null || a.follows!=null) return;
+    const age=simTime-a.spawnSimTime; if(age<0||age>=9) return;
+    const sx=cx+a.x*scale, sy=cy+a.y*scale;
+    if(sx>=0 && sx<=w && sy>=0 && sy<=h) return;   // ya visible: basta con el anillo del destello
+    const dx=sx-cx, dy=sy-cy, len=Math.hypot(dx,dy)||1;
+    const ux=dx/len, uy=dy/len;
+    let t=Infinity;
+    if(ux>0) t=Math.min(t,(w-newMargin-cx)/ux); else if(ux<0) t=Math.min(t,(newMargin-cx)/ux);
+    if(uy>0) t=Math.min(t,(h-newMargin-cy)/uy); else if(uy<0) t=Math.min(t,(newMargin-cy)/uy);
+    if(!isFinite(t)||t<0) t=0;
+    const ex=cx+ux*t, ey=cy+uy*t, ang=Math.atan2(uy,ux);
+    const fade=1-age/9, pulse=0.55+0.45*Math.sin(age*7);
+    ctx.save();
+    ctx.translate(ex,ey); ctx.rotate(ang);
+    ctx.fillStyle='rgba(255,205,55,'+(0.55+0.45*pulse)+')';
+    ctx.beginPath();ctx.moveTo(16,0);ctx.lineTo(-9,-10);ctx.lineTo(-9,10);ctx.closePath();ctx.fill();
+    ctx.restore();
+    const distNM=Math.round(Math.hypot(a.x,a.y)/NM);
+    // etiqueta justo POR DENTRO de la flecha, extendiéndose hacia el centro (nunca se
+    // recorta el indicativo por el borde): a la izquierda alinea a la izquierda, a la
+    // derecha alinea a la derecha.
+    const lx=ex-ux*12, ly=ey-uy*12;
+    const txt='✈ '+a.cs+' '+a.op+'  '+distNM+' NM';
+    ctx.textAlign = ux>=0 ? 'right' : 'left';
+    ctx.lineWidth=3; ctx.strokeStyle='rgba(2,8,6,.9)';
+    ctx.strokeText(txt, lx, ly+4);
+    ctx.fillStyle='rgba(255,231,140,'+Math.max(0.6,fade)+')';
+    ctx.fillText(txt, lx, ly+4);
+    ctx.textAlign='left';
   });
 
   // ---------- escala gráfica (en millas náuticas, adaptada al nivel de zoom) ----------
@@ -3041,6 +4038,14 @@ function tiltCam(deltaPitch){
   wrap.addEventListener('touchstart', e=>{ if(e.target.closest('.camCtrl'))return; if(e.touches[0]) start(e.touches[0].clientX,e.touches[0].clientY); }, {passive:true});
   wrap.addEventListener('touchmove', e=>{ if(e.touches[0]) move(e.touches[0].clientX,e.touches[0].clientY); }, {passive:true});
   wrap.addEventListener('touchend', end);
+  // Zoom con la rueda del ratón en la vista de torre: acerca/aleja la imagen
+  // ajustando el campo de visión (FOV). Más FOV = más zoom (acercar).
+  wrap.addEventListener('wheel', e=>{
+    e.preventDefault();
+    const factor = e.deltaY<0 ? 1.12 : (1/1.12);
+    CAM.fov = Math.max(0.30, Math.min(2.2, CAM.fov*factor));
+    if(role==='student') render();
+  }, {passive:false});
 })();
 // Proyecta punto del mundo (x,y en m, alt en m sobre AD) -> pantalla
 function project(wx,wy,walt,w,h){
@@ -3334,7 +4339,7 @@ function drawTowerAircraft(w,h){
     // Morro picado: si la aeronave está descendiendo (final/aproximación), proyectamos el
     // punto de DELANTE más bajo y el de DETRÁS más alto, de modo que la silueta "apunta
     // hacia abajo" en pantalla, como un avión en descenso.
-    const pitch=(a.state===STATES.FINAL||a.state===STATES.APROX)?70:0;
+    const pitch=(a.state===STATES.FINAL||a.state===STATES.APROX)?36:0;
     const prF=project(a.x+Math.sin(hdgRad)*step, a.y-Math.cos(hdgRad)*step, (a.alt-2595)-pitch, w, h);
     const prB=project(a.x-Math.sin(hdgRad)*step, a.y+Math.cos(hdgRad)*step, (a.alt-2595)+pitch, w, h);
     let screenAngle=0;
@@ -3384,12 +4389,15 @@ function acftLook(a){
 function drawPlane(x,y,sz,a,sel,angle,cosA){
   // Silueta según desde dónde se ve la aeronave (pseudo-3D): de frente cuando viene
   // hacia la torre, de cola cuando se aleja, y de planta/perfil cuando cruza.
-  if(cosA!=null && cosA<=-0.55){ drawPlaneFront(x,y,sz,a,sel,false); return; } // viene de frente
-  if(cosA!=null && cosA>= 0.55){ drawPlaneFront(x,y,sz,a,sel,true);  return; } // se aleja (de cola)
+  // Umbral ESTRICTO: la vista de frente/cola solo cuando el avión va casi directamente
+  // hacia la torre (o alejándose). En viento en cola (vuela "de través" respecto a la
+  // torre) cosA queda lejos de ±1, así que se ve de perfil/planta, no de frente.
+  if(cosA!=null && cosA<=-0.78){ drawPlaneFront(x,y,sz,a,sel,false); return; } // viene de frente (hacia la torre)
+  if(cosA!=null && cosA>= 0.78){ drawPlaneFront(x,y,sz,a,sel,true);  return; } // se aleja (de cola)
   tctx.save();tctx.translate(x,y);tctx.rotate(angle||0);
   const look=acftLook(a);
   const bl=look.bodyLen, ws=look.wingSweep, ts=look.tailSize;
-  const body=sel?'#ffffff':look.color;
+  const body=sel?'#ffffff':aircraftColor(a);   // color por categoría (militar/aerolínea/civil)
   // cuando la aeronave está seleccionada, además de pintarla en blanco se resaltan
   // sus bordes con un contorno de color vivo y más grueso, para que destaque con claridad
   const edge=sel?'#ffd23f':'rgba(35,50,70,.55)';
@@ -3440,7 +4448,7 @@ function drawPlane(x,y,sz,a,sel,angle,cosA){
 // central, deriva y estabilizador. Da sensación 3D cuando el avión viene/va de frente.
 function drawPlaneFront(x,y,sz,a,sel,rear){
   const look=acftLook(a); const ws=look.wingSweep;
-  const body=sel?'#ffffff':look.color;
+  const body=sel?'#ffffff':aircraftColor(a);   // color por categoría (militar/aerolínea/civil)
   const edge=sel?'#ffd23f':'rgba(35,50,70,.55)';
   const edgeW=sel?Math.max(1.4,sz*0.14):Math.max(0.5,sz*0.045);
   tctx.save();tctx.translate(x,y);
